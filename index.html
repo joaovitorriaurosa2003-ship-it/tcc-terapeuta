@@ -362,14 +362,16 @@
             </div>; })}
           </>}
         </>}
-        {tab==="diario"&&<DiarioTab patientId={patientId} diarios={diarios}/>}
+        {tab==="diario"&&<DiarioTab patientId={patientId}/>}
       </div>
     </div>;
   }
 
   // ── Diário Tab (paciente) ──
-  function DiarioTab({patientId,diarios}) {
+  function DiarioTab({patientId}) {
+    const [diarios,setDiarios]=useState([]);
     const [emocaoSel,setEmocaoSel]=useState(null); const [intensidade,setIntensidade]=useState(5); const [contexto,setContexto]=useState(""); const [pensamento,setPensamento]=useState(""); const [enviado,setEnviado]=useState(false);
+    useEffect(()=>{ const u=fbListen(`patients/${patientId}/diarios`,d=>setDiarios(d?Object.values(d).reverse():[])); return ()=>u(); },[patientId]);
     const intDesc=v=>["","Muito leve","Muito leve","Leve","Leve","Moderada","Moderada","Intensa","Intensa","Muito intensa","Muito intensa"][v];
     async function enviar() {
       if (!emocaoSel) return;
