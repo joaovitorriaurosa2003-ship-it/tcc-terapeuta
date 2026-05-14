@@ -96,10 +96,13 @@
           const d=await fbGet("therapist");
           if (pass===(d?.password||"1234")) onLogin("therapist",null); else setErr("Senha incorreta.");
         } else {
-          const p=await fbGet(`patients/${pid}`);
-          if (!p) { setErr("Paciente não encontrado."); setLoading(false); return; }
-          if (p.password&&p.password!==pass) { setErr("Senha incorreta."); setLoading(false); return; }
-          onLogin("patient",pid);
+          const all=await fbGet("patients");
+          if (!all) { setErr("Nenhum paciente cadastrado ainda."); setLoading(false); return; }
+          const list=Object.values(all);
+          const found=list.find(p=>p.name.trim().toLowerCase()===pid.trim().toLowerCase());
+          if (!found) { setErr("Paciente não encontrado."); setLoading(false); return; }
+          if (found.password&&found.password!==pass) { setErr("Senha incorreta."); setLoading(false); return; }
+          onLogin("patient",found.id);
         }
       } catch(e) { setErr("Erro de conexão."); }
       setLoading(false);
@@ -111,7 +114,7 @@
         <div style={{display:"flex",marginBottom:20,borderRadius:10,overflow:"hidden",border:"1px solid #e5e7eb"}}>
           {["therapist","patient"].map(r=><button key={r} onClick={()=>{setRole(r);setErr("");}} style={{flex:1,padding:"10px 0",background:role===r?"#6d28d9":"#fff",color:role===r?"#fff":"#666",border:"none",cursor:"pointer",fontWeight:600,fontSize:13}}>{r==="therapist"?"Terapeuta":"Paciente"}</button>)}
         </div>
-        {role==="patient"&&<input placeholder="ID do paciente" value={pid} onChange={e=>setPid(e.target.value)} style={inp}/>}
+        {role==="patient"&&<input placeholder="Seu nome completo" value={pid} onChange={e=>setPid(e.target.value)} style={inp}/>}
         <input type="password" placeholder="Senha" value={pass} onChange={e=>setPass(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handle()} style={inp}/>
         {err&&<p style={{color:"#e11d48",fontSize:12,marginBottom:8}}>{err}</p>}
         <button onClick={handle} disabled={loading} style={{...btn(),width:"100%"}}>{loading?"Entrando...":"Entrar"}</button>
@@ -128,6 +131,10 @@
 
     async function addPatient() {
       const name=prompt("Nome do paciente:"); if(!name) return;
+      const all=await fbGet("patients");
+      const list=all?Object.values(all):[];
+      const dup=list.find(p=>p.name.trim().toLowerCase()===name.trim().toLowerCase());
+      if (dup) { alert(`⚠️ Já existe um paciente com o nome "${name}". Use um nome diferente ou adicione um sobrenome.`); return; }
       const password=prompt("Senha do paciente:")||"1234";
       const id="p"+Date.now();
       await fbSet(`patients/${id}`,{id,name,password,tasks:{},prontuario:{diagnostico:"",medicacoes:"",historico:"",anotacoes:"",evolucao:{}}});
