@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>TCC Terapeuta</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -37,23 +37,44 @@
 </script>
 
 <script type="text/babel" data-presets="react">
-  const { useState, useEffect } = React;
+  const { useState, useEffect, useRef } = React;
 
   const TASK_TYPES = [
-    { id:"diario", label:"📔 Diário de Emoções", color:"#7c3aed" },
     { id:"pensamentos", label:"💭 Pensamentos Automáticos", color:"#0891b2" },
-    { id:"atencao", label:"🎯 Teste de Atenção", color:"#d97706" },
+    { id:"atencao",     label:"🎯 Teste de Atenção",        color:"#d97706" },
     { id:"experimento", label:"🔬 Experimento Comportamental", color:"#059669" },
-    { id:"escala", label:"📊 Escala de Humor/Ansiedade", color:"#e11d48" },
+    { id:"escala",      label:"📊 Escala de Bem-Estar",     color:"#e11d48" },
   ];
   function getTypeInfo(id) { return TASK_TYPES.find(t=>t.id===id)||{}; }
 
-  async function fbGet(path) { const s=await window._get(window._ref(window._db,path)); return s.exists()?s.val():null; }
-  async function fbSet(path,val) { await window._set(window._ref(window._db,path),val); }
-  async function fbUpdate(path,val) { await window._update(window._ref(window._db,path),val); }
-  function fbListen(path,cb) { return window._onValue(window._ref(window._db,path),s=>cb(s.exists()?s.val():null)); }
+  const EMOCOES = [
+    {emoji:"😊",nome:"Alegria",   color:"#f59e0b",bg:"#fef3c7"},
+    {emoji:"😢",nome:"Tristeza",  color:"#3b82f6",bg:"#dbeafe"},
+    {emoji:"😡",nome:"Raiva",     color:"#ef4444",bg:"#fee2e2"},
+    {emoji:"😰",nome:"Ansiedade", color:"#8b5cf6",bg:"#ede9fe"},
+    {emoji:"😨",nome:"Medo",      color:"#6366f1",bg:"#e0e7ff"},
+    {emoji:"🤢",nome:"Nojo",      color:"#10b981",bg:"#d1fae5"},
+    {emoji:"😳",nome:"Vergonha",  color:"#f97316",bg:"#ffedd5"},
+    {emoji:"😔",nome:"Culpa",     color:"#64748b",bg:"#f1f5f9"},
+    {emoji:"😴",nome:"Cansaço",   color:"#94a3b8",bg:"#f8fafc"},
+    {emoji:"🥰",nome:"Amor",      color:"#ec4899",bg:"#fce7f3"},
+    {emoji:"😐",nome:"Neutro",    color:"#6b7280",bg:"#f3f4f6"},
+    {emoji:"🤩",nome:"Empolgação",color:"#f59e0b",bg:"#fef9c3"},
+  ];
 
-  // ── Styles ──
+  const ESCALAS_DEF = [
+    {id:"humor",    nome:"Humor",            emoji:"😊",color:"#f59e0b"},
+    {id:"ansiedade",nome:"Ansiedade",         emoji:"😰",color:"#8b5cf6"},
+    {id:"sono",     nome:"Qualidade do Sono", emoji:"😴",color:"#3b82f6"},
+    {id:"estresse", nome:"Estresse",          emoji:"🤯",color:"#ef4444"},
+    {id:"tristeza", nome:"Tristeza",          emoji:"😢",color:"#60a5fa"},
+  ];
+
+  async function fbGet(p) { const s=await window._get(window._ref(window._db,p)); return s.exists()?s.val():null; }
+  async function fbSet(p,v) { await window._set(window._ref(window._db,p),v); }
+  async function fbUpdate(p,v) { await window._update(window._ref(window._db,p),v); }
+  function fbListen(p,cb) { return window._onValue(window._ref(window._db,p),s=>cb(s.exists()?s.val():null)); }
+
   const aw={minHeight:"100vh",background:"#f3f4f6",display:"flex",flexDirection:"column"};
   const ct={padding:"16px 16px 40px",flex:1,overflowY:"auto"};
   const tb={display:"flex",background:"#fff",borderBottom:"1px solid #e5e7eb",overflowX:"auto"};
@@ -72,8 +93,6 @@
   }
   function EmptyState({icon,text}) { return <div style={{textAlign:"center",padding:"40px 20px",color:"#aaa"}}><div style={{fontSize:40,marginBottom:8}}>{icon}</div><p style={{fontSize:14}}>{text}</p></div>; }
   function Spinner() { return <div style={{textAlign:"center",padding:40,color:"#6d28d9"}}>⏳ Carregando...</div>; }
-
-  // Modal de confirmação
   function ConfirmModal({msg,onConfirm,onCancel}) {
     return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,padding:20}}>
       <div style={{background:"#fff",borderRadius:16,padding:24,maxWidth:300,width:"100%"}}>
@@ -97,9 +116,8 @@
           if (pass===(d?.password||"1234")) onLogin("therapist",null); else setErr("Senha incorreta.");
         } else {
           const all=await fbGet("patients");
-          if (!all) { setErr("Nenhum paciente cadastrado ainda."); setLoading(false); return; }
-          const list=Object.values(all);
-          const found=list.find(p=>p.name.trim().toLowerCase()===pid.trim().toLowerCase());
+          if (!all) { setErr("Nenhum paciente cadastrado."); setLoading(false); return; }
+          const found=Object.values(all).find(p=>p.name.trim().toLowerCase()===pid.trim().toLowerCase());
           if (!found) { setErr("Paciente não encontrado."); setLoading(false); return; }
           if (found.password&&found.password!==pass) { setErr("Senha incorreta."); setLoading(false); return; }
           onLogin("patient",found.id);
@@ -114,7 +132,7 @@
         <div style={{display:"flex",marginBottom:20,borderRadius:10,overflow:"hidden",border:"1px solid #e5e7eb"}}>
           {["therapist","patient"].map(r=><button key={r} onClick={()=>{setRole(r);setErr("");}} style={{flex:1,padding:"10px 0",background:role===r?"#6d28d9":"#fff",color:role===r?"#fff":"#666",border:"none",cursor:"pointer",fontWeight:600,fontSize:13}}>{r==="therapist"?"Terapeuta":"Paciente"}</button>)}
         </div>
-        {role==="patient"&&<input placeholder="Seu nome completo" value={pid} onChange={e=>setPid(e.target.value)} style={inp}/>}
+        {role==="patient"&&<input placeholder="Seu nome" value={pid} onChange={e=>setPid(e.target.value)} style={inp}/>}
         <input type="password" placeholder="Senha" value={pass} onChange={e=>setPass(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handle()} style={inp}/>
         {err&&<p style={{color:"#e11d48",fontSize:12,marginBottom:8}}>{err}</p>}
         <button onClick={handle} disabled={loading} style={{...btn(),width:"100%"}}>{loading?"Entrando...":"Entrar"}</button>
@@ -128,42 +146,33 @@
     const [tab,setTab]=useState("patients"); const [patients,setPatients]=useState(null); const [sel,setSel]=useState(null);
     const [confirmDel,setConfirmDel]=useState(null);
     useEffect(()=>{ const u=fbListen("patients",d=>setPatients(d?Object.values(d):[])); return ()=>u(); },[]);
-
     async function addPatient() {
       const name=prompt("Nome do paciente:"); if(!name) return;
       const all=await fbGet("patients");
       const list=all?Object.values(all):[];
-      const dup=list.find(p=>p.name.trim().toLowerCase()===name.trim().toLowerCase());
-      if (dup) { alert(`⚠️ Já existe um paciente com o nome "${name}". Use um nome diferente ou adicione um sobrenome.`); return; }
+      if (list.find(p=>p.name.trim().toLowerCase()===name.trim().toLowerCase())) { alert(`Já existe um paciente com o nome "${name}".`); return; }
       const password=prompt("Senha do paciente:")||"1234";
       const id="p"+Date.now();
       await fbSet(`patients/${id}`,{id,name,password,tasks:{},prontuario:{diagnostico:"",medicacoes:"",historico:"",anotacoes:"",evolucao:{}}});
     }
-
-    async function deletePatient(id) {
-      await fbSet(`patients/${id}`,null);
-      setConfirmDel(null);
-    }
-
+    async function deletePatient(id) { await fbSet(`patients/${id}`,null); setConfirmDel(null); }
     if (patients===null) return <div style={aw}><Header title="🧠 TCC Terapeuta" subtitle="Painel do Terapeuta" onLogout={onLogout}/><Spinner/></div>;
     if (sel) { const p=patients.find(p=>p.id===sel); if(p) return <PatientDetail patient={p} onBack={()=>setSel(null)}/>; }
-
     return <div style={aw}>
-      {confirmDel&&<ConfirmModal msg={`Apagar o paciente "${confirmDel.name}" e todas as suas tarefas?`} onConfirm={()=>deletePatient(confirmDel.id)} onCancel={()=>setConfirmDel(null)}/>}
+      {confirmDel&&<ConfirmModal msg={`Apagar "${confirmDel.name}" e todas as suas tarefas?`} onConfirm={()=>deletePatient(confirmDel.id)} onCancel={()=>setConfirmDel(null)}/>}
       <Header title="🧠 TCC Terapeuta" subtitle="Painel do Terapeuta" onLogout={onLogout}/>
       <div style={tb}>{[["patients","👥 Pacientes"],["overview","📈 Visão Geral"]].map(([id,label])=><button key={id} onClick={()=>setTab(id)} style={tBtn(tab===id)}>{label}</button>)}</div>
       <div style={ct}>
         {tab==="patients"&&<>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-            <h2 style={h2s}>Meus Pacientes</h2>
-            <button onClick={addPatient} style={btn()}>+ Novo</button>
+            <h2 style={h2s}>Meus Pacientes</h2><button onClick={addPatient} style={btn()}>+ Novo</button>
           </div>
           {patients.length===0&&<EmptyState icon="👤" text="Nenhum paciente ainda."/>}
           <div style={{display:"flex",flexDirection:"column",gap:10}}>
             {patients.map(p=><div key={p.id} style={{background:"#fff",borderRadius:12,padding:"14px 18px",boxShadow:"0 2px 8px rgba(0,0,0,.06)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div onClick={()=>setSel(p.id)} style={{flex:1,cursor:"pointer"}}>
                 <div style={{fontWeight:700,color:"#1f2937"}}>{p.name}</div>
-                <div style={{fontSize:12,color:"#888",marginTop:2}}>ID: {p.id} · {p.tasks?Object.keys(p.tasks).length:0} tarefa(s)</div>
+                <div style={{fontSize:12,color:"#888",marginTop:2}}>{p.tasks?Object.keys(p.tasks).length:0} tarefa(s)</div>
               </div>
               <div style={{display:"flex",gap:8,alignItems:"center"}}>
                 <button onClick={()=>setConfirmDel(p)} style={{background:"#fee2e2",border:"none",borderRadius:8,padding:"6px 10px",cursor:"pointer",fontSize:13,color:"#e11d48",fontWeight:700}}>🗑</button>
@@ -187,15 +196,12 @@
     </div>;
   }
 
-  // ── Patient Detail ──
   function PatientDetail({patient,onBack}) {
     const [tab,setTab]=useState("tasks"); const [lp,setLp]=useState(patient);
     const [showAdd,setShowAdd]=useState(false); const [tt,setTt]=useState(""); const [ttitle,setTtitle]=useState(""); const [tnote,setTnote]=useState("");
     const [pron,setPron]=useState(patient.prontuario||{}); const [saved,setSaved]=useState(false); const [evo,setEvo]=useState("");
     const [confirmDel,setConfirmDel]=useState(null); const [viewTask,setViewTask]=useState(null);
-
     useEffect(()=>{ const u=fbListen(`patients/${patient.id}`,d=>{ if(d){setLp(d);setPron(d.prontuario||{});} }); return ()=>u(); },[patient.id]);
-
     async function addTask() {
       if(!tt||!ttitle) return;
       const id="t"+Date.now();
@@ -206,53 +212,42 @@
     async function savePron() { await fbSet(`patients/${patient.id}/prontuario`,pron); setSaved(true); setTimeout(()=>setSaved(false),2000); }
     async function addEvo() {
       if(!evo.trim()) return;
-      const id="e"+Date.now();
-      await fbSet(`patients/${patient.id}/prontuario/evolucao/${id}`,{date:new Date().toLocaleDateString("pt-BR"),text:evo});
+      await fbSet(`patients/${patient.id}/prontuario/evolucao/${"e"+Date.now()}`,{date:new Date().toLocaleDateString("pt-BR"),text:evo});
       setEvo("");
     }
-
     const tasks=lp.tasks?Object.values(lp.tasks):[];
     const evolucao=pron.evolucao?Object.values(pron.evolucao).reverse():[];
+    const diarios=lp.diarios?Object.values(lp.diarios).reverse():[];
 
-    // Modal de detalhes da tarefa
     if (viewTask) {
       const ti=getTypeInfo(viewTask.type);
       return <div style={aw}>
         {confirmDel&&<ConfirmModal msg={`Apagar a tarefa "${confirmDel.title}"?`} onConfirm={()=>deleteTask(confirmDel.id)} onCancel={()=>setConfirmDel(null)}/>}
         <Header title="Detalhes da Tarefa" subtitle={viewTask.title} onLogout={()=>setViewTask(null)} logoutLabel="← Voltar"/>
-        <div style={ct}>
-          <div style={crd}>
-            <span style={{fontSize:12,fontWeight:700,color:ti.color,background:`${ti.color}15`,padding:"3px 10px",borderRadius:20}}>{ti.label}</span>
-            <h2 style={{fontSize:17,fontWeight:800,color:"#1f2937",margin:"12px 0 4px"}}>{viewTask.title}</h2>
-            <p style={{fontSize:12,color:"#aaa",marginBottom:12}}>Criada em {viewTask.createdAt}</p>
-            {viewTask.note&&<div style={{background:"#f3f4f6",borderRadius:10,padding:12,marginBottom:12}}><p style={{fontSize:13,color:"#555"}}><strong>Instruções:</strong> {viewTask.note}</p></div>}
-            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16}}>
-              <span style={{fontSize:13,padding:"4px 10px",borderRadius:20,background:viewTask.response?"#d1fae5":"#fef3c7",color:viewTask.response?"#065f46":"#92400e",fontWeight:600}}>
-                {viewTask.response?"✅ Respondida":"⏳ Pendente"}
-              </span>
-            </div>
-            {viewTask.response&&<><h3 style={{fontSize:14,fontWeight:700,color:"#374151",marginBottom:10}}>Resposta do paciente:</h3><ResponseView response={viewTask.response} type={viewTask.type}/></>}
-            <div style={{marginTop:20}}>
-              <button onClick={()=>setConfirmDel(viewTask)} style={{...btn("#fee2e2"),width:"100%"}}>🗑 Apagar Tarefa</button>
-            </div>
-          </div>
-        </div>
+        <div style={ct}><div style={crd}>
+          <span style={{fontSize:12,fontWeight:700,color:ti.color,background:`${ti.color}15`,padding:"3px 10px",borderRadius:20}}>{ti.label}</span>
+          <h2 style={{fontSize:17,fontWeight:800,color:"#1f2937",margin:"12px 0 4px"}}>{viewTask.title}</h2>
+          <p style={{fontSize:12,color:"#aaa",marginBottom:12}}>Criada em {viewTask.createdAt}</p>
+          {viewTask.note&&<div style={{background:"#f3f4f6",borderRadius:10,padding:12,marginBottom:12}}><p style={{fontSize:13,color:"#555"}}><strong>Instruções:</strong> {viewTask.note}</p></div>}
+          <span style={{fontSize:13,padding:"4px 10px",borderRadius:20,background:viewTask.response?"#d1fae5":"#fef3c7",color:viewTask.response?"#065f46":"#92400e",fontWeight:600}}>{viewTask.response?"✅ Respondida":"⏳ Pendente"}</span>
+          {viewTask.response&&<div style={{marginTop:16}}><h3 style={{fontSize:14,fontWeight:700,color:"#374151",marginBottom:10}}>Resposta:</h3><ResponseView response={viewTask.response} type={viewTask.type}/></div>}
+          <div style={{marginTop:20}}><button onClick={()=>setConfirmDel(viewTask)} style={{...btn("#fee2e2"),width:"100%"}}>🗑 Apagar Tarefa</button></div>
+        </div></div>
       </div>;
     }
 
     return <div style={aw}>
-      {confirmDel&&<ConfirmModal msg={`Apagar a tarefa "${confirmDel.title}"?`} onConfirm={()=>deleteTask(confirmDel.id)} onCancel={()=>setConfirmDel(null)}/>}
+      {confirmDel&&<ConfirmModal msg={`Apagar "${confirmDel.title}"?`} onConfirm={()=>deleteTask(confirmDel.id)} onCancel={()=>setConfirmDel(null)}/>}
       <Header title={`👤 ${patient.name}`} subtitle={`ID: ${patient.id}`} onLogout={onBack} logoutLabel="← Voltar"/>
-      <div style={tb}>{[["tasks","📋 Tarefas"],["responses","✅ Respostas"],["prontuario","📁 Prontuário"]].map(([id,label])=><button key={id} onClick={()=>setTab(id)} style={tBtn(tab===id)}>{label}</button>)}</div>
+      <div style={tb}>{[["tasks","📋 Tarefas"],["responses","✅ Respostas"],["diario","📔 Diário"],["prontuario","📁 Prontuário"]].map(([id,label])=><button key={id} onClick={()=>setTab(id)} style={tBtn(tab===id)}>{label}</button>)}</div>
       <div style={ct}>
         {tab==="tasks"&&<>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-            <h2 style={h2s}>Tarefas ({tasks.length})</h2>
-            <button onClick={()=>setShowAdd(true)} style={btn()}>+ Nova</button>
+            <h2 style={h2s}>Tarefas ({tasks.length})</h2><button onClick={()=>setShowAdd(true)} style={btn()}>+ Nova</button>
           </div>
           {showAdd&&<div style={{...crd,marginBottom:16}}>
             <select value={tt} onChange={e=>setTt(e.target.value)} style={inp}><option value="">Tipo...</option>{TASK_TYPES.map(t=><option key={t.id} value={t.id}>{t.label}</option>)}</select>
-            <input placeholder="Título da tarefa" value={ttitle} onChange={e=>setTtitle(e.target.value)} style={inp}/>
+            <input placeholder="Título" value={ttitle} onChange={e=>setTtitle(e.target.value)} style={inp}/>
             <textarea placeholder="Instruções (opcional)" value={tnote} onChange={e=>setTnote(e.target.value)} style={{...inp,minHeight:60,resize:"vertical"}}/>
             <div style={{display:"flex",gap:8}}><button onClick={addTask} style={btn()}>Adicionar</button><button onClick={()=>setShowAdd(false)} style={btn("#e5e7eb")}>Cancelar</button></div>
           </div>}
@@ -263,19 +258,16 @@
                 <span style={{fontSize:11,fontWeight:700,color:ti.color,background:`${ti.color}15`,padding:"2px 8px",borderRadius:20}}>{ti.label}</span>
                 <div style={{fontWeight:700,marginTop:6,color:"#1f2937"}}>{task.title}</div>
                 {task.note&&<div style={{fontSize:12,color:"#888",marginTop:3}}>{task.note}</div>}
-                <div style={{fontSize:11,color:"#aaa",marginTop:4}}>Criada em {task.createdAt}</div>
               </div>
               <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:6,marginLeft:8}}>
-                <span style={{fontSize:11,padding:"2px 8px",borderRadius:20,background:task.response?"#d1fae5":"#fef3c7",color:task.response?"#065f46":"#92400e",whiteSpace:"nowrap"}}>
-                  {task.response?"✅ Respondida":"⏳ Pendente"}
-                </span>
+                <span style={{fontSize:11,padding:"2px 8px",borderRadius:20,background:task.response?"#d1fae5":"#fef3c7",color:task.response?"#065f46":"#92400e",whiteSpace:"nowrap"}}>{task.response?"✅":"⏳"}</span>
                 <button onClick={()=>setConfirmDel(task)} style={{background:"#fee2e2",border:"none",borderRadius:8,padding:"4px 8px",cursor:"pointer",fontSize:12,color:"#e11d48",fontWeight:700}}>🗑</button>
               </div>
             </div>
           </div>; })}
         </>}
         {tab==="responses"&&<>
-          <h2 style={h2s}>Respostas ({tasks.filter(t=>t.response).length})</h2>
+          <h2 style={h2s}>Respostas</h2>
           {tasks.filter(t=>t.response).length===0&&<EmptyState icon="✅" text="Nenhuma resposta ainda."/>}
           {tasks.filter(t=>t.response).map(task=>{ const ti=getTypeInfo(task.type); return <div key={task.id} style={{background:"#fff",borderRadius:12,padding:16,marginBottom:12,boxShadow:"0 2px 8px rgba(0,0,0,.06)"}}>
             <span style={{fontSize:11,fontWeight:700,color:ti.color}}>{ti.label}</span>
@@ -283,6 +275,25 @@
             <ResponseView response={task.response} type={task.type}/>
             {task.answeredAt&&<div style={{fontSize:11,color:"#aaa",marginTop:8}}>Respondida em {task.answeredAt}</div>}
           </div>; })}
+        </>}
+        {tab==="diario"&&<>
+          <h2 style={h2s}>📔 Diário de Emoções ({diarios.length})</h2>
+          {diarios.length===0&&<EmptyState icon="📔" text="Nenhum registro ainda."/>}
+          {diarios.map((d,i)=>{
+            const em=EMOCOES.find(e=>e.nome===d.emocao)||{emoji:"😐",color:"#888",bg:"#f3f4f6"};
+            return <div key={i} style={{background:"#fff",borderRadius:12,padding:14,marginBottom:10,boxShadow:"0 2px 8px rgba(0,0,0,.06)",borderLeft:`4px solid ${em.color}`}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+                <div style={{display:"flex",alignItems:"center",gap:8}}>
+                  <span style={{fontSize:24}}>{em.emoji}</span>
+                  <span style={{fontWeight:700,color:em.color}}>{d.emocao}</span>
+                  <span style={{fontSize:12,background:`${em.color}20`,color:em.color,padding:"2px 8px",borderRadius:20,fontWeight:700}}>Intensidade {d.intensidade}/10</span>
+                </div>
+                <span style={{fontSize:11,color:"#aaa"}}>{d.data}</span>
+              </div>
+              {d.contexto&&<div style={{fontSize:13,color:"#555",marginBottom:4}}><strong>Contexto:</strong> {d.contexto}</div>}
+              {d.pensamento&&<div style={{fontSize:13,color:"#555"}}><strong>Pensamento:</strong> {d.pensamento}</div>}
+            </div>;
+          })}
         </>}
         {tab==="prontuario"&&<div>
           <h2 style={h2s}>📁 Prontuário</h2>
@@ -306,53 +317,98 @@
 
   // ── Patient App ──
   function PatientApp({patientId,onLogout}) {
-    const [patient,setPatient]=useState(null); const [sel,setSel]=useState(null); const [viewTask,setViewTask]=useState(null);
+    const [patient,setPatient]=useState(null); const [sel,setSel]=useState(null); const [tab,setTab]=useState("tasks"); const [viewTask,setViewTask]=useState(null);
     useEffect(()=>{ const u=fbListen(`patients/${patientId}`,d=>setPatient(d)); return ()=>u(); },[patientId]);
-    async function submit(taskId,response) { await fbUpdate(`patients/${patientId}/tasks/${taskId}`,{response,answeredAt:new Date().toLocaleDateString("pt-BR")}); setSel(null); }
+    async function submitResponse(taskId,response) { await fbUpdate(`patients/${patientId}/tasks/${taskId}`,{response,answeredAt:new Date().toLocaleDateString("pt-BR")}); setSel(null); }
     if (!patient) return <div style={aw}><Spinner/></div>;
     const tasks=patient.tasks?Object.values(patient.tasks):[];
     const pending=tasks.filter(t=>!t.response); const done=tasks.filter(t=>t.response);
+    const diarios=patient.diarios?Object.values(patient.diarios).reverse():[];
 
-    if (sel) { const task=tasks.find(t=>t.id===sel); if(task) return <TaskForm task={task} onSubmit={r=>submit(task.id,r)} onBack={()=>setSel(null)}/>; }
-
-    // Ver detalhes de tarefa concluída
+    if (sel) { const task=tasks.find(t=>t.id===sel); if(task) return <TaskForm task={task} onSubmit={r=>submitResponse(task.id,r)} onBack={()=>setSel(null)}/>; }
     if (viewTask) {
       const ti=getTypeInfo(viewTask.type);
       return <div style={aw}>
         <Header title="Detalhes" subtitle={viewTask.title} onLogout={()=>setViewTask(null)} logoutLabel="← Voltar"/>
-        <div style={ct}>
-          <div style={crd}>
-            <span style={{fontSize:12,fontWeight:700,color:ti.color,background:`${ti.color}15`,padding:"3px 10px",borderRadius:20}}>{ti.label}</span>
-            <h2 style={{fontSize:17,fontWeight:800,color:"#1f2937",margin:"12px 0 4px"}}>{viewTask.title}</h2>
-            {viewTask.note&&<div style={{background:"#f3f4f6",borderRadius:10,padding:12,marginBottom:12,marginTop:8}}><p style={{fontSize:13,color:"#555"}}><strong>Instruções:</strong> {viewTask.note}</p></div>}
-            <h3 style={{fontSize:14,fontWeight:700,color:"#374151",marginBottom:10,marginTop:8}}>Sua resposta:</h3>
-            <ResponseView response={viewTask.response} type={viewTask.type}/>
-            {viewTask.answeredAt&&<div style={{fontSize:11,color:"#aaa",marginTop:12}}>Respondida em {viewTask.answeredAt}</div>}
-          </div>
-        </div>
+        <div style={ct}><div style={crd}>
+          <span style={{fontSize:12,fontWeight:700,color:ti.color,background:`${ti.color}15`,padding:"3px 10px",borderRadius:20}}>{ti.label}</span>
+          <h2 style={{fontSize:17,fontWeight:800,color:"#1f2937",margin:"12px 0 8px"}}>{viewTask.title}</h2>
+          {viewTask.note&&<div style={{background:"#f3f4f6",borderRadius:10,padding:12,marginBottom:12}}><p style={{fontSize:13,color:"#555"}}><strong>Instruções:</strong> {viewTask.note}</p></div>}
+          <ResponseView response={viewTask.response} type={viewTask.type}/>
+          {viewTask.answeredAt&&<div style={{fontSize:11,color:"#aaa",marginTop:12}}>Respondida em {viewTask.answeredAt}</div>}
+        </div></div>
       </div>;
     }
 
     return <div style={aw}>
       <Header title={`Olá, ${patient.name}! 👋`} subtitle="Suas tarefas terapêuticas" onLogout={onLogout}/>
+      <div style={tb}>{[["tasks","📋 Tarefas"],["diario","📔 Diário"]].map(([id,label])=><button key={id} onClick={()=>setTab(id)} style={tBtn(tab===id)}>{label}</button>)}</div>
       <div style={ct}>
-        {tasks.length===0&&<EmptyState icon="🎉" text="Nenhuma tarefa ainda. Fale com seu terapeuta."/>}
-        {pending.length>0&&<><h2 style={h2s}>⏳ Pendentes ({pending.length})</h2>
-          {pending.map(task=>{ const ti=getTypeInfo(task.type); return <div key={task.id} onClick={()=>setSel(task.id)} style={{background:"#fff",borderRadius:12,padding:16,marginBottom:10,cursor:"pointer",boxShadow:"0 2px 8px rgba(0,0,0,.08)",borderLeft:`4px solid ${ti.color}`}}>
-            <span style={{fontSize:11,fontWeight:700,color:ti.color}}>{ti.label}</span>
-            <div style={{fontWeight:700,color:"#1f2937",marginTop:4}}>{task.title}</div>
-            {task.note&&<div style={{fontSize:12,color:"#888",marginTop:3}}>{task.note}</div>}
-            <div style={{marginTop:8,fontSize:12,color:ti.color,fontWeight:600}}>Toque para responder →</div>
-          </div>; })}
+        {tab==="tasks"&&<>
+          {tasks.length===0&&<EmptyState icon="🎉" text="Nenhuma tarefa ainda. Fale com seu terapeuta."/>}
+          {pending.length>0&&<><h2 style={h2s}>⏳ Pendentes ({pending.length})</h2>
+            {pending.map(task=>{ const ti=getTypeInfo(task.type); return <div key={task.id} onClick={()=>setSel(task.id)} style={{background:"#fff",borderRadius:12,padding:16,marginBottom:10,cursor:"pointer",boxShadow:"0 2px 8px rgba(0,0,0,.08)",borderLeft:`4px solid ${ti.color}`}}>
+              <span style={{fontSize:11,fontWeight:700,color:ti.color}}>{ti.label}</span>
+              <div style={{fontWeight:700,color:"#1f2937",marginTop:4}}>{task.title}</div>
+              {task.note&&<div style={{fontSize:12,color:"#888",marginTop:3}}>{task.note}</div>}
+              <div style={{marginTop:8,fontSize:12,color:ti.color,fontWeight:600}}>Toque para responder →</div>
+            </div>; })}
+          </>}
+          {done.length>0&&<><h2 style={{...h2s,marginTop:20}}>✅ Concluídas ({done.length})</h2>
+            {done.map(task=>{ const ti=getTypeInfo(task.type); return <div key={task.id} onClick={()=>setViewTask(task)} style={{background:"#f9fafb",borderRadius:12,padding:14,marginBottom:8,borderLeft:`4px solid ${ti.color}`,cursor:"pointer",opacity:.85}}>
+              <span style={{fontSize:11,color:ti.color,fontWeight:700}}>{ti.label}</span>
+              <div style={{fontWeight:600,color:"#374151"}}>{task.title}</div>
+              <div style={{fontSize:11,color:"#aaa"}}>Respondida em {task.answeredAt} · Ver →</div>
+            </div>; })}
+          </>}
         </>}
-        {done.length>0&&<><h2 style={{...h2s,marginTop:20}}>✅ Concluídas ({done.length})</h2>
-          {done.map(task=>{ const ti=getTypeInfo(task.type); return <div key={task.id} onClick={()=>setViewTask(task)} style={{background:"#f9fafb",borderRadius:12,padding:14,marginBottom:8,borderLeft:`4px solid ${ti.color}`,cursor:"pointer"}}>
-            <span style={{fontSize:11,color:ti.color,fontWeight:700}}>{ti.label}</span>
-            <div style={{fontWeight:600,color:"#374151"}}>{task.title}</div>
-            <div style={{fontSize:11,color:"#aaa"}}>Respondida em {task.answeredAt} · Toque para ver →</div>
-          </div>; })}
-        </>}
+        {tab==="diario"&&<DiarioTab patientId={patientId} diarios={diarios}/>}
       </div>
+    </div>;
+  }
+
+  // ── Diário Tab (paciente) ──
+  function DiarioTab({patientId,diarios}) {
+    const [emocaoSel,setEmocaoSel]=useState(null); const [intensidade,setIntensidade]=useState(5); const [contexto,setContexto]=useState(""); const [pensamento,setPensamento]=useState(""); const [enviado,setEnviado]=useState(false);
+    const intDesc=v=>["","Muito leve","Muito leve","Leve","Leve","Moderada","Moderada","Intensa","Intensa","Muito intensa","Muito intensa"][v];
+    async function enviar() {
+      if (!emocaoSel) return;
+      const id="d"+Date.now();
+      await fbSet(`patients/${patientId}/diarios/${id}`,{emocao:emocaoSel.nome,emoji:emocaoSel.emoji,intensidade,contexto,pensamento,data:new Date().toLocaleDateString("pt-BR"),hora:new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})});
+      setEmocaoSel(null); setIntensidade(5); setContexto(""); setPensamento(""); setEnviado(true); setTimeout(()=>setEnviado(false),2500);
+    }
+    return <div>
+      <div style={crd}>
+        <h3 style={{fontSize:15,fontWeight:800,color:"#7c3aed",marginBottom:14}}>📔 Como você está se sentindo?</h3>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:16}}>
+          {EMOCOES.map(em=><button key={em.nome} onClick={()=>setEmocaoSel(em)} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4,padding:"10px 4px",borderRadius:12,border:`2px solid ${emocaoSel?.nome===em.nome?em.color:"#e5e7eb"}`,background:emocaoSel?.nome===em.nome?em.bg:"#fff",cursor:"pointer",transition:"all .15s"}}>
+            <span style={{fontSize:26}}>{em.emoji}</span>
+            <span style={{fontSize:10,fontWeight:700,color:emocaoSel?.nome===em.nome?em.color:"#374151"}}>{em.nome}</span>
+          </button>)}
+        </div>
+        {emocaoSel&&<>
+          <label style={lbl}>Intensidade: <strong>{intensidade}/10</strong> — {intDesc(intensidade)}</label>
+          <input type="range" min={1} max={10} value={intensidade} onChange={e=>setIntensidade(+e.target.value)} style={{width:"100%",marginBottom:14,accentColor:emocaoSel.color}}/>
+          <label style={lbl}>O que estava acontecendo?</label>
+          <textarea value={contexto} onChange={e=>setContexto(e.target.value)} placeholder="Contexto ou situação..." style={{...inp,minHeight:60,resize:"vertical"}}/>
+          <label style={lbl}>O que passou pela sua cabeça?</label>
+          <textarea value={pensamento} onChange={e=>setPensamento(e.target.value)} placeholder="Pensamentos no momento..." style={{...inp,minHeight:60,resize:"vertical"}}/>
+          <button onClick={enviar} style={{...btn(emocaoSel.color),width:"100%"}}>{enviado?"✅ Registrado!":"Registrar"}</button>
+        </>}
+        {!emocaoSel&&<p style={{textAlign:"center",color:"#aaa",fontSize:13,padding:"8px 0"}}>Selecione uma emoção acima para registrar</p>}
+      </div>
+      {diarios.length>0&&<div style={{marginTop:16}}>
+        <h3 style={{...h2s,marginBottom:12}}>Meus registros ({diarios.length})</h3>
+        {diarios.map((d,i)=>{ const em=EMOCOES.find(e=>e.nome===d.emocao)||{emoji:"😐",color:"#888",bg:"#f3f4f6"}; return <div key={i} style={{background:"#fff",borderRadius:12,padding:12,marginBottom:8,borderLeft:`4px solid ${em.color}`,boxShadow:"0 1px 4px rgba(0,0,0,.05)"}}>
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
+            <span style={{fontSize:22}}>{em.emoji}</span>
+            <span style={{fontWeight:700,color:em.color,fontSize:14}}>{d.emocao}</span>
+            <span style={{fontSize:11,background:`${em.color}20`,color:em.color,padding:"1px 7px",borderRadius:20,fontWeight:700}}>{d.intensidade}/10</span>
+            <span style={{fontSize:11,color:"#aaa",marginLeft:"auto"}}>{d.hora} · {d.data}</span>
+          </div>
+          {d.contexto&&<div style={{fontSize:12,color:"#555"}}>{d.contexto}</div>}
+        </div>; })}
+      </div>}
     </div>;
   }
 
@@ -363,23 +419,11 @@
       <Header title={ti.label} subtitle={task.title} onLogout={onBack} logoutLabel="← Voltar"/>
       <div style={ct}>
         {task.note&&<div style={{background:`${ti.color}15`,borderRadius:10,padding:12,marginBottom:16,borderLeft:`3px solid ${ti.color}`}}><p style={{fontSize:13,color:"#374151"}}><strong>Orientação:</strong> {task.note}</p></div>}
-        {task.type==="diario"&&<DiarioForm color={ti.color} onSubmit={onSubmit}/>}
         {task.type==="pensamentos"&&<PensamentosForm color={ti.color} onSubmit={onSubmit}/>}
         {task.type==="atencao"&&<AtencaoForm color={ti.color} onSubmit={onSubmit}/>}
         {task.type==="experimento"&&<ExperimentoForm color={ti.color} onSubmit={onSubmit}/>}
         {task.type==="escala"&&<EscalaForm color={ti.color} onSubmit={onSubmit}/>}
       </div>
-    </div>;
-  }
-
-  function DiarioForm({color,onSubmit}) {
-    const [e,setE]=useState(""); const [i,setI]=useState(5); const [c,setC]=useState(""); const [p,setP]=useState("");
-    return <div style={crd}><h3 style={{color,fontSize:16,marginBottom:16}}>📔 Diário de Emoções</h3>
-      <label style={lbl}>Emoção</label><input value={e} onChange={x=>setE(x.target.value)} placeholder="ex: ansiedade, tristeza..." style={inp}/>
-      <label style={lbl}>Intensidade: {i}/10</label><input type="range" min={1} max={10} value={i} onChange={x=>setI(+x.target.value)} style={{width:"100%",marginBottom:12,accentColor:color}}/>
-      <label style={lbl}>Contexto</label><textarea value={c} onChange={x=>setC(x.target.value)} placeholder="O que estava acontecendo?" style={{...inp,minHeight:70,resize:"vertical"}}/>
-      <label style={lbl}>Pensamento</label><textarea value={p} onChange={x=>setP(x.target.value)} placeholder="O que passou pela sua cabeça?" style={{...inp,minHeight:70,resize:"vertical"}}/>
-      <button onClick={()=>{ if(e) onSubmit({emocao:e,intensidade:i,contexto:c,pensamento:p}); }} style={{...btn(color),width:"100%"}}>Enviar</button>
     </div>;
   }
 
@@ -395,19 +439,24 @@
     </div>;
   }
 
-  function AtencaoForm({color,onSubmit}) {
-    const [fase,setFase]=useState("intro"); const [seq,setSeq]=useState([]); const [shown,setShown]=useState([]); const [input,setInput]=useState(""); const [result,setResult]=useState(null); const [score,setScore]=useState(0); const [round,setRound]=useState(0);
-    function start() {
-      const s=Array.from({length:5},()=>Math.floor(Math.random()*9)+1);
-      setSeq(s); setShown([]); setInput(""); setResult(null); setRound(r=>r+1); setFase("show");
-      s.forEach((n,i)=>setTimeout(()=>{ setShown(p=>[...p,n]); if(i===s.length-1) setTimeout(()=>setFase("answer"),600); },i*700));
-    }
-    function check() { const u=input.trim().split(/\s+/).map(Number); const ok=JSON.stringify(u)===JSON.stringify(seq); setResult(ok); if(ok) setScore(s=>s+1); setFase("result"); }
-    return <div style={crd}><h3 style={{color,fontSize:16,marginBottom:16}}>🎯 Teste de Atenção</h3>
-      {fase==="intro"&&<><p style={{fontSize:13,color:"#555",marginBottom:16}}>Memorize a sequência e depois digite na ordem correta.</p><button onClick={start} style={{...btn(color),width:"100%"}}>Começar</button></>}
-      {fase==="show"&&<div style={{textAlign:"center",padding:"30px 0"}}><p style={{color:"#888",marginBottom:16}}>Memorize:</p><div style={{display:"flex",justifyContent:"center",gap:12}}>{shown.map((n,i)=><span key={i} style={{width:44,height:44,borderRadius:10,background:color,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,fontWeight:800}}>{n}</span>)}</div></div>}
-      {fase==="answer"&&<><p style={{fontSize:13,color:"#555",marginBottom:12}}>Digite os números separados por espaço:</p><input value={input} onChange={e=>setInput(e.target.value)} placeholder="ex: 3 7 1 9 4" style={inp}/><button onClick={check} style={{...btn(color),width:"100%"}}>Confirmar</button></>}
-      {fase==="result"&&<div style={{textAlign:"center"}}><div style={{fontSize:40,marginBottom:8}}>{result?"🎉":"😅"}</div><p style={{fontWeight:700,color:result?"#059669":"#e11d48"}}>{result?"Correto!":"Incorreto"}</p><p style={{fontSize:13,color:"#888"}}>Sequência: {seq.join(" ")}</p><p style={{fontSize:13,marginTop:8}}>Rodada {round} · Acertos: {score}/{round}</p><div style={{display:"flex",gap:8,marginTop:12}}><button onClick={start} style={{...btn(color),flex:1}}>Nova rodada</button><button onClick={()=>onSubmit({rodadas:round,acertos:score})} style={{...btn("#059669"),flex:1}}>Finalizar</button></div></div>}
+  function EscalaForm({color,onSubmit}) {
+    const [vals,setVals]=useState({humor:50,ansiedade:50,sono:50,estresse:50,tristeza:50}); const [obs,setObs]=useState("");
+    const desc=v=>v<=20?"Muito baixo":v<=40?"Baixo":v<=60?"Moderado":v<=80?"Alto":"Muito alto";
+    return <div style={crd}><h3 style={{color,fontSize:16,marginBottom:16}}>📊 Escala de Bem-Estar</h3>
+      {ESCALAS_DEF.map(sc=><div key={sc.id} style={{marginBottom:18}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+          <span style={{fontSize:13,fontWeight:700,color:"#374151"}}>{sc.emoji} {sc.nome}</span>
+          <span style={{fontSize:18,fontWeight:800,color:sc.color}}>{vals[sc.id]}%</span>
+        </div>
+        <div style={{background:"#f3f4f6",borderRadius:20,height:10,overflow:"hidden",marginBottom:4}}>
+          <div style={{width:`${vals[sc.id]}%`,background:sc.color,height:"100%",borderRadius:20,transition:"width .1s"}}/>
+        </div>
+        <div style={{fontSize:11,color:"#888",marginBottom:6}}>{desc(vals[sc.id])}</div>
+        <input type="range" min={0} max={100} value={vals[sc.id]} onChange={e=>setVals({...vals,[sc.id]:+e.target.value})} style={{width:"100%",accentColor:sc.color}}/>
+      </div>)}
+      <label style={lbl}>Observações</label>
+      <textarea value={obs} onChange={e=>setObs(e.target.value)} placeholder="Como você está hoje?" style={{...inp,minHeight:70,resize:"vertical"}}/>
+      <button onClick={()=>onSubmit({...vals,obs})} style={{...btn(color),width:"100%"}}>Enviar Escala</button>
     </div>;
   }
 
@@ -422,25 +471,175 @@
     </div>;
   }
 
-  function EscalaForm({color,onSubmit}) {
-    const [hm,setHm]=useState(5); const [an,setAn]=useState(5); const [sn,setSn]=useState(5); const [ob,setOb]=useState("");
-    const lv=v=>v<=3?"😔 Baixo":v<=6?"😐 Moderado":"😊 Alto";
-    return <div style={crd}><h3 style={{color,fontSize:16,marginBottom:16}}>📊 Escala de Bem-Estar</h3>
-      {[["Humor",hm,setHm],["Ansiedade",an,setAn],["Sono",sn,setSn]].map(([l,v,s])=><div key={l} style={{marginBottom:16}}><label style={lbl}>{l}: <strong>{v}/10</strong> — {lv(v)}</label><input type="range" min={0} max={10} value={v} onChange={e=>s(+e.target.value)} style={{width:"100%",accentColor:color}}/></div>)}
-      <label style={lbl}>Observações</label><textarea value={ob} onChange={e=>setOb(e.target.value)} placeholder="Como você está hoje?" style={{...inp,minHeight:70,resize:"vertical"}}/>
-      <button onClick={()=>onSubmit({humor:hm,ansiedade:an,sono:sn,obs:ob})} style={{...btn(color),width:"100%"}}>Enviar</button>
+  // ── Teste de Atenção ──
+  function AtencaoForm({color,onSubmit}) {
+    const [fase,setFase]=useState("intro"); const [timeLeft,setTimeLeft]=useState(40);
+    const [totalScore,setTotalScore]=useState(0); const [totalMisses,setTotalMisses]=useState(0);
+    const [currentPage,setCurrentPage]=useState(1); const [items,setItems]=useState([]);
+    const [clicked,setClicked]=useState(new Set()); const [pageClicked,setPageClicked]=useState(new Set());
+    const [pageTargets,setPageTargets]=useState(0); const [totalTargets,setTotalTargets]=useState(0);
+    const [showTurn,setShowTurn]=useState(false); const [result,setResult]=useState(null);
+    const timerRef=useRef(null); const scoreRef=useRef(0); const missesRef=useRef(0); const targetsRef=useRef(0); const timeRef=useRef(40); const pageRef=useRef(1); const pageClickedRef=useRef(new Set()); const pageTargetsRef=useRef(0);
+
+    const SHAPES=["quadrado","circulo","triangulo","losango","estrela"];
+    const COLORS=["#6d28d9","#e11d48","#059669","#d97706","#0891b2","#7c3aed","#dc2626","#0284c7","#b45309","#0f766e"];
+    const TARGETS=["quadrado","triangulo"];
+
+    function getDiff(page) {
+      if(page===1) return {cols:5,rows:6,ratio:.35,size:38};
+      if(page===2) return {cols:6,rows:7,ratio:.30,size:33};
+      if(page===3) return {cols:6,rows:8,ratio:.25,size:30};
+      if(page===4) return {cols:7,rows:8,ratio:.22,size:27};
+      return {cols:7,rows:9,ratio:.20,size:24};
+    }
+
+    function buildItems(page) {
+      const d=getDiff(page); const total=d.cols*d.rows;
+      const nT=Math.max(4,Math.floor(total*d.ratio));
+      const arr=[];
+      for(let i=0;i<nT;i++) arr.push(TARGETS[i%2]);
+      while(arr.length<total) arr.push(SHAPES.filter(s=>!TARGETS.includes(s))[Math.floor(Math.random()*3)]);
+      arr.sort(()=>Math.random()-.5);
+      return {arr,cols:d.cols,nT,size:d.size};
+    }
+
+    function drawShape(type,color,size) {
+      const s=size,h=size;
+      if(type==="quadrado") return `<rect x="2" y="2" width="${s-4}" height="${h-4}" rx="3" fill="${color}"/>`;
+      if(type==="circulo")  return `<circle cx="${s/2}" cy="${h/2}" r="${s/2-2}" fill="${color}"/>`;
+      if(type==="triangulo") return `<polygon points="${s/2},2 ${s-2},${h-2} 2,${h-2}" fill="${color}"/>`;
+      if(type==="losango")  return `<polygon points="${s/2},2 ${s-2},${h/2} ${s/2},${h-2} 2,${h/2}" fill="${color}"/>`;
+      if(type==="estrela") { const cx=s/2,cy=h/2,r1=s/2-2,r2=s/4; let pts=""; for(let i=0;i<10;i++){const a=Math.PI/5*i-Math.PI/2,r=i%2===0?r1:r2;pts+=`${cx+r*Math.cos(a)},${cy+r*Math.sin(a)} `;} return `<polygon points="${pts}" fill="${color}"/>`; }
+    }
+
+    function startGame() {
+      scoreRef.current=0; missesRef.current=0; targetsRef.current=0; timeRef.current=40; pageRef.current=1;
+      pageClickedRef.current=new Set(); setClicked(new Set()); setTotalScore(0); setTotalMisses(0); setCurrentPage(1); setTimeLeft(40);
+      const {arr,cols,nT,size}=buildItems(1);
+      setPageTargets(nT); pageTargetsRef.current=nT; setPageClicked(new Set());
+      targetsRef.current=nT; setTotalTargets(nT);
+      setItems(arr.map((type,i)=>({type,i,color:COLORS[Math.floor(Math.random()*COLORS.length)],size:size+Math.floor(Math.random()*8)-4,cols,state:"idle"})));
+      setFase("game");
+      timerRef.current=setInterval(()=>{
+        timeRef.current--;
+        setTimeLeft(timeRef.current);
+        if(timeRef.current<=0) endGame();
+      },1000);
+    }
+
+    function handleClick(idx,type) {
+      if(pageClickedRef.current.has(idx)) return;
+      pageClickedRef.current.add(idx);
+      setPageClicked(new Set(pageClickedRef.current));
+      if(TARGETS.includes(type)) {
+        scoreRef.current++;
+        setTotalScore(scoreRef.current);
+        setItems(prev=>prev.map((it,i)=>i===idx?{...it,state:"correct"}:it));
+        // check page complete
+        const pageAcertos=[...pageClickedRef.current].filter(i=>{ const it=items[i]; return it&&TARGETS.includes(it.type); }).length;
+        if(pageAcertos+1>=pageTargetsRef.current) setTimeout(()=>doPageTurn(),300);
+      } else {
+        missesRef.current++;
+        setTotalMisses(missesRef.current);
+        setItems(prev=>prev.map((it,i)=>i===idx?{...it,state:"wrong"}:it));
+      }
+    }
+
+    function doPageTurn() {
+      if(timeRef.current<=0) return;
+      setShowTurn(true);
+      const nextPage=pageRef.current+1;
+      pageRef.current=nextPage;
+      setCurrentPage(nextPage);
+      pageClickedRef.current=new Set();
+      setPageClicked(new Set());
+      setTimeout(()=>{
+        const {arr,cols,nT,size}=buildItems(nextPage);
+        pageTargetsRef.current=nT; setPageTargets(nT);
+        targetsRef.current+=nT; setTotalTargets(t=>t+nT);
+        setItems(arr.map((type,i)=>({type,i,color:COLORS[Math.floor(Math.random()*COLORS.length)],size:size+Math.floor(Math.random()*8)-4,cols,state:"idle"})));
+        setTimeout(()=>setShowTurn(false),500);
+      },400);
+    }
+
+    function endGame() {
+      clearInterval(timerRef.current);
+      const precisao=(scoreRef.current+missesRef.current)>0?Math.round(scoreRef.current/(scoreRef.current+missesRef.current)*100):0;
+      const cobertura=targetsRef.current>0?Math.round(scoreRef.current/targetsRef.current*100):0;
+      setItems(prev=>prev.map(it=>TARGETS.includes(it.type)&&it.state==="idle"?{...it,state:"missed"}:it));
+      setResult({paginas:pageRef.current,acertos:scoreRef.current,erros:missesRef.current,precisao,cobertura});
+      setFase("result");
+    }
+
+    const cols=items[0]?.cols||5;
+    const urgent=timeLeft<=10;
+
+    if(fase==="intro") return <div style={{...crd,textAlign:"center"}}>
+      <div style={{fontSize:52,marginBottom:12}}>🎯</div>
+      <h3 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:8}}>Teste de Atenção</h3>
+      <p style={{fontSize:13,color:"#6b7280",marginBottom:20,lineHeight:1.6}}>Toque em todos os <strong>quadrados</strong> e <strong>triângulos</strong> que encontrar!</p>
+      <div style={{display:"flex",justifyContent:"center",gap:24,marginBottom:20}}>
+        <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
+          <svg width="48" height="48"><rect x="4" y="4" width="40" height="40" rx="4" fill="#6d28d9"/></svg>
+          <span style={{fontSize:11,fontWeight:700}}>Quadrado ✅</span>
+        </div>
+        <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
+          <svg width="48" height="48"><polygon points="24,4 46,44 2,44" fill="#0891b2"/></svg>
+          <span style={{fontSize:11,fontWeight:700}}>Triângulo ✅</span>
+        </div>
+      </div>
+      <div style={{background:"#fef3c7",borderRadius:10,padding:12,fontSize:13,color:"#92400e",fontWeight:600,marginBottom:20}}>⏱ <strong>40 segundos</strong> — Se acertar todos, avança de página!</div>
+      <button onClick={startGame} style={{...btn(color),width:"100%"}}>Começar!</button>
+    </div>;
+
+    if(fase==="result") return <div style={crd}>
+      <div style={{textAlign:"center",marginBottom:16}}>
+        <div style={{fontSize:48,marginBottom:8}}>{result.precisao>=80?"🏆":result.precisao>=60?"🎉":"💪"}</div>
+        <h3 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>{result.precisao>=80?"Excelente!":result.precisao>=60?"Muito bem!":"Continue tentando!"}</h3>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
+        {[[result.paginas,"Páginas","#6d28d9"],[result.acertos,"Acertos","#059669"],[result.erros,"Erros","#e11d48"],[`${result.precisao}%`,"Precisão","#0891b2"]].map(([v,l,c])=><div key={l} style={{background:"#f9fafb",borderRadius:12,padding:12,textAlign:"center"}}><div style={{fontSize:24,fontWeight:900,color:c}}>{v}</div><div style={{fontSize:11,color:"#888"}}>{l}</div></div>)}
+      </div>
+      <button onClick={()=>onSubmit(result)} style={{...btn(color),width:"100%"}}>Salvar resultado</button>
+      <button onClick={startGame} style={{...btn("#e5e7eb"),width:"100%",marginTop:8}}>Tentar novamente</button>
+    </div>;
+
+    return <div style={{position:"relative"}}>
+      {showTurn&&<div style={{position:"fixed",inset:0,zIndex:100,pointerEvents:"none",overflow:"hidden"}}>
+        <div style={{position:"absolute",inset:0,background:"linear-gradient(to right,#fafafa,#fff)",transformOrigin:"left center",animation:"slideOut .9s cubic-bezier(.77,0,.18,1) forwards"}}/>
+        <div style={{position:"absolute",inset:0,background:"#fff",transform:"translateX(100%)",animation:"slideIn .9s cubic-bezier(.77,0,.18,1) forwards"}}/>
+        <style>{`@keyframes slideOut{0%{transform:translateX(0)}100%{transform:translateX(-100%)}}@keyframes slideIn{0%{transform:translateX(100%)}100%{transform:translateX(0)}}`}</style>
+      </div>}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 4px",marginBottom:8}}>
+        <div style={{textAlign:"center"}}>
+          <div style={{fontSize:26,fontWeight:900,color:urgent?"#e11d48":"#6d28d9",animation:urgent?"pulse .4s infinite alternate":""}}>{timeLeft}</div>
+          <div style={{fontSize:10,color:"#aaa"}}>segundos</div>
+        </div>
+        <div style={{background:"#ede9fe",color:"#6d28d9",borderRadius:20,padding:"4px 12px",fontSize:12,fontWeight:800}}>Página {currentPage}</div>
+        <div style={{textAlign:"right"}}>
+          <div style={{fontSize:20,fontWeight:800,color:"#059669"}}>{totalScore}</div>
+          <div style={{fontSize:10,color:"#aaa"}}>acertos</div>
+          <div style={{fontSize:12,fontWeight:700,color:"#e11d48"}}>{totalMisses} erro{totalMisses!==1?"s":""}</div>
+        </div>
+      </div>
+      <div style={{background:"#ede9fe",borderRadius:10,padding:"7px 12px",marginBottom:10,fontSize:12,color:"#5b21b6",fontWeight:600,textAlign:"center"}}>Toque nos <strong>quadrados</strong> e <strong>triângulos</strong>!</div>
+      <div style={{display:"grid",gridTemplateColumns:`repeat(${cols},1fr)`,gap:6}}>
+        {items.map((it,idx)=><button key={idx} onClick={()=>handleClick(idx,it.type)}
+          style={{background:it.state==="correct"?"#d1fae5":it.state==="wrong"?"#fee2e2":"transparent",border:"none",cursor:"pointer",padding:2,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",aspectRatio:"1",opacity:it.state==="missed"?.35:1,transition:"background .2s"}}>
+          <svg width={it.size} height={it.size} dangerouslySetInnerHTML={{__html:drawShape(it.type,it.color,it.size)}}/>
+        </button>)}
+      </div>
     </div>;
   }
 
   function ResponseView({response,type}) {
     if (!response) return null;
     const items=[];
-    if(type==="diario") items.push(["Emoção",response.emocao],["Intensidade",`${response.intensidade}/10`],["Contexto",response.contexto],["Pensamento",response.pensamento]);
     if(type==="pensamentos") items.push(["Situação",response.situacao],["Pensamento",response.pensamento],["Emoção",response.emocao],["Intensidade",`${response.intensidade}/10`],["Alternativo",response.pensamentoAlternativo]);
-    if(type==="atencao") items.push(["Rodadas",response.rodadas],["Acertos",`${response.acertos}/${response.rodadas}`]);
+    if(type==="atencao") items.push(["Páginas",response.paginas],["Acertos",response.acertos],["Erros",response.erros],["Precisão",`${response.precisao}%`]);
     if(type==="experimento") items.push(["Hipótese",response.hipotese],["Ação",response.acao],["Resultado",response.resultado],["Aprendizado",response.aprendizado]);
-    if(type==="escala") items.push(["Humor",`${response.humor}/10`],["Ansiedade",`${response.ansiedade}/10`],["Sono",`${response.sono}/10`],["Observações",response.obs]);
-    return <div style={{display:"flex",flexDirection:"column",gap:6}}>{items.filter(([,v])=>v).map(([k,v])=><div key={k} style={{fontSize:13}}><strong style={{color:"#374151"}}>{k}:</strong> <span style={{color:"#555"}}>{v}</span></div>)}</div>;
+    if(type==="escala") { ESCALAS_DEF.forEach(s=>items.push([s.nome,`${response[s.id]}%`])); if(response.obs) items.push(["Obs",response.obs]); }
+    return <div style={{display:"flex",flexDirection:"column",gap:6}}>{items.filter(([,v])=>v!=null&&v!=="").map(([k,v])=><div key={k} style={{fontSize:13}}><strong style={{color:"#374151"}}>{k}:</strong> <span style={{color:"#555"}}>{v}</span></div>)}</div>;
   }
 
   // ── Root ──
