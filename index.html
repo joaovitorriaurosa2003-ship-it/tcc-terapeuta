@@ -178,27 +178,13 @@ function EscalaPsiForm({tipo,color,onSubmit}){
   function responder(id,val){setRespostas(r=>({...r,[id]:val}));}
 
   if(enviado){
-    const {totais,contagens}=calcEscala(escalaData,respostas);
     return<div style={crd}>
-      <div style={{textAlign:"center",marginBottom:20}}>
-        <div style={{fontSize:48,marginBottom:8}}>✅</div>
-        <h3 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>Resultado — {escalaData.nome}</h3>
+      <div style={{textAlign:"center",padding:"20px 0"}}>
+        <div style={{fontSize:52,marginBottom:12}}>✅</div>
+        <h3 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:8}}>Respostas enviadas!</h3>
+        <p style={{fontSize:14,color:"#6b7280",lineHeight:1.6}}>Seu terapeuta irá analisar seus resultados em breve.</p>
       </div>
-      {Object.entries(escalaData.subescalas).map(([key,info])=>{
-        const max=contagens[key]*escalaData.escala.length;
-        const pct=max>0?Math.round((totais[key]/max)*100):0;
-        return<div key={key} style={{background:"#f9fafb",borderRadius:12,padding:14,marginBottom:10}}>
-          <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
-            <span style={{fontSize:13,fontWeight:700,color:"#1f2937"}}>{info.nome}</span>
-            <span style={{fontSize:14,fontWeight:800,color:info.cor}}>{totais[key]}/{max}</span>
-          </div>
-          <div style={{background:"#e5e7eb",borderRadius:20,height:10,overflow:"hidden"}}>
-            <div style={{width:`${pct}%`,background:info.cor,height:"100%",borderRadius:20}}/>
-          </div>
-          <div style={{fontSize:11,color:"#9ca3af",marginTop:4}}>{pct}% do máximo</div>
-        </div>;
-      })}
-      <button className="btn-main" style={{marginTop:8,background:color}} onClick={()=>onSubmit({respostas,totais,escala:escalaData.nome})}>Salvar Resultado</button>
+      <button className="btn-main" style={{background:color,marginTop:8}} onClick={()=>onSubmit({respostas,totais:calcEscala(escalaData,respostas).totais,escala:escalaData.nome})}>Concluir</button>
     </div>;
   }
 
@@ -395,7 +381,7 @@ function TherapistApp({onLogout}){
     {confirmDel&&<ConfirmModal msg={`Apagar "${confirmDel.name}" e todas as suas tarefas?`} onConfirm={()=>deletePatient(confirmDel.id)} onCancel={()=>setConfirmDel(null)}/>}
     {modal&&<PatientModal patient={modal==="new"?null:modal} onClose={()=>setModal(null)}/>}
     <Header title="MeuPsi" subtitle="Painel do Terapeuta" onBack={onLogout}/>
-    <TabBar tabs={[["patients","👥 Pacientes"],["overview","📈 Visão Geral"]]} active={tab} onChange={setTab}/>
+    <TabBar tabs={[["patients","👥 Pacientes"],["groups","👥 Grupos"],["overview","📈 Visão Geral"]]} active={tab} onChange={setTab}/>
     <div className="fade-in" style={ct}>
       {tab==="patients"&&<>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
@@ -417,6 +403,7 @@ function TherapistApp({onLogout}){
           </div>)}
         </div>
       </>}
+      {tab==="groups"&&<GruposTab patients={patients}/>}
       {tab==="overview"&&<>
         <h2 style={h2s}>Visão Geral</h2>
         {patients.length===0&&<EmptyState icon="📊" text="Nenhum dado ainda."/>}
@@ -621,7 +608,11 @@ function PatientApp({patientId,onLogout}){
       <span style={{fontSize:12,fontWeight:700,color:ti.color,background:`${ti.color}15`,padding:"3px 10px",borderRadius:20}}>{ti.label}</span>
       <h2 style={{fontSize:17,fontWeight:800,color:"#1f2937",margin:"12px 0 8px"}}>{viewTask.title}</h2>
       {viewTask.note&&<div style={{background:"#f3f4f6",borderRadius:10,padding:12,marginBottom:12}}><p style={{fontSize:13,color:"#555"}}><strong>Instruções:</strong> {viewTask.note}</p></div>}
-      <ResponseView response={viewTask.response} type={viewTask.type}/>
+      <div style={{background:"#d1fae5",borderRadius:12,padding:14,textAlign:"center"}}>
+        <div style={{fontSize:28,marginBottom:6}}>✅</div>
+        <div style={{fontWeight:700,color:"#065f46",fontSize:15}}>Tarefa concluída!</div>
+        <div style={{fontSize:13,color:"#6b7280",marginTop:4}}>Seu terapeuta irá analisar suas respostas.</div>
+      </div>
     </div></div>
   </div>;}
   return<div style={aw}>
