@@ -445,7 +445,7 @@ function TherapistApp({onLogout}){
     {confirmDel&&<ConfirmModal msg={`Apagar "${confirmDel.name}"?`} onConfirm={()=>deletePatient(confirmDel.id)} onCancel={()=>setConfirmDel(null)}/>}
     {modal&&<PatientModal patient={modal==="new"?null:modal} onClose={()=>setModal(null)} onSave={savePatient}/>}
     <Header title="MeuPsi" subtitle="Painel do Terapeuta" onBack={onLogout}/>
-    <TabBar tabs={[["patients","👥 Pacientes"],["groups","🗂 Grupos"],["overview","📈 Visão Geral"]]} active={tab} onChange={setTab}/>
+    <TabBar tabs={[["patients","👥 Pacientes"],["groups","🗂 Grupos"],["overview","📈 Visão Geral"],["config","⚙️ Config"]]} active={tab} onChange={setTab}/>
     <div className="fade-in" style={ct}>
       {tab==="patients"&&<>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
@@ -479,6 +479,7 @@ function TherapistApp({onLogout}){
           </div>;
         })}
       </>}
+      {tab==="config"&&<ConfigTab role="therapist" onLogout={onLogout}/>}
     </div>
   </div>;
 }
@@ -667,7 +668,7 @@ function PatientApp({patientId,onLogout}){
   </div>;}
   return<div style={aw}>
     <Header title={`Olá, ${patient.name}! 👋`} subtitle="MeuPsi · João Rosa" onBack={onLogout}/>
-    <TabBar tabs={[["tasks","📋 Tarefas"],["diario","📔 Diário"],["baralhos","🃏 Baralhos"]]} active={tab} onChange={setTab}/>
+    <TabBar tabs={[["tasks","📋 Tarefas"],["diario","📔 Diário"],["baralhos","🃏 Baralhos"],["config","⚙️"]]} active={tab} onChange={setTab}/>
     <div className="fade-in" style={ct}>
       {tab==="tasks"&&<>
         {tasks.length===0&&<EmptyState icon="🎉" text="Nenhuma tarefa ainda."/>}
@@ -689,6 +690,7 @@ function PatientApp({patientId,onLogout}){
       </>}
       {tab==="diario"&&<DiarioTab patientId={patientId}/>}
       {tab==="baralhos"&&<BaralhosTab/>}
+      {tab==="config"&&<ConfigTab role="patient" patientId={patientId} onLogout={onLogout}/>}
     </div>
   </div>;
 }
@@ -905,6 +907,63 @@ function ResponseView({response,type}){
     return<div style={{display:"flex",flexDirection:"column",gap:8}}>{Object.entries(ed.subescalas).map(([key,info])=>{const total=response.totais[key]||0;const contagem=ed.itens.filter(i=>i.sub===key).length;const max=contagem*ed.escala.length;const pct=max>0?Math.round((total/max)*100):0;return<div key={key} style={{background:"#f9fafb",borderRadius:10,padding:12}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}><span style={{fontSize:12,fontWeight:700,color:"#374151"}}>{info.nome}</span><span style={{fontSize:13,fontWeight:800,color:info.cor}}>{total}/{max}</span></div><div style={{background:"#e5e7eb",borderRadius:20,height:8,overflow:"hidden"}}><div style={{width:`${pct}%`,background:info.cor,height:"100%",borderRadius:20}}/></div><div style={{fontSize:11,color:"#9ca3af",marginTop:3}}>{pct}%</div></div>;})}</div>;
   }
   return<div style={{display:"flex",flexDirection:"column",gap:6}}>{items.filter(([,v])=>v!=null&&v!=="").map(([k,v])=><div key={k} style={{fontSize:13,padding:"8px 12px",background:"#f9fafb",borderRadius:10}}><strong style={{color:"#374151"}}>{k}:</strong> <span style={{color:"#555"}}>{v}</span></div>)}</div>;
+}
+
+// ── Configurações ──
+function ConfigTab({role,patientId,onLogout}){
+  const [oldPass,setOldPass]=useState("");
+  const [newPass,setNewPass]=useState("");
+  const [confirmPass,setConfirmPass]=useState("");
+  const [msg,setMsg]=useState("");
+  const [err,setErr]=useState("");
+  const [loading,setLoading]=useState(false);
+
+  async function changePass(){
+    setMsg("");setErr("");
+    if(!oldPass||!newPass||!confirmPass){setErr("Preencha todos os campos.");return;}
+    if(newPass!==confirmPass){setErr("A nova senha e a confirmação não coincidem.");return;}
+    if(newPass.length<4){setErr("A nova senha deve ter pelo menos 4 caracteres.");return;}
+    setLoading(true);
+    try{
+      if(role==="therapist"){
+        const d=await fbGet("therapist");
+        const stored=d?.password||"1234";
+        if(oldPass!==stored){setErr("Senha atual incorreta.");setLoading(false);return;}
+        await fbSet("therapist",{...d,password:newPass});
+        setMsg("✅ Senha do terapeuta alterada com sucesso!");
+      }else{
+        const p=await fbGet(`patients/${patientId}`);
+        if(!p){setErr("Paciente não encontrado.");setLoading(false);return;}
+        if(oldPass!==(p.password||"1234")){setErr("Senha atual incorreta.");setLoading(false);return;}
+        await fbUpdate(`patients/${patientId}`,{password:newPass});
+        setMsg("✅ Sua senha foi alterada com sucesso!");
+      }
+      setOldPass("");setNewPass("");setConfirmPass("");
+    }catch(e){setErr("Erro ao alterar senha. Tente novamente.");}
+    setLoading(false);
+  }
+
+  return<div>
+    <h2 style={h2s}>⚙️ Configurações</h2>
+    <div style={crd}>
+      <h3 style={{fontSize:15,fontWeight:800,color:"#1f2937",marginBottom:4}}>🔑 Alterar Senha</h3>
+      <p style={{fontSize:12,color:"#9ca3af",marginBottom:16}}>{role==="therapist"?"Altere a senha de acesso do terapeuta":"Altere sua senha de acesso"}</p>
+      <label style={lbl}>Senha atual</label>
+      <input type="password" className="inp" value={oldPass} onChange={e=>setOldPass(e.target.value)} placeholder="Digite a senha atual"/>
+      <label style={lbl}>Nova senha</label>
+      <input type="password" className="inp" value={newPass} onChange={e=>setNewPass(e.target.value)} placeholder="Digite a nova senha"/>
+      <label style={lbl}>Confirmar nova senha</label>
+      <input type="password" className="inp" value={confirmPass} onChange={e=>setConfirmPass(e.target.value)} onKeyDown={e=>e.key==="Enter"&&changePass()} placeholder="Repita a nova senha"/>
+      {err&&<div style={{background:"#fee2e2",borderRadius:10,padding:"10px 14px",marginBottom:10,fontSize:13,color:"#e11d48",fontWeight:600}}>{err}</div>}
+      {msg&&<div style={{background:"#d1fae5",borderRadius:10,padding:"10px 14px",marginBottom:10,fontSize:13,color:"#065f46",fontWeight:600}}>{msg}</div>}
+      <button className="btn-main" onClick={changePass} disabled={loading}>{loading?"Salvando...":"Alterar Senha"}</button>
+    </div>
+    <div style={{...crd,marginTop:14}}>
+      <h3 style={{fontSize:15,fontWeight:800,color:"#1f2937",marginBottom:4}}>🚪 Sair</h3>
+      <p style={{fontSize:12,color:"#9ca3af",marginBottom:14}}>Encerrar sessão atual</p>
+      <button onClick={onLogout} style={{...btn("#fee2e2"),width:"100%",padding:"12px 0"}}>Sair do app</button>
+    </div>
+  </div>;
 }
 
 // ── Root ──
