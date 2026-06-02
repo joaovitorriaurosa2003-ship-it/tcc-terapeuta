@@ -445,7 +445,7 @@ function TherapistApp({onLogout}){
     {confirmDel&&<ConfirmModal msg={`Apagar "${confirmDel.name}"?`} onConfirm={()=>deletePatient(confirmDel.id)} onCancel={()=>setConfirmDel(null)}/>}
     {modal&&<PatientModal patient={modal==="new"?null:modal} onClose={()=>setModal(null)} onSave={savePatient}/>}
     <Header title="MeuPsi" subtitle="Painel do Terapeuta" onBack={onLogout}/>
-    <TabBar tabs={[["patients","👥 Pacientes"],["groups","🗂 Grupos"],["overview","📈 Visão Geral"],["config","⚙️ Config"]]} active={tab} onChange={setTab}/>
+    <TabBar tabs={[["patients","👥 Pacientes"],["groups","🗂 Grupos"],["dashboard","📊 Dashboard"],["overview","📈 Visão Geral"],["config","⚙️ Config"]]} active={tab} onChange={setTab}/>
     <div className="fade-in" style={ct}>
       {tab==="patients"&&<>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
@@ -468,6 +468,7 @@ function TherapistApp({onLogout}){
         </div>
       </>}
       {tab==="groups"&&<GruposTab patients={patients}/>}
+      {tab==="dashboard"&&<DashboardTab patients={patients}/>}
       {tab==="overview"&&<>
         <h2 style={h2s}>Visão Geral</h2>
         {patients.length===0&&<EmptyState icon="📊" text="Nenhum dado ainda."/>}
@@ -909,7 +910,181 @@ function ResponseView({response,type}){
   return<div style={{display:"flex",flexDirection:"column",gap:6}}>{items.filter(([,v])=>v!=null&&v!=="").map(([k,v])=><div key={k} style={{fontSize:13,padding:"8px 12px",background:"#f9fafb",borderRadius:10}}><strong style={{color:"#374151"}}>{k}:</strong> <span style={{color:"#555"}}>{v}</span></div>)}</div>;
 }
 
-// ── Configurações ──
+// ── Exportar CSV ──
+function exportarCSV(patient){
+  function toCSV(rows){return rows.map(r=>r.map(c=>`"${String(c??'').replace(/"/g,'""')}"`).join(",")).join("\n");}
+  function download(nome,conteudo){const blob=new Blob(["\uFEFF"+conteudo],{type:"text/csv;charset=utf-8;"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=nome;a.click();URL.revokeObjectURL(a.href);}
+  let csv="";
+  csv+="RESUMO\n"+toCSV([["Campo","Valor"],["Paciente",patient.name],["Data de exportação",new Date().toLocaleDateString("pt-BR")],["Registros no diário",(patient.diarios||[]).length]])+"\n\n";
+  const esc=patient.escalaResp;
+  if(esc){csv+="ESCALA DE BEM-ESTAR\n"+toCSV([["Dimensão","Valor (%)"],["Humor",esc.humor],["Ansiedade",esc.ansiedade],["Sono",esc.sono],["Estresse",esc.estresse],["Tristeza",esc.tristeza]])+"\n\n";}
+  if(patient.csai2r){const t=patient.csai2r;csv+="CSAI-2R\n"+toCSV([["Subescala","Pontuação","Máximo","% do Máximo"],["Ansiedade Cognitiva",t.cognitiva,32,Math.round((t.cognitiva/32)*100)],["Ansiedade Somática",t.somatica,28,Math.round((t.somatica/28)*100)],["Autoconfiança",t.autoconfianca,20,Math.round((t.autoconfianca/20)*100)]])+"\n\n";}
+  if(patient.sas){const t=patient.sas;csv+="SAS\n"+toCSV([["Subescala","Pontuação","Máximo","% do Máximo"],["Ansiedade Somática",t.somatica,28,Math.round((t.somatica/28)*100)],["Preocupação",t.preocupacao,28,Math.round((t.preocupacao/28)*100)],["Perturbação da Concentração",t.concentracao,28,Math.round((t.concentracao/28)*100)]])+"\n\n";}
+  if(patient.acsi28){const t=patient.acsi28;csv+="ACSI-28\n"+toCSV([["Subescala","Pontuação","Máximo","% do Máximo"],["Coping com Adversidade",t.adversidade,16,Math.round((t.adversidade/16)*100)],["Rendimento sob Pressão",t.pressao,16,Math.round((t.pressao/16)*100)],["Metas e Preparação",t.metas,16,Math.round((t.metas/16)*100)],["Concentração",t.concentracao,16,Math.round((t.concentracao/16)*100)],["Ausência de Preocupação",t.preocupacao,16,Math.round((t.preocupacao/16)*100)],["Confiança e Motivação",t.confianca,16,Math.round((t.confianca/16)*100)],["Treinabilidade",t.treinabilidade,16,Math.round((t.treinabilidade/16)*100)]])+"\n\n";}
+  if((patient.diarios||[]).length){csv+="DIÁRIO DE EMOÇÕES\n"+toCSV([["Emoção","Intensidade","Data","Horário","Contexto","Pensamento"],...(patient.diarios||[]).map(d=>[d.emocao,d.intensidade,d.data||"—",d.hora||"—",d.contexto||"—",d.pensamento||"—"])]);}
+  download(`MeuPsi_${patient.name.replace(/\s+/g,"_")}_${new Date().toLocaleDateString("pt-BR").replace(/\//g,"-")}.csv`,csv);
+}
+
+// ── Radar Chart ──
+function RadarChart({labels,values,colors,size=220}){
+  const cx=size/2,cy=size/2+10,r=size/2-45,n=labels.length;
+  const angle=i=>((2*Math.PI*i)/n)-Math.PI/2;
+  const pt=(i,radius)=>({x:cx+radius*Math.cos(angle(i)),y:cy+radius*Math.sin(angle(i))});
+  const norm=values.map(v=>Math.min(100,Math.max(0,v)));
+  const polyPts=norm.map((v,i)=>{const p=pt(i,r*(v/100));return`${p.x},${p.y}`;}).join(" ");
+  return(
+    <svg width={size} height={size+10} style={{overflow:"visible",display:"block",margin:"0 auto"}}>
+      {[20,40,60,80,100].map(g=><polygon key={g} points={Array.from({length:n},(_,i)=>{const p=pt(i,r*(g/100));return`${p.x},${p.y}`;}).join(" ")} fill="none" stroke="#e5e7eb" strokeWidth="1"/>)}
+      {Array.from({length:n},(_,i)=>{const p=pt(i,r);return<line key={i} x1={cx} y1={cy} x2={p.x} y2={p.y} stroke="#e5e7eb" strokeWidth="1"/>;  })}
+      <polygon points={polyPts} fill={`${colors[0]}25`} stroke={colors[0]} strokeWidth="2.5" strokeLinejoin="round"/>
+      {norm.map((v,i)=>{const p=pt(i,r*(v/100));return<circle key={i} cx={p.x} cy={p.y} r="4" fill={colors[i]||colors[0]} stroke="#fff" strokeWidth="2"/>;  })}
+      {labels.map((l,i)=>{const p=pt(i,r+22);const anchor=p.x<cx-5?"end":p.x>cx+5?"start":"middle";return<text key={i} x={p.x} y={p.y} textAnchor={anchor} fontSize="10" fontWeight="700" fill="#374151">{l}</text>;  })}
+    </svg>
+  );
+}
+
+// ── Mini Bar ──
+function MiniBar({label,value,max,color}){
+  const pct=max>0?Math.round((value/max)*100):0;
+  return<div style={{marginBottom:8}}>
+    <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}><span style={{fontSize:11,fontWeight:700,color:"#374151"}}>{label}</span><span style={{fontSize:11,fontWeight:800,color}}>{value}/{max}</span></div>
+    <div style={{background:"#f3f4f6",borderRadius:20,height:7,overflow:"hidden"}}><div style={{width:`${pct}%`,background:color,height:"100%",borderRadius:20}}/></div>
+  </div>;
+}
+
+// ── Dashboard Tab ──
+function DashboardTab({patients}){
+  const [sel,setSel]=useState(0);
+  const [subTab,setSubTab]=useState("radar");
+  const [loading,setLoading]=useState(false);
+
+  // Coleta dados das respostas do paciente
+  const p=patients[sel];
+  const tasks=p?.tasks?Object.values(p.tasks):[];
+  const diarios=p?.diarios?Object.values(p.diarios):[];
+
+  // Escala bem-estar (última resposta)
+  const escResp=tasks.filter(t=>t.type==="escala"&&t.response).slice(-1)[0]?.response||null;
+  // CSAI-2R
+  const csaiResp=tasks.filter(t=>t.type==="csai2r"&&t.response?.totais).slice(-1)[0]?.response?.totais||null;
+  // SAS
+  const sasResp=tasks.filter(t=>t.type==="sas"&&t.response?.totais).slice(-1)[0]?.response?.totais||null;
+  // ACSI-28
+  const acsiResp=tasks.filter(t=>t.type==="acsi28"&&t.response?.totais).slice(-1)[0]?.response?.totais||null;
+
+  // Radares
+  const beValues=escResp?[escResp.humor,escResp.ansiedade,escResp.sono,escResp.estresse,escResp.tristeza]:[0,0,0,0,0];
+  const beColors=["#f59e0b","#8b5cf6","#3b82f6","#ef4444","#60a5fa"];
+  const csaiValues=csaiResp?[Math.round((csaiResp.cognitiva/32)*100),Math.round((csaiResp.somatica/28)*100),Math.round((csaiResp.autoconfianca/20)*100)]:[0,0,0];
+  const sasValues=sasResp?[Math.round((sasResp.somatica/28)*100),Math.round((sasResp.preocupacao/28)*100),Math.round((sasResp.concentracao/28)*100)]:[0,0,0];
+  const acsiValues=acsiResp?[Math.round((acsiResp.adversidade/16)*100),Math.round((acsiResp.pressao/16)*100),Math.round((acsiResp.metas/16)*100),Math.round((acsiResp.concentracao/16)*100),Math.round((acsiResp.preocupacao/16)*100),Math.round((acsiResp.confianca/16)*100),Math.round((acsiResp.treinabilidade/16)*100)]:[0,0,0,0,0,0,0];
+
+  // Emoções
+  const ECORES={Alegria:"#f59e0b",Tristeza:"#3b82f6",Raiva:"#ef4444",Ansiedade:"#8b5cf6",Medo:"#6366f1",Nojo:"#10b981",Vergonha:"#f97316",Culpa:"#64748b",Cansaço:"#94a3b8",Amor:"#ec4899",Neutro:"#6b7280",Empolgação:"#fbbf24"};
+  const emoCounts={};diarios.forEach(d=>{emoCounts[d.emocao]=(emoCounts[d.emocao]||0)+1;});
+  const emoSorted=Object.entries(emoCounts).sort((a,b)=>b[1]-a[1]);
+
+  function handleExport(){
+    setLoading(true);
+    exportarCSV({name:p.name,diarios,escalaResp:escResp,csai2r:csaiResp,sas:sasResp,acsi28:acsiResp});
+    setTimeout(()=>setLoading(false),1000);
+  }
+
+  if(patients.length===0)return<EmptyState icon="📊" text="Nenhum paciente cadastrado ainda."/>;
+
+  return<div>
+    {/* Seletor */}
+    <div style={{marginBottom:14}}>
+      <div style={{fontSize:11,fontWeight:700,color:"#9ca3af",marginBottom:8,textTransform:"uppercase",letterSpacing:".5px"}}>Paciente</div>
+      <div style={{display:"flex",flexDirection:"column",gap:8}}>
+        {patients.map((pt,i)=>{
+          const ptTasks=pt.tasks?Object.values(pt.tasks):[];
+          const humor=ptTasks.filter(t=>t.type==="escala"&&t.response).slice(-1)[0]?.response?.humor||null;
+          const color=humor>=60?"#059669":humor>=40?"#d97706":"#e11d48";
+          return<div key={pt.id} onClick={()=>setSel(i)} style={{background:sel===i?"#ede9fe":"#fff",borderRadius:14,padding:"12px 14px",cursor:"pointer",boxShadow:"0 2px 8px rgba(0,0,0,.06)",border:`1.5px solid ${sel===i?"#6d28d9":"#f0f0f0"}`,display:"flex",alignItems:"center",gap:12,transition:"all .2s"}}>
+            <div style={{width:36,height:36,borderRadius:10,background:sel===i?"#6d28d9":"#f3f4f6",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>👤</div>
+            <div style={{flex:1}}><div style={{fontWeight:700,color:sel===i?"#6d28d9":"#1f2937",fontSize:14}}>{pt.name}</div><div style={{fontSize:11,color:"#9ca3af",marginTop:1}}>{humor!==null?<span>Humor: <span style={{color,fontWeight:700}}>{humor}%</span></span>:"Sem dados ainda"}</div></div>
+            <div style={{fontSize:18,color:sel===i?"#6d28d9":"#d1d5db"}}>›</div>
+          </div>;
+        })}
+      </div>
+    </div>
+
+    {/* Exportar */}
+    <button onClick={handleExport} disabled={loading} style={{width:"100%",marginBottom:14,padding:"11px 0",borderRadius:12,border:"none",background:"linear-gradient(135deg,#059669,#34d399)",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer",boxShadow:"0 4px 12px rgba(5,150,105,.3)"}}>
+      {loading?"⏳ Gerando...":"📥 Exportar dados — "+p.name}
+    </button>
+
+    {/* Sub-tabs */}
+    <div style={{display:"flex",background:"#fff",borderRadius:14,padding:4,gap:4,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.05)"}}>
+      {[["radar","📡 Radar"],["escalas","📋 Escalas"],["emocoes","😊 Emoções"]].map(([id,label])=>(
+        <button key={id} onClick={()=>setSubTab(id)} style={{flex:1,padding:"9px 4px",border:"none",cursor:"pointer",fontWeight:700,fontSize:12,borderRadius:10,background:subTab===id?"#6d28d9":"transparent",color:subTab===id?"#fff":"#9ca3af",transition:"all .2s"}}>{label}</button>
+      ))}
+    </div>
+
+    {/* Conteúdo */}
+    {subTab==="radar"&&<div>
+      {/* Bem-estar */}
+      <div style={{...crd,marginBottom:14}}>
+        <div style={{fontSize:14,fontWeight:800,color:"#1f2937",marginBottom:2}}>📊 Bem-Estar</div>
+        <div style={{fontSize:12,color:"#9ca3af",marginBottom:10}}>Humor, ansiedade, sono, estresse e tristeza</div>
+        {escResp?<><RadarChart labels={["Humor","Ansiedade","Sono","Estresse","Tristeza"]} values={beValues} colors={beColors} size={220}/><div style={{display:"flex",flexWrap:"wrap",gap:6,marginTop:8,justifyContent:"center"}}>{["Humor","Ansiedade","Sono","Estresse","Tristeza"].map((l,i)=><div key={l} style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:8,height:8,borderRadius:"50%",background:beColors[i]}}/><span style={{fontSize:10,color:"#6b7280",fontWeight:600}}>{l}</span></div>)}</div></>:<EmptyState icon="📊" text="Nenhuma escala respondida ainda."/>}
+      </div>
+      {/* CSAI-2R */}
+      <div style={{...crd,marginBottom:14}}>
+        <div style={{fontSize:14,fontWeight:800,color:"#6d28d9",marginBottom:2}}>📋 CSAI-2R</div>
+        <div style={{fontSize:12,color:"#9ca3af",marginBottom:10}}>Ansiedade cognitiva, somática e autoconfiança</div>
+        {csaiResp?<RadarChart labels={["Ans. Cognitiva","Ans. Somática","Autoconfiança"]} values={csaiValues} colors={["#6d28d9","#e11d48","#059669"]} size={200}/>:<EmptyState icon="📋" text="CSAI-2R não respondido ainda."/>}
+      </div>
+      {/* ACSI-28 */}
+      <div style={crd}>
+        <div style={{fontSize:14,fontWeight:800,color:"#059669",marginBottom:2}}>📋 ACSI-28</div>
+        <div style={{fontSize:12,color:"#9ca3af",marginBottom:10}}>7 subescalas de habilidades de coping</div>
+        {acsiResp?<RadarChart labels={["Adversid.","Pressão","Metas","Concentr.","Preocup.","Confiança","Treinab."]} values={acsiValues} colors={["#ef4444","#f97316","#eab308","#22c55e","#06b6d4","#8b5cf6","#ec4899"]} size={240}/>:<EmptyState icon="📋" text="ACSI-28 não respondido ainda."/>}
+      </div>
+    </div>}
+
+    {subTab==="escalas"&&<div>
+      <div style={{...crd,marginBottom:14}}>
+        <div style={{fontSize:14,fontWeight:800,color:"#6d28d9",marginBottom:12}}>📋 CSAI-2R</div>
+        {csaiResp?<><MiniBar label="Ansiedade Cognitiva" value={csaiResp.cognitiva} max={32} color="#6d28d9"/><MiniBar label="Ansiedade Somática" value={csaiResp.somatica} max={28} color="#e11d48"/><MiniBar label="Autoconfiança" value={csaiResp.autoconfianca} max={20} color="#059669"/></>:<p style={{fontSize:13,color:"#9ca3af"}}>Nenhuma resposta ainda.</p>}
+      </div>
+      <div style={{...crd,marginBottom:14}}>
+        <div style={{fontSize:14,fontWeight:800,color:"#0891b2",marginBottom:12}}>📋 SAS</div>
+        {sasResp?<><MiniBar label="Ansiedade Somática" value={sasResp.somatica} max={28} color="#e11d48"/><MiniBar label="Preocupação" value={sasResp.preocupacao} max={28} color="#d97706"/><MiniBar label="Perturbação Concentração" value={sasResp.concentracao} max={28} color="#7c3aed"/></>:<p style={{fontSize:13,color:"#9ca3af"}}>Nenhuma resposta ainda.</p>}
+      </div>
+      <div style={crd}>
+        <div style={{fontSize:14,fontWeight:800,color:"#059669",marginBottom:12}}>📋 ACSI-28</div>
+        {acsiResp?[["adversidade","Coping Adversidade","#ef4444",16],["pressao","Pressão","#f97316",16],["metas","Metas","#eab308",16],["concentracao","Concentração","#22c55e",16],["preocupacao","Preocupação","#06b6d4",16],["confianca","Confiança","#8b5cf6",16],["treinabilidade","Treinabilidade","#ec4899",16]].map(([k,l,c,m])=><MiniBar key={k} label={l} value={acsiResp[k]||0} max={m} color={c}/>):<p style={{fontSize:13,color:"#9ca3af"}}>Nenhuma resposta ainda.</p>}
+      </div>
+    </div>}
+
+    {subTab==="emocoes"&&<div>
+      <div style={{...crd,marginBottom:14}}>
+        <div style={{fontSize:14,fontWeight:800,color:"#1f2937",marginBottom:4}}>😊 Frequência das Emoções</div>
+        <div style={{fontSize:12,color:"#9ca3af",marginBottom:12}}>{diarios.length} registro(s) no diário</div>
+        {diarios.length===0?<EmptyState icon="📔" text="Nenhum registro no diário ainda."/>:
+        <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+          {emoSorted.map(([nome,count])=><div key={nome} style={{display:"flex",alignItems:"center",gap:5,background:"#f9fafb",borderRadius:20,padding:"5px 10px"}}>
+            <div style={{width:8,height:8,borderRadius:"50%",background:ECORES[nome]||"#888",flexShrink:0}}/>
+            <span style={{fontSize:12,fontWeight:700,color:"#374151"}}>{nome}</span>
+            <span style={{fontSize:11,color:"#9ca3af"}}>{Math.round((count/diarios.length)*100)}%</span>
+          </div>)}
+        </div>}
+      </div>
+      {diarios.length>0&&<div style={{...crd,marginBottom:14}}>
+        <div style={{fontSize:14,fontWeight:800,color:"#1f2937",marginBottom:12}}>📈 Intensidade Média</div>
+        {Object.entries(diarios.reduce((acc,d)=>{if(!acc[d.emocao])acc[d.emocao]={total:0,count:0};acc[d.emocao].total+=d.intensidade;acc[d.emocao].count++;return acc;},{})).map(([nome,{total,count}])=>(
+          <MiniBar key={nome} label={nome} value={Math.round((total/count)*10)} max={100} color={ECORES[nome]||"#888"}/>
+        ))}
+      </div>}
+      {escResp&&<div style={crd}>
+        <div style={{fontSize:14,fontWeight:800,color:"#1f2937",marginBottom:12}}>📊 Escala de Bem-Estar</div>
+        {[["humor","Humor","#f59e0b"],["ansiedade","Ansiedade","#8b5cf6"],["sono","Sono","#3b82f6"],["estresse","Estresse","#ef4444"],["tristeza","Tristeza","#60a5fa"]].map(([k,l,c])=><MiniBar key={k} label={l} value={escResp[k]} max={100} color={c}/>)}
+      </div>}
+    </div>}
+  </div>;
+}
 function ConfigTab({role,patientId,onLogout}){
   const [oldPass,setOldPass]=useState("");
   const [newPass,setNewPass]=useState("");
