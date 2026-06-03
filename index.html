@@ -67,12 +67,18 @@ function fbListen(p,cb){return window._onValue(window._ref(window._db,p),s=>cb(s
 // ── Constants ──
 const TASK_TYPES=[
   {id:"pensamentos",label:"💭 Pensamentos Automáticos",color:"#0891b2"},
-  {id:"atencao",label:"🎯 Teste de Atenção",color:"#d97706"},
+  {id:"atencao",label:"🎯 Teste de Atenção Visual",color:"#d97706"},
   {id:"experimento",label:"🔬 Experimento Comportamental",color:"#059669"},
   {id:"escala",label:"📊 Escala de Bem-Estar",color:"#e11d48"},
   {id:"csai2r",label:"📋 CSAI-2R",color:"#6d28d9"},
   {id:"sas",label:"📋 SAS",color:"#0891b2"},
   {id:"acsi28",label:"📋 ACSI-28",color:"#059669"},
+  {id:"tr",label:"⚡ Tempo de Reação",color:"#7c3aed"},
+  {id:"stroop",label:"🎨 Teste de Stroop",color:"#6d28d9"},
+  {id:"tmt",label:"🔢 Trail Making Test",color:"#0891b2"},
+  {id:"nback",label:"🧩 N-Back",color:"#d97706"},
+  {id:"gonogo",label:"🚦 Go/No-Go",color:"#059669"},
+  {id:"flanker",label:"➡️ Teste de Flanker",color:"#e11d48"},
 ];
 function getTypeInfo(id){return TASK_TYPES.find(t=>t.id===id)||{}}
 
@@ -746,7 +752,262 @@ function DiarioTab({patientId}){
   </div>;
 }
 
-// ── Task Forms ──
+// ── Testes Cognitivos ──
+const CORES_STROOP=["vermelho","verde","azul","amarelo"];
+const CORES_CSS={vermelho:"#ef4444",verde:"#16a34a",azul:"#2563eb",amarelo:"#ca8a04"};
+const LETRAS_NBACK="BCDFGHJKLMNPQRSTVWXZ".split("");
+const FLANKER_SETS=[{alvo:"→",dist:"←←",tipo:"incongruente"},{alvo:"←",dist:"→→",tipo:"incongruente"},{alvo:"→",dist:"→→",tipo:"congruente"},{alvo:"←",dist:"←←",tipo:"congruente"}];
+function classPct(p){return p>=80?{nivel:"Excelente",cor:"#059669"}:p>=65?{nivel:"Bom",cor:"#0891b2"}:p>=50?{nivel:"Moderado",cor:"#d97706"}:{nivel:"Baixo",cor:"#e11d48"};}
+function MiniScoreBar({label,value,max,color}){const p=max>0?Math.round((value/max)*100):0;return<div style={{marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}><span style={{fontSize:11,fontWeight:700,color:"#374151"}}>{label}</span><span style={{fontSize:11,fontWeight:800,color}}>{value}/{max}</span></div><div style={{background:"#f3f4f6",borderRadius:20,height:7,overflow:"hidden"}}><div style={{width:`${p}%`,background:color,height:"100%",borderRadius:20}}/></div></div>;}
+
+// Tempo de Reação
+function TRForm({color,onSubmit}){
+  const TOTAL=20;
+  const [fase,setFase]=useState("intro");
+  const [trial,setTrial]=useState(0);
+  const [tempos,setTempos]=useState([]);
+  const [falsosPos,setFalsosPos]=useState(0);
+  const [omissoes,setOmissoes]=useState(0);
+  const [alvoVis,setAlvoVis]=useState(false);
+  const [feedback,setFeedback]=useState(null);
+  const [tempoIni,setTempoIni]=useState(null);
+  const [ultimoTR,setUltimoTR]=useState(null);
+  const tRef=useRef(null),aRef=useRef(null);
+  function comecar(){
+    setFase("espera");setAlvoVis(false);setFeedback(null);
+    const e=1000+Math.random()*3000;
+    tRef.current=setTimeout(()=>{setAlvoVis(true);setTempoIni(Date.now());setFase("alvo");
+      aRef.current=setTimeout(()=>{setAlvoVis(false);setOmissoes(o=>o+1);setFeedback("omissao");setFase("feedback");setTimeout(()=>prox(),1200);},1500);
+    },e);
+  }
+  function prox(){const n=trial+1;if(n>=TOTAL)setFase("resultado");else{setTrial(n);comecar();}}
+  function click(){
+    if(fase==="espera"){clearTimeout(tRef.current);setFalsosPos(f=>f+1);setFeedback("falso");setFase("feedback");setTimeout(()=>prox(),1200);}
+    else if(fase==="alvo"){clearTimeout(aRef.current);const tr=Date.now()-tempoIni;setUltimoTR(tr);setTempos(t=>[...t,tr]);setAlvoVis(false);setFeedback("certo");setFase("feedback");setTimeout(()=>prox(),800);}
+  }
+  useEffect(()=>()=>{clearTimeout(tRef.current);clearTimeout(aRef.current);},[]);
+  if(fase==="intro")return<div style={{...crd,textAlign:"center"}}><div style={{fontSize:52,marginBottom:12}}>⚡</div><h3 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:8}}>Tempo de Reação</h3><p style={{fontSize:13,color:"#6b7280",marginBottom:20,lineHeight:1.6}}>Toque quando aparecer o círculo verde. <strong>Não toque antes!</strong></p><button className="btn-main" style={{background:color}} onClick={()=>{setTrial(0);setTempos([]);setFalsosPos(0);setOmissoes(0);comecar();}}>Começar</button></div>;
+  if(fase==="resultado"){
+    const media=tempos.length?Math.round(tempos.reduce((a,b)=>a+b,0)/tempos.length):0;
+    const desvio=tempos.length>1?Math.round(Math.sqrt(tempos.reduce((a,b)=>a+(b-media)**2,0)/tempos.length)):0;
+    const score=Math.max(0,100-Math.round((media-200)/5)-falsosPos*5-omissoes*3);
+    return<div style={crd}><div style={{textAlign:"center",marginBottom:16}}><div style={{fontSize:48,marginBottom:8}}>{score>=75?"🏆":score>=50?"🎯":"💪"}</div><h3 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>{score>=75?"Excelente!":score>=50?"Muito bem!":"Continue!"}</h3></div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
+        {[[media+"ms","TR Médio",color],[desvio+"ms","Desvio",color],[tempos.length,"Acertos","#059669"],[falsosPos,"Falsos","#e11d48"]].map(([v,l,c])=><div key={l} style={{background:"#f9fafb",borderRadius:12,padding:10,textAlign:"center"}}><div style={{fontSize:18,fontWeight:900,color:c}}>{v}</div><div style={{fontSize:10,color:"#9ca3af"}}>{l}</div></div>)}
+      </div>
+      <button className="btn-main" style={{background:color}} onClick={()=>onSubmit({media,desvio,acertos:tempos.length,falsosPos,omissoes,score,tipo:"tr"})}>Salvar resultado</button>
+    </div>;
+  }
+  const bg=feedback==="certo"?"#d1fae5":feedback==="falso"?"#fee2e2":feedback==="omissao"?"#fef3c7":alvoVis?"#d1fae5":"#f9fafb";
+  const pct=Math.round((trial/TOTAL)*100);
+  return<div onClick={click} style={{cursor:"pointer"}}>
+    <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}><span style={{fontSize:12,fontWeight:700,color:"#374151"}}>{trial+1}/{TOTAL}</span><span style={{fontSize:12,fontWeight:700,color}}>{pct}%</span></div>
+    <div style={{background:"#f3f4f6",borderRadius:20,height:8,overflow:"hidden",marginBottom:14}}><div style={{width:`${pct}%`,background:color,height:"100%",borderRadius:20}}/></div>
+    <div style={{background:bg,borderRadius:16,padding:40,textAlign:"center",minHeight:150,display:"flex",alignItems:"center",justifyContent:"center",transition:"background .15s",marginBottom:12}}>
+      {alvoVis&&<div style={{width:100,height:100,borderRadius:"50%",background:"linear-gradient(135deg,#059669,#34d399)",boxShadow:"0 0 40px rgba(5,150,105,.6)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:32}}>👆</div>}
+      {!alvoVis&&!feedback&&<div style={{textAlign:"center"}}><div style={{fontSize:48,marginBottom:8}}>⏳</div><p style={{fontSize:14,color:"#9ca3af",fontWeight:700}}>Aguarde...</p></div>}
+      {feedback==="certo"&&<div style={{textAlign:"center"}}><div style={{fontSize:52}}>✅</div><div style={{fontSize:22,fontWeight:900,color:"#059669"}}>{ultimoTR}ms</div></div>}
+      {feedback==="falso"&&<div style={{textAlign:"center"}}><div style={{fontSize:52}}>⚠️</div><div style={{fontSize:16,fontWeight:800,color:"#e11d48"}}>Muito cedo!</div></div>}
+      {feedback==="omissao"&&<div style={{textAlign:"center"}}><div style={{fontSize:52}}>😴</div><div style={{fontSize:16,fontWeight:800,color:"#d97706"}}>Perdeu!</div></div>}
+    </div>
+  </div>;
+}
+
+// Stroop
+function StroopForm({color,onSubmit}){
+  const TOTAL=24;
+  const [fase,setFase]=useState("intro");
+  const [trial,setTrial]=useState(0);
+  const [item,setItem]=useState(null);
+  const [acertos,setAcertos]=useState(0);
+  const [erros,setErros]=useState(0);
+  const [tempos,setTempos]=useState([]);
+  const [feedback,setFeedback]=useState(null);
+  const tRef=useRef(null);
+  function gerar(){const p=CORES_STROOP[Math.floor(Math.random()*4)];const c=CORES_STROOP[Math.floor(Math.random()*4)];return{palavra:p,cor:c,inicio:Date.now()};}
+  function prox(t,a,e,ts){if(t>=TOTAL){onSubmit({acertos:a,erros:e,media:ts.length?Math.round(ts.reduce((x,y)=>x+y,0)/ts.length):0,total:TOTAL,tipo:"stroop"});setFase("fim");return;}setFeedback(null);setTrial(t);setItem(gerar());}
+  function responder(c){
+    const tr=Date.now()-item.inicio;
+    if(c===item.cor){setAcertos(a=>{const nt=[...tempos,tr];setTempos(nt);setFeedback("certo");setTimeout(()=>prox(trial+1,a+1,erros,nt),500);return a+1;});}
+    else{setErros(e=>{setFeedback("errado");setTimeout(()=>prox(trial+1,acertos,e+1,tempos),500);return e+1;});}
+  }
+  if(fase==="fim")return<div style={{...crd,textAlign:"center"}}><div style={{fontSize:48,marginBottom:8}}>✅</div><p style={{fontSize:15,fontWeight:700,color:"#6b7280"}}>Respostas enviadas ao terapeuta.</p></div>;
+  if(fase==="intro")return<div style={{...crd,textAlign:"center"}}><div style={{fontSize:52,marginBottom:12}}>🎨</div><h3 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:8}}>Teste de Stroop</h3><p style={{fontSize:13,color:"#6b7280",marginBottom:16,lineHeight:1.6}}>Selecione a <strong>COR DA TINTA</strong>, ignorando o significado da palavra.</p><div style={{background:"#ede9fe",borderRadius:12,padding:14,marginBottom:20}}><p style={{fontSize:28,fontWeight:900,color:"#ef4444",marginBottom:6}}>AZUL</p><p style={{fontSize:13,color:"#6d28d9"}}>Resposta: <strong>Vermelho</strong></p></div><button className="btn-main" style={{background:color}} onClick={()=>prox(0,0,0,[])}>Começar</button></div>;
+  const pct=Math.round((trial/TOTAL)*100);
+  const bg=feedback==="certo"?"#d1fae5":feedback==="errado"?"#fee2e2":"#f9fafb";
+  return<div><div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}><span style={{fontSize:12,fontWeight:700,color:"#374151"}}>{trial+1}/{TOTAL}</span><span style={{fontSize:12,fontWeight:700,color}}>{pct}%</span></div>
+    <div style={{background:"#f3f4f6",borderRadius:20,height:8,overflow:"hidden",marginBottom:14}}><div style={{width:`${pct}%`,background:color,height:"100%",borderRadius:20}}/></div>
+    <div style={{background:bg,borderRadius:16,padding:32,textAlign:"center",marginBottom:14,minHeight:100,display:"flex",alignItems:"center",justifyContent:"center",transition:"background .15s"}}>{item&&<div style={{fontSize:42,fontWeight:900,color:CORES_CSS[item.cor]}}>{item.palavra.toUpperCase()}</div>}</div>
+    <p style={{textAlign:"center",fontSize:13,fontWeight:700,color:"#9ca3af",marginBottom:10}}>Cor da tinta:</p>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>{CORES_STROOP.map(c=><button key={c} onClick={()=>responder(c)} style={{padding:"12px 0",borderRadius:10,border:`2px solid ${CORES_CSS[c]}`,background:`${CORES_CSS[c]}15`,color:CORES_CSS[c],fontWeight:800,fontSize:14,cursor:"pointer"}}>{c.charAt(0).toUpperCase()+c.slice(1)}</button>)}</div>
+    <div style={{display:"flex",justifyContent:"space-around",marginTop:10}}><span style={{fontSize:12,color:"#059669",fontWeight:700}}>✓ {acertos}</span><span style={{fontSize:12,color:"#e11d48",fontWeight:700}}>✗ {erros}</span></div>
+  </div>;
+}
+
+// TMT
+function TMTForm({color,onSubmit}){
+  const [parte,setParte]=useState("A");
+  const [fase,setFase]=useState("intro");
+  const [proximo,setProximo]=useState(0);
+  const [erros,setErros]=useState(0);
+  const [inicio,setInicio]=useState(null);
+  const [tempoA,setTempoA]=useState(null);
+  const [posicoes,setPosicoes]=useState([]);
+  const [linhas,setLinhas]=useState([]);
+  const N=10;
+  function gerarPos(){const pos=[];for(let i=0;i<N;i++){let x,y,ok;do{x=8+Math.random()*80;y=8+Math.random()*80;ok=pos.every(p=>Math.hypot(p.x-x,p.y-y)>14);}while(!ok);pos.push({x,y});}return pos;}
+  function iniciarParte(p){
+    const pos=gerarPos();
+    const labels=p==="A"?Array.from({length:N},(_,i)=>`${i+1}`):Array.from({length:N},(_,i)=>i%2===0?`${Math.floor(i/2)+1}`:"ABCDEFGHIJ"[Math.floor(i/2)]);
+    setPosicoes(pos.map((p,i)=>({...p,label:labels[i]})));
+    setProximo(0);setErros(0);setLinhas([]);setInicio(Date.now());setFase("jogo");
+  }
+  function tocar(idx){
+    if(idx!==proximo){setErros(e=>e+1);return;}
+    if(proximo>0)setLinhas(l=>[...l,{from:proximo-1,to:proximo}]);
+    if(proximo+1>=N){
+      const t=Math.round((Date.now()-inicio)/1000);
+      if(parte==="A"){setTempoA(t);setParte("B");setFase("entre");}
+      else{onSubmit({tempoA,tempoB:t,erros,tipo:"tmt"});setFase("fim");}
+    }else setProximo(p=>p+1);
+  }
+  if(fase==="fim")return<div style={{...crd,textAlign:"center"}}><div style={{fontSize:48,marginBottom:8}}>✅</div><p style={{fontSize:15,fontWeight:700,color:"#6b7280"}}>Respostas enviadas ao terapeuta.</p></div>;
+  if(fase==="intro")return<div style={{...crd,textAlign:"center"}}><div style={{fontSize:52,marginBottom:12}}>🔢</div><h3 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:8}}>Trail Making Test</h3><div style={{background:"#e0f2fe",borderRadius:10,padding:12,marginBottom:8,textAlign:"left"}}><p style={{fontSize:13,fontWeight:700,color:"#0369a1"}}>Parte A: conecte 1→2→3→...→10</p></div><div style={{background:"#fef3c7",borderRadius:10,padding:12,marginBottom:16,textAlign:"left"}}><p style={{fontSize:13,fontWeight:700,color:"#92400e"}}>Parte B: alterne 1→A→2→B→...</p></div><button className="btn-main" style={{background:color}} onClick={()=>iniciarParte("A")}>Começar Parte A</button></div>;
+  if(fase==="entre")return<div style={{...crd,textAlign:"center"}}><div style={{fontSize:48,marginBottom:8}}>✅</div><h3 style={{fontSize:16,fontWeight:800,color:"#1f2937",marginBottom:4}}>Parte A: {tempoA}s</h3><p style={{fontSize:13,color:"#6b7280",marginBottom:16}}>Agora alterne números e letras</p><button className="btn-main" style={{background:color}} onClick={()=>iniciarParte("B")}>Parte B</button></div>;
+  return<div><div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}><span style={{fontSize:13,fontWeight:800,color}}>{parte==="A"?"Parte A — números":"Parte B — alterne"}</span><span style={{fontSize:13,fontWeight:700,color:"#374151"}}>Próximo: <strong style={{color}}>{posicoes[proximo]?.label}</strong></span><span style={{fontSize:12,color:"#e11d48",fontWeight:700}}>✗{erros}</span></div>
+    <div style={{position:"relative",width:"100%",paddingBottom:"100%",background:"#f9fafb",borderRadius:16,overflow:"hidden",border:"1px solid #e5e7eb"}}>
+      <svg style={{position:"absolute",inset:0,width:"100%",height:"100%"}}>
+        {linhas.map((l,i)=>{const f=posicoes[l.from],t=posicoes[l.to];return<line key={i} x1={`${f.x}%`} y1={`${f.y}%`} x2={`${t.x}%`} y2={`${t.y}%`} stroke={color} strokeWidth="2.5" strokeLinecap="round"/>;  })}
+        {posicoes.map((p,i)=>{const done=i<proximo,next=i===proximo;return<g key={i}><circle cx={`${p.x}%`} cy={`${p.y}%`} r="5.5%" fill={done?color:next?`${color}20`:"#fff"} stroke={next?color:"#d1d5db"} strokeWidth={next?"2.5":"1.5"} style={{cursor:"pointer"}} onClick={()=>tocar(i)}/><text x={`${p.x}%`} y={`${p.y}%`} textAnchor="middle" dominantBaseline="middle" fontSize="3.5%" fontWeight="800" fill={done?"#fff":next?color:"#374151"} style={{pointerEvents:"none"}}>{p.label}</text></g>;  })}
+      </svg>
+    </div>
+  </div>;
+}
+
+// N-Back
+function NBackForm({color,onSubmit}){
+  const N=2,TOTAL=25;
+  const [fase,setFase]=useState("intro");
+  const [seq,setSeq]=useState([]);
+  const [pos,setPos]=useState(0);
+  const [mostrando,setMostrando]=useState(false);
+  const [acertos,setAcertos]=useState(0);
+  const [erros,setErros]=useState(0);
+  const [omissoes,setOmissoes]=useState(0);
+  const tRef=useRef(null);
+  const stateRef=useRef({pos:0,acertos:0,erros:0,omissoes:0,seq:[]});
+  function gerar(){const s=Array.from({length:TOTAL},()=>LETRAS_NBACK[Math.floor(Math.random()*LETRAS_NBACK.length)]);for(let i=N;i<TOTAL;i++)if(Math.random()<.3)s[i]=s[i-N];return s;}
+  function rodar(s,i,a,e,om){
+    if(i>=TOTAL){onSubmit({acertos:a,erros:e,omissoes:om,total:TOTAL,tipo:"nback"});setFase("fim");return;}
+    stateRef.current={pos:i,acertos:a,erros:e,omissoes:om,seq:s};
+    setPos(i);setMostrando(true);setFase("jogo");
+    tRef.current=setTimeout(()=>{
+      setMostrando(false);
+      if(i>=N&&s[i]===s[i-N]){const no=om+1;stateRef.current.omissoes=no;setOmissoes(no);setTimeout(()=>rodar(s,i+1,a,e,no),500);}
+      else setTimeout(()=>rodar(s,i+1,a,e,om),500);
+    },1500);
+  }
+  function responder(){
+    const {pos:i,acertos:a,erros:e,omissoes:om,seq:s}=stateRef.current;
+    if(!mostrando||i<N)return;
+    clearTimeout(tRef.current);setMostrando(false);
+    if(s[i]===s[i-N]){const na=a+1;stateRef.current.acertos=na;setAcertos(na);setTimeout(()=>rodar(s,i+1,na,e,om),400);}
+    else{const ne=e+1;stateRef.current.erros=ne;setErros(ne);setTimeout(()=>rodar(s,i+1,a,ne,om),400);}
+  }
+  function iniciar(){const s=gerar();setSeq(s);setAcertos(0);setErros(0);setOmissoes(0);rodar(s,0,0,0,0);}
+  useEffect(()=>()=>clearTimeout(tRef.current),[]);
+  if(fase==="fim")return<div style={{...crd,textAlign:"center"}}><div style={{fontSize:48,marginBottom:8}}>✅</div><p style={{fontSize:15,fontWeight:700,color:"#6b7280"}}>Respostas enviadas ao terapeuta.</p></div>;
+  if(fase==="intro")return<div style={{...crd,textAlign:"center"}}><div style={{fontSize:52,marginBottom:12}}>🧩</div><h3 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:8}}>N-Back (2-Back)</h3><p style={{fontSize:13,color:"#6b7280",lineHeight:1.6,marginBottom:16}}>Pressione quando a letra atual for <strong>igual à de 2 posições atrás</strong>.</p><div style={{background:"#fef3c7",borderRadius:12,padding:14,marginBottom:16}}><div style={{display:"flex",gap:6,justifyContent:"center"}}>{["B","K","B","L","B"].map((l,i)=><div key={i} style={{width:34,height:34,borderRadius:8,background:i===4?"#d97706":"#fff",border:"2px solid #f59e0b",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:14,color:i===4?"#fff":"#374151"}}>{l}</div>)}</div><p style={{fontSize:12,color:"#92400e",marginTop:6}}>5ª letra = 3ª → pressione!</p></div><button className="btn-main" style={{background:color}} onClick={iniciar}>Começar</button></div>;
+  const pct=Math.round((pos/TOTAL)*100);
+  return<div><div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}><span style={{fontSize:12,fontWeight:700,color:"#374151"}}>{pos+1}/{TOTAL}</span><span style={{fontSize:12,fontWeight:700,color}}>{pct}%</span></div>
+    <div style={{background:"#f3f4f6",borderRadius:20,height:8,overflow:"hidden",marginBottom:14}}><div style={{width:`${pct}%`,background:color,height:"100%",borderRadius:20}}/></div>
+    <div style={{background:"#fff",borderRadius:16,padding:32,textAlign:"center",marginBottom:14,boxShadow:"0 2px 10px rgba(0,0,0,.06)",minHeight:120,display:"flex",alignItems:"center",justifyContent:"center"}}>
+      {mostrando?<div style={{fontSize:64,fontWeight:900,color}}>{seq[pos]}</div>:<div style={{fontSize:32,color:"#d1d5db"}}>?</div>}
+    </div>
+    <button onClick={responder} disabled={!mostrando||pos<N} style={{width:"100%",padding:14,borderRadius:12,border:"none",background:mostrando&&pos>=N?`linear-gradient(135deg,${color},${color}cc)`:"#e5e7eb",color:mostrando&&pos>=N?"#fff":"#9ca3af",fontWeight:700,fontSize:15,cursor:mostrando&&pos>=N?"pointer":"default"}}>✓ É igual ao de 2 atrás!</button>
+    <div style={{display:"flex",justifyContent:"space-around",marginTop:10}}><span style={{fontSize:12,color:"#059669",fontWeight:700}}>✓{acertos}</span><span style={{fontSize:12,color:"#e11d48",fontWeight:700}}>✗{erros}</span><span style={{fontSize:12,color:"#d97706",fontWeight:700}}>○{omissoes}</span></div>
+  </div>;
+}
+
+// Go/No-Go
+function GoNoGoForm({color,onSubmit}){
+  const TOTAL=30;
+  const [fase,setFase]=useState("intro");
+  const [trial,setTrial]=useState(0);
+  const [stim,setStim]=useState(null);
+  const [acertos,setAcertos]=useState(0);
+  const [falsosGo,setFalsosGo]=useState(0);
+  const [omissoes,setOmissoes]=useState(0);
+  const [tempos,setTempos]=useState([]);
+  const [feedback,setFeedback]=useState(null);
+  const tRef=useRef(null);
+  const iniRef=useRef(null);
+  const stateRef=useRef({trial:0,acertos:0,falsosGo:0,omissoes:0,tempos:[]});
+  function prox(t,a,fg,om,ts){
+    if(t>=TOTAL){onSubmit({acertos:a,falsosGo:fg,omissoes:om,mediaTempos:ts.length?Math.round(ts.reduce((x,y)=>x+y,0)/ts.length):0,total:TOTAL,tipo:"gonogo"});setFase("fim");return;}
+    setFeedback(null);const isGo=Math.random()<.7;setStim(isGo?"🟢":"🔴");iniRef.current=Date.now();setTrial(t);
+    stateRef.current={trial:t,acertos:a,falsosGo:fg,omissoes:om,tempos:ts,isGo};
+    tRef.current=setTimeout(()=>{
+      if(isGo){const no=om+1;stateRef.current.omissoes=no;setOmissoes(no);setFeedback("omissao");setTimeout(()=>prox(t+1,a,fg,no,ts),600);}
+      else{setFeedback("correto_nogo");setTimeout(()=>prox(t+1,a,fg,om,ts),600);}
+    },1000);
+  }
+  function responder(){
+    clearTimeout(tRef.current);
+    const{trial:t,acertos:a,falsosGo:fg,omissoes:om,tempos:ts,isGo}=stateRef.current;
+    const tr=Date.now()-iniRef.current;
+    if(isGo){const na=a+1,nt=[...ts,tr];stateRef.current.acertos=na;setAcertos(na);setTempos(nt);setFeedback("certo");setTimeout(()=>prox(t+1,na,fg,om,nt),600);}
+    else{const nf=fg+1;stateRef.current.falsosGo=nf;setFalsosGo(nf);setFeedback("falso");setTimeout(()=>prox(t+1,a,nf,om,ts),600);}
+  }
+  useEffect(()=>()=>clearTimeout(tRef.current),[]);
+  if(fase==="fim")return<div style={{...crd,textAlign:"center"}}><div style={{fontSize:48,marginBottom:8}}>✅</div><p style={{fontSize:15,fontWeight:700,color:"#6b7280"}}>Respostas enviadas ao terapeuta.</p></div>;
+  if(fase==="intro")return<div style={{...crd,textAlign:"center"}}><div style={{fontSize:52,marginBottom:12}}>🚦</div><h3 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:8}}>Go / No-Go</h3><div style={{display:"flex",gap:10,marginBottom:20}}><div style={{flex:1,background:"#d1fae5",borderRadius:12,padding:14}}><div style={{fontSize:28}}>🟢</div><div style={{fontSize:13,fontWeight:700,color:"#065f46",marginTop:4}}>GO — Toque!</div></div><div style={{flex:1,background:"#fee2e2",borderRadius:12,padding:14}}><div style={{fontSize:28}}>🔴</div><div style={{fontSize:13,fontWeight:700,color:"#991b1b",marginTop:4}}>NO-GO — Aguarde!</div></div></div><button className="btn-main" style={{background:color}} onClick={()=>prox(0,0,0,0,[])}>Começar</button></div>;
+  const pct=Math.round((trial/TOTAL)*100);
+  const bg=feedback==="certo"?"#d1fae5":feedback==="falso"?"#fee2e2":feedback==="omissao"?"#fef3c7":feedback==="correto_nogo"?"#d1fae5":"#f9fafb";
+  return<div onClick={responder}><div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}><span style={{fontSize:12,fontWeight:700,color:"#374151"}}>{trial+1}/{TOTAL}</span><span style={{fontSize:12,fontWeight:700,color}}>{pct}%</span></div>
+    <div style={{background:"#f3f4f6",borderRadius:20,height:8,overflow:"hidden",marginBottom:14}}><div style={{width:`${pct}%`,background:color,height:"100%",borderRadius:20}}/></div>
+    <div style={{background:bg,borderRadius:16,padding:40,textAlign:"center",minHeight:150,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",transition:"background .15s",marginBottom:10}}>
+      {stim&&!feedback?<div style={{fontSize:80}}>{stim}</div>
+      :feedback==="certo"?<div><div style={{fontSize:48}}>✅</div><div style={{fontWeight:800,color:"#059669"}}>Ótimo!</div></div>
+      :feedback==="falso"?<div><div style={{fontSize:48}}>⚠️</div><div style={{fontWeight:800,color:"#e11d48"}}>Não era pra tocar!</div></div>
+      :feedback==="omissao"?<div><div style={{fontSize:48}}>😴</div><div style={{fontWeight:800,color:"#d97706"}}>Perdeu!</div></div>
+      :feedback==="correto_nogo"?<div><div style={{fontSize:48}}>🛑</div><div style={{fontWeight:800,color:"#059669"}}>Correto!</div></div>
+      :<div style={{fontSize:32,color:"#d1d5db"}}>⏳</div>}
+    </div>
+    <div style={{display:"flex",justifyContent:"space-around"}}><span style={{fontSize:12,color:"#059669",fontWeight:700}}>✓{acertos}</span><span style={{fontSize:12,color:"#e11d48",fontWeight:700}}>✗{falsosGo}</span><span style={{fontSize:12,color:"#d97706",fontWeight:700}}>○{omissoes}</span></div>
+  </div>;
+}
+
+// Flanker
+function FlankerForm({color,onSubmit}){
+  const TOTAL=24;
+  const [fase,setFase]=useState("intro");
+  const [trial,setTrial]=useState(0);
+  const [item,setItem]=useState(null);
+  const [acertos,setAcertos]=useState(0);
+  const [erros,setErros]=useState(0);
+  const [tempos,setTempos]=useState({congruente:[],incongruente:[]});
+  const [feedback,setFeedback]=useState(null);
+  function gerar(){return{...FLANKER_SETS[Math.floor(Math.random()*4)],inicio:Date.now()};}
+  function prox(t,a,e,ts){if(t>=TOTAL){onSubmit({acertos:a,erros:e,tempos:ts,total:TOTAL,tipo:"flanker"});setFase("fim");return;}setFeedback(null);setTrial(t);setItem(gerar());}
+  function responder(dir){
+    const tr=Date.now()-item.inicio;const certo=dir===item.alvo;
+    if(certo){setAcertos(a=>{const nt={...tempos,[item.tipo]:[...tempos[item.tipo],tr]};setTempos(nt);setFeedback("certo");setTimeout(()=>prox(trial+1,a+1,erros,nt),500);return a+1;});}
+    else{setErros(e=>{setFeedback("errado");setTimeout(()=>prox(trial+1,acertos,e+1,tempos),500);return e+1;});}
+  }
+  if(fase==="fim")return<div style={{...crd,textAlign:"center"}}><div style={{fontSize:48,marginBottom:8}}>✅</div><p style={{fontSize:15,fontWeight:700,color:"#6b7280"}}>Respostas enviadas ao terapeuta.</p></div>;
+  if(fase==="intro")return<div style={{...crd,textAlign:"center"}}><div style={{fontSize:52,marginBottom:12}}>➡️</div><h3 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:8}}>Teste de Flanker</h3><p style={{fontSize:13,color:"#6b7280",lineHeight:1.6,marginBottom:16}}>Indique a direção da seta <strong>central</strong>.</p><div style={{display:"flex",gap:10,marginBottom:20}}><div style={{flex:1,background:"#d1fae5",borderRadius:12,padding:14,textAlign:"center"}}><div style={{fontSize:22,letterSpacing:4}}>→→→→→</div><div style={{fontSize:11,color:"#065f46",fontWeight:700,marginTop:4}}>Congruente</div></div><div style={{flex:1,background:"#fee2e2",borderRadius:12,padding:14,textAlign:"center"}}><div style={{fontSize:22,letterSpacing:4}}>←←→←←</div><div style={{fontSize:11,color:"#991b1b",fontWeight:700,marginTop:4}}>Incongruente</div></div></div><button className="btn-main" style={{background:color}} onClick={()=>prox(0,0,0,{congruente:[],incongruente:[]})}>Começar</button></div>;
+  const pct=Math.round((trial/TOTAL)*100);
+  const display=item?`${item.dist[0]} ${item.dist[1]} ${item.alvo} ${item.dist[0]} ${item.dist[1]}`:"";
+  const bg=feedback==="certo"?"#d1fae5":feedback==="errado"?"#fee2e2":"#f9fafb";
+  return<div><div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}><span style={{fontSize:12,fontWeight:700,color:"#374151"}}>{trial+1}/{TOTAL}</span><span style={{fontSize:12,fontWeight:700,color}}>{pct}%</span></div>
+    <div style={{background:"#f3f4f6",borderRadius:20,height:8,overflow:"hidden",marginBottom:14}}><div style={{width:`${pct}%`,background:color,height:"100%",borderRadius:20}}/></div>
+    <div style={{background:bg,borderRadius:16,padding:32,textAlign:"center",minHeight:100,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:14,transition:"background .15s"}}>{item&&<div style={{fontSize:40,letterSpacing:12,fontWeight:900,color:"#374151"}}>{display}</div>}</div>
+    <p style={{textAlign:"center",fontSize:13,fontWeight:700,color:"#9ca3af",marginBottom:10}}>Direção da seta central:</p>
+    <div style={{display:"flex",gap:12}}>{["←","→"].map(d=><button key={d} onClick={()=>responder(d)} style={{flex:1,padding:16,borderRadius:12,border:`2px solid ${color}`,background:`${color}10`,color,fontWeight:900,fontSize:28,cursor:"pointer"}}>{d}</button>)}</div>
+    <div style={{display:"flex",justifyContent:"space-around",marginTop:10}}><span style={{fontSize:12,color:"#059669",fontWeight:700}}>✓{acertos}</span><span style={{fontSize:12,color:"#e11d48",fontWeight:700}}>✗{erros}</span></div>
+  </div>;
+}
 function TaskForm({task,onSubmit,onBack}){
   const ti=getTypeInfo(task.type);
   return<div style={aw}>
@@ -758,6 +1019,12 @@ function TaskForm({task,onSubmit,onBack}){
       {task.type==="experimento"&&<ExperimentoForm color={ti.color} onSubmit={onSubmit}/>}
       {task.type==="escala"&&<EscalaForm color={ti.color} onSubmit={onSubmit}/>}
       {["csai2r","sas","acsi28"].includes(task.type)&&<EscalaPsiForm tipo={task.type} color={ti.color} onSubmit={onSubmit}/>}
+      {task.type==="tr"&&<TRForm color={ti.color} onSubmit={onSubmit}/>}
+      {task.type==="stroop"&&<StroopForm color={ti.color} onSubmit={onSubmit}/>}
+      {task.type==="tmt"&&<TMTForm color={ti.color} onSubmit={onSubmit}/>}
+      {task.type==="nback"&&<NBackForm color={ti.color} onSubmit={onSubmit}/>}
+      {task.type==="gonogo"&&<GoNoGoForm color={ti.color} onSubmit={onSubmit}/>}
+      {task.type==="flanker"&&<FlankerForm color={ti.color} onSubmit={onSubmit}/>}
     </div>
   </div>;
 }
