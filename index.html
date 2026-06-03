@@ -497,7 +497,13 @@ function PatientDetail({patient,onBack}){
   const [showAdd,setShowAdd]=useState(false);const [tt,setTt]=useState("");const [ttitle,setTtitle]=useState("");const [tnote,setTnote]=useState("");
   const [confirmDel,setConfirmDel]=useState(null);const [viewTask,setViewTask]=useState(null);
   useEffect(()=>{const u=fbListen(`patients/${patient.id}`,d=>{if(d)setLp(d);});return()=>u();},[patient.id]);
-  async function addTask(){if(!tt||!ttitle)return;const id="t"+Date.now();await fbSet(`patients/${patient.id}/tasks/${id}`,{id,type:tt,title:ttitle,note:tnote,response:null,createdAt:new Date().toLocaleDateString("pt-BR")});setTt("");setTtitle("");setTnote("");setShowAdd(false);}
+  async function addTask(){
+    if(!tt)return;
+    const id="t"+Date.now();
+    const ti=getTypeInfo(tt);
+    await fbSet(`patients/${patient.id}/tasks/${id}`,{id,type:tt,title:ti.label||tt,note:tnote,response:null,createdAt:new Date().toLocaleDateString("pt-BR")});
+    setTt("");setTnote("");setShowAdd(false);
+  }
   async function deleteTask(tid){await fbSet(`patients/${patient.id}/tasks/${tid}`,null);setConfirmDel(null);setViewTask(null);}
   const tasks=lp.tasks?Object.values(lp.tasks):[];
   const diarios=lp.diarios?Object.values(lp.diarios).reverse():[];
@@ -526,8 +532,7 @@ function PatientDetail({patient,onBack}){
           <button onClick={()=>setShowAdd(true)} style={{...btn(),padding:"9px 16px",borderRadius:10}}>+ Nova</button>
         </div>
         {showAdd&&<div style={{...crd,marginBottom:16}}>
-          <select value={tt} onChange={e=>setTt(e.target.value)} className="inp"><option value="">Tipo...</option>{TASK_TYPES.map(t=><option key={t.id} value={t.id}>{t.label}</option>)}</select>
-          <input className="inp" placeholder="Título" value={ttitle} onChange={e=>setTtitle(e.target.value)}/>
+          <select value={tt} onChange={e=>setTt(e.target.value)} className="inp"><option value="">Tipo de tarefa...</option>{TASK_TYPES.map(t=><option key={t.id} value={t.id}>{t.label}</option>)}</select>
           <textarea className="inp" placeholder="Instruções (opcional)" value={tnote} onChange={e=>setTnote(e.target.value)} style={{minHeight:60,resize:"vertical"}}/>
           <div style={{display:"flex",gap:8}}><button onClick={addTask} style={btn()}>Adicionar</button><button onClick={()=>setShowAdd(false)} style={btn("#e5e7eb")}>Cancelar</button></div>
         </div>}
