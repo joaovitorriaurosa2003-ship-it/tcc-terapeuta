@@ -58,13 +58,11 @@
 <script type="text/babel" data-presets="react">
 const {useState,useEffect,useRef}=React;
 
-// ── Firebase ──
 async function fbGet(p){const s=await window._get(window._ref(window._db,p));return s.exists()?s.val():null}
 async function fbSet(p,v){await window._set(window._ref(window._db,p),v)}
 async function fbUpdate(p,v){await window._update(window._ref(window._db,p),v)}
 function fbListen(p,cb){return window._onValue(window._ref(window._db,p),s=>cb(s.exists()?s.val():null))}
 
-// ── Constants ──
 const TASK_TYPES=[
   {id:"pensamentos",label:"💭 Pensamentos Automáticos",color:"#0891b2"},
   {id:"atencao",label:"🎯 Teste de Atenção Visual",color:"#d97706"},
@@ -105,17 +103,13 @@ const ESCALAS_DEF=[
   {id:"tristeza",nome:"Tristeza",emoji:"😢",color:"#60a5fa"},
 ];
 
-// ── Escalas Psicológicas ──
 const CSAI2R_DATA={id:"csai2r",nome:"CSAI-2R",color:"#6d28d9",escala:["Nada","Um pouco","Moderadamente","Muito"],subescalas:{cognitiva:{nome:"Ansiedade Cognitiva",cor:"#6d28d9"},somatica:{nome:"Ansiedade Somática",cor:"#e11d48"},autoconfianca:{nome:"Autoconfiança",cor:"#059669"}},itens:[{id:1,texto:"Estou preocupado com esta competição.",sub:"cognitiva"},{id:2,texto:"Sinto meu corpo tenso.",sub:"somatica"},{id:3,texto:"Estou confiante porque consigo enfrentar os desafios.",sub:"autoconfianca"},{id:4,texto:"Estou preocupado com o fato de não me sair tão bem quanto poderia.",sub:"cognitiva"},{id:5,texto:"Sinto meu estômago agitado.",sub:"somatica"},{id:6,texto:"Estou confiante, pois consigo ter um bom desempenho sob pressão.",sub:"autoconfianca"},{id:7,texto:"Estou preocupado com a possibilidade de não cumprir meu objetivo.",sub:"cognitiva"},{id:8,texto:"Meu corpo está tenso.",sub:"somatica"},{id:9,texto:"Estou confiante porque atinjo meus objetivos de desempenho.",sub:"autoconfianca"},{id:10,texto:"Estou preocupado com o fato de os outros ficarem desapontados.",sub:"cognitiva"},{id:11,texto:"Meu coração está acelerado.",sub:"somatica"},{id:12,texto:"Estou confiante, pois me saio bem mesmo sob pressão.",sub:"autoconfianca"},{id:13,texto:"Estou preocupado com o fato de não poder me concentrar.",sub:"cognitiva"},{id:14,texto:"Estou com o estômago embrulhado.",sub:"somatica"},{id:15,texto:"Estou confiante em relação ao desempenho que apresentarei.",sub:"autoconfianca"},{id:16,texto:"Estou preocupado com minha capacidade de realizar bem esta competição.",sub:"cognitiva"},{id:17,texto:"Sinto meu corpo relaxado.",sub:"somatica",inverso:true}]};
-
 const SAS_DATA={id:"sas",nome:"SAS",color:"#0891b2",escala:["Nada","Um pouco","Bastante","Muito"],subescalas:{somatica:{nome:"Ansiedade Somática",cor:"#e11d48"},preocupacao:{nome:"Preocupação",cor:"#d97706"},concentracao:{nome:"Perturbação da Concentração",cor:"#7c3aed"}},itens:[{id:1,texto:"Meu corpo fica tenso.",sub:"somatica"},{id:2,texto:"Começo a me preocupar que não me sairei bem.",sub:"preocupacao"},{id:3,texto:"É difícil se concentrar no que tenho que fazer.",sub:"concentracao"},{id:4,texto:"Meu corpo fica rígido.",sub:"somatica"},{id:5,texto:"Começo a me preocupar sobre como o público reagirá ao meu desempenho.",sub:"preocupacao"},{id:6,texto:"Não consigo me concentrar.",sub:"concentracao"},{id:7,texto:"Meu estômago fica embrulhado.",sub:"somatica"},{id:8,texto:"Preocupo-me com possibilidade de um mau desempenho.",sub:"preocupacao"},{id:9,texto:"Minha atenção fica voltada para coisas que não têm nada a ver com o que estou fazendo.",sub:"concentracao"},{id:10,texto:"Meu coração acelera.",sub:"somatica"},{id:11,texto:"Preocupo-me com a possibilidade de não atingir meu objetivo.",sub:"preocupacao"},{id:12,texto:"Perco minha concentração na competição por causa da ansiedade.",sub:"concentracao"},{id:13,texto:"Meu corpo fica parado e contraído.",sub:"somatica"},{id:14,texto:"Preocupo-me com a possibilidade de decepcionar as pessoas.",sub:"preocupacao"},{id:15,texto:"Tenho dificuldade em me concentrar nos meus pensamentos.",sub:"concentracao"},{id:16,texto:"Sinto meu estômago pesado.",sub:"somatica"},{id:17,texto:"Preocupo-me em não me sair tão bem quanto poderia.",sub:"preocupacao"},{id:18,texto:"Minha atenção fica distraída.",sub:"concentracao"},{id:19,texto:"Meu coração acelera muito.",sub:"somatica"},{id:20,texto:"Preocupo-me com a possibilidade de ficar aquém das expectativas dos outros.",sub:"preocupacao"},{id:21,texto:"Tenho pensamentos intrusos que perturbam minha concentração.",sub:"concentracao"}]};
-
 const ACSI28_DATA={id:"acsi28",nome:"ACSI-28",color:"#059669",escala:["Quase nunca","Às vezes","Frequentemente","Quase sempre"],subescalas:{adversidade:{nome:"Coping com Adversidade",cor:"#ef4444"},pressao:{nome:"Rendimento sob Pressão",cor:"#f97316"},metas:{nome:"Metas e Preparação Mental",cor:"#eab308"},concentracao:{nome:"Concentração",cor:"#22c55e"},preocupacao:{nome:"Ausência de Preocupação",cor:"#06b6d4"},confianca:{nome:"Confiança e Motivação",cor:"#8b5cf6"},treinabilidade:{nome:"Treinabilidade",cor:"#ec4899"}},itens:[{id:1,texto:"Em situações difíceis, percebo que penso de forma negativa.",sub:"adversidade",inverso:true},{id:2,texto:"Tenho meu melhor desempenho quando estou sob pressão.",sub:"pressao"},{id:3,texto:"Estabeleço meus próprios objetivos para cada treino e competição.",sub:"metas"},{id:4,texto:"Quando o técnico me diz como corrigir um erro, fico na defensiva.",sub:"treinabilidade",inverso:true},{id:5,texto:"Fico preocupado com a possibilidade de cometer erros ou falhar.",sub:"preocupacao",inverso:true},{id:6,texto:"Antes de uma competição, imagino mentalmente como vou me sair bem.",sub:"metas"},{id:7,texto:"Quando começo a competir mal, é difícil recuperar a concentração.",sub:"adversidade",inverso:true},{id:8,texto:"Sinto-me confiante de que terei um bom desempenho.",sub:"confianca"},{id:9,texto:"Quando o técnico me critica, fico chateado ao invés de motivado.",sub:"treinabilidade",inverso:true},{id:10,texto:"Quando o desempenho melhora, é porque trabalho duro para isso.",sub:"confianca"},{id:11,texto:"Fico muito ansioso quando as coisas não correm bem na competição.",sub:"adversidade",inverso:true},{id:12,texto:"Quanto mais pressão existe numa competição, mais me envolvo.",sub:"pressao"},{id:13,texto:"Defino metas muito específicas para os treinos.",sub:"metas"},{id:14,texto:"Não preciso ser empurrado para treinar com intensidade.",sub:"confianca"},{id:15,texto:"Se errar uma jogada importante, é difícil colocar o erro de lado.",sub:"adversidade",inverso:true},{id:16,texto:"Os adversários não conseguem bloquear mentalmente minha concentração.",sub:"concentracao"},{id:17,texto:"Quando o técnico critica meu desempenho, escuto atentamente.",sub:"treinabilidade"},{id:18,texto:"Fico preocupado com a possibilidade de não me sair bem.",sub:"preocupacao",inverso:true},{id:19,texto:"Tenho um plano de ação mental para superar situações difíceis.",sub:"metas"},{id:20,texto:"Confio em mim mesmo nos momentos de grande pressão.",sub:"pressao"},{id:21,texto:"Quando me esforço ao máximo, geralmente tenho sucesso.",sub:"confianca"},{id:22,texto:"Quando começo a pensar negativamente, consigo rapidamente parar.",sub:"adversidade"},{id:23,texto:"Durante a competição, consigo manter o foco nos requisitos da tarefa.",sub:"concentracao"},{id:24,texto:"Quando o técnico me diz como melhorar, presto atenção e aprendo.",sub:"treinabilidade"},{id:25,texto:"Fico perturbado quando me preocupo com como me saio.",sub:"preocupacao",inverso:true},{id:26,texto:"Executo com técnica e eficiência em momentos importantes.",sub:"pressao"},{id:27,texto:"Quando algo atrapalha minha concentração, consigo rapidamente recentrá-la.",sub:"concentracao"},{id:28,texto:"Estar mentalmente pronto é fundamental para alcançar meu potencial.",sub:"metas"}]};
 
 function getEscalaData(id){return{csai2r:CSAI2R_DATA,sas:SAS_DATA,acsi28:ACSI28_DATA}[id]||null}
 function calcEscala(ed,resp){const t={};const c={};Object.keys(ed.subescalas).forEach(k=>{t[k]=0;c[k]=0;});ed.itens.forEach(item=>{const v=resp[item.id];if(v!=null){const val=item.inverso?(ed.escala.length+1-v):v;t[item.sub]+=val;c[item.sub]++;}});return{totais:t,contagens:c}}
 
-// ── Styles ──
 const aw={minHeight:"100vh",background:"#f5f5f7",display:"flex",flexDirection:"column"};
 const ct={padding:"16px 16px 40px",flex:1,overflowY:"auto"};
 const tb={display:"flex",background:"#fff",borderBottom:"1px solid #f0f0f0",overflowX:"auto",boxShadow:"0 2px 8px rgba(0,0,0,.04)"};
@@ -138,7 +132,6 @@ const PVisuais=()=><svg width="70" height="90" viewBox="0 0 90 115" style={{anim
 
 const PERSONAGENS={ansiedade:PAnsiedade,tristeza:PTristeza,raiva:PRaiva,estresse:PEstresse,autoestima:PAutoestima,sono:PSono,estrategias:PEstrategias,reforcadores:PReforcadores,visuais:PVisuais};
 
-// ── Baralhos ──
 const BARALHOS=[
   {id:"ansiedade",nome:"Ansiedade",emoji:"😰",color:"#8b5cf6",bg:"#ede9fe",cartas:[{titulo:"Respiração 4-7-8",descricao:"Inspire por 4s, segure 7s, expire 8s. Ativa o parassimpático e reduz ansiedade."},{titulo:"Grounding 5-4-3-2-1",descricao:"Nomeie 5 que vê, 4 que toca, 3 que ouve, 2 que cheira, 1 que saboreia."},{titulo:"Questionando a catastrofização",descricao:"Qual a probabilidade real? Qual o pior cenário? Eu conseguiria lidar?"},{titulo:"Exposição gradual",descricao:"Liste situações ansiosas do menos ao mais intenso. Enfrente a mais leve primeiro."},{titulo:"Relaxamento muscular",descricao:"Tensione e relaxe cada grupo muscular por 5s, dos pés à cabeça."},{titulo:"Programar a preocupação",descricao:"Reserve 15 min/dia para se preocupar. Fora desse horário, adie os pensamentos."}]},
   {id:"tristeza",nome:"Tristeza",emoji:"😢",color:"#3b82f6",bg:"#dbeafe",cartas:[{titulo:"Ativação comportamental",descricao:"Escolha uma atividade prazerosa agora, mesmo sem vontade. Comece por 5 min."},{titulo:"Registro de conquistas",descricao:"Liste 3 coisas que fez hoje. Levantar da cama conta."},{titulo:"Conexão social",descricao:"Mande uma mensagem para alguém de confiança agora."},{titulo:"Reatribuição cognitiva",descricao:"Estou vendo apenas o lado negativo? Há evidências que contradizem isso?"},{titulo:"Autocuidado básico",descricao:"Você comeu, bebeu água, dormiu e se moveu hoje?"},{titulo:"Carta para si mesmo",descricao:"Escreva como se fosse um amigo próximo te consolando."}]},
@@ -149,16 +142,15 @@ const BARALHOS=[
   {id:"estrategias",nome:"Estratégias",emoji:"🛡️",color:"#7c3aed",bg:"#ede9fe",cartas:[{titulo:"5 passos",descricao:"1) Defina. 2) Liste soluções. 3) Avalie. 4) Escolha. 5) Execute e avalie."},{titulo:"Dessensibilização",descricao:"Hierarquia de medos + relaxamento + exposição gradual."},{titulo:"Assertividade",descricao:"Expressar necessidades de forma direta e respeitosa. Use 'eu sinto'."},{titulo:"Reversão de hábitos",descricao:"Identifique o gatilho. Desenvolva resposta incompatível e agradável."},{titulo:"Automonitoramento",descricao:"Registre frequência, intensidade e contexto. O registro já modifica o comportamento."},{titulo:"Controle de estímulos",descricao:"Reorganize o ambiente para facilitar comportamentos saudáveis."}]},
   {id:"reforcadores",nome:"Reforçadores",emoji:"🏆",color:"#d97706",bg:"#fef3c7",cartas:[{titulo:"Reforço imediato",descricao:"Imediatamente após o comportamento desejado, ofereça algo agradável."},{titulo:"Contrato",descricao:"'Se eu fizer X, então me permitirei Y.' Coloque em lugar visível."},{titulo:"Reforço social",descricao:"Compartilhe metas com alguém que celebre suas conquistas."},{titulo:"Sistema de pontos",descricao:"Crie recompensas por nível. Acumule e troque."},{titulo:"Reforço intermitente",descricao:"Não se recompense sempre. Variar cria comportamentos mais resistentes."},{titulo:"Celebrar processo",descricao:"Reforce cada passo, não apenas o objetivo final."}]},
   {id:"visuais",nome:"Estímulos Visuais",emoji:"🎨",color:"#ec4899",bg:"#fce7f3",cartas:[
-    {titulo:"Respiração com a chama",descricao:"Sincronize sua respiração com a chama. Inspire enquanto cresce, expire enquanto diminui.",visual:{tipo:"chama",instrucao:"Inspire quando crescer · Expire quando diminuir"}},
-    {titulo:"Círculo de calma",descricao:"Fixe o olhar no centro e deixe as ondas levarem a tensão para fora.",visual:{tipo:"circulo",instrucao:"Fixe o olhar no centro e respire"}},
-    {titulo:"Gradiente de emoções",descricao:"Identifique qual cor representa o que sente. Migre para a cor que deseja sentir.",visual:{tipo:"gradiente",instrucao:"Da cor que sente → para a que deseja"}},
+    {titulo:"Respiração com a chama",descricao:"Sincronize sua respiração com a chama.",visual:{tipo:"chama",instrucao:"Inspire quando crescer · Expire quando diminuir"}},
+    {titulo:"Círculo de calma",descricao:"Fixe o olhar no centro e deixe as ondas levarem a tensão.",visual:{tipo:"circulo",instrucao:"Fixe o olhar no centro e respire"}},
+    {titulo:"Gradiente de emoções",descricao:"Identifique qual cor representa o que sente.",visual:{tipo:"gradiente",instrucao:"Da cor que sente → para a que deseja"}},
     {titulo:"Mandala de foco",descricao:"Observe por 60s. Se divagar, traga o olhar de volta ao centro.",visual:{tipo:"mandala",instrucao:"Mantenha o olhar no centro por 60s"}},
     {titulo:"Horizonte",descricao:"Imagine olhar para esse horizonte após resolver o que te aflige.",visual:{tipo:"horizonte",instrucao:"Visualize o que há além"}},
-    {titulo:"Ponto de ancoragem",descricao:"Escolha forma e cor que representem segurança. Visualize quando desregulado.",visual:{tipo:"ancora",instrucao:"Crie seu símbolo de segurança"}},
+    {titulo:"Ponto de ancoragem",descricao:"Escolha forma e cor que representem segurança.",visual:{tipo:"ancora",instrucao:"Crie seu símbolo de segurança"}},
   ]},
 ];
 
-// ── Visual Cards ──
 function VisualCard({tipo,color}){
   if(tipo==="chama")return<div style={{display:"flex",justifyContent:"center",padding:"16px 0"}}><div style={{position:"relative",width:60,height:90}}><div style={{position:"absolute",bottom:0,left:"50%",transform:"translateX(-50%)",width:40,height:70,background:"linear-gradient(to top,#dc2626,#ef4444,#f97316)",borderRadius:"50% 50% 35% 35%",animation:"chama 2.2s ease-in-out infinite",opacity:.8}}/><div style={{position:"absolute",bottom:0,left:"50%",transform:"translateX(-50%)",width:30,height:50,background:"linear-gradient(to top,#ef4444,#f97316,#fbbf24)",borderRadius:"50% 50% 30% 30%",animation:"chama 1.8s ease-in-out infinite .2s"}}/><div style={{position:"absolute",bottom:0,left:"50%",transform:"translateX(-50%)",width:14,height:14,background:"#fef9c3",borderRadius:"50%",boxShadow:"0 0 12px #fbbf24"}}/></div></div>;
   if(tipo==="circulo")return<div style={{display:"flex",justifyContent:"center",padding:"12px 0"}}><div style={{position:"relative",width:120,height:120}}>{[0,1,2,3,4].map(i=><div key={i} style={{position:"absolute",inset:i*12,borderRadius:"50%",border:`2px solid ${color}`,opacity:1-(i*.15),animation:`expandir ${2+i*.3}s ease-in-out infinite`,animationDelay:`${i*.25}s`}}/>)}<div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{width:20,height:20,borderRadius:"50%",background:color,animation:"pulso 2s ease-in-out infinite"}}/></div></div></div>;
@@ -169,7 +161,6 @@ function VisualCard({tipo,color}){
   return null;
 }
 
-// ── Carta Modal ──
 function CartaModal({carta,color,baralhoId,onClose,onNext}){
   const P=PERSONAGENS[baralhoId];
   return<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:20}} onClick={onClose}>
@@ -205,7 +196,6 @@ function BaralhosTab(){
   </div>;
 }
 
-// ── Shared ──
 function Header({title,subtitle,onBack,backLabel="Sair"}){
   return<div style={{background:"linear-gradient(135deg,#6d28d9,#4f46e5,#0ea5e9)",padding:"18px 20px",display:"flex",justifyContent:"space-between",alignItems:"center",boxShadow:"0 4px 20px rgba(109,40,217,.3)"}}>
     <div><div style={{color:"#fff",fontWeight:800,fontSize:18,letterSpacing:"-.3px"}}>{title}</div>{subtitle&&<div style={{color:"rgba(255,255,255,.75)",fontSize:12,marginTop:2}}>{subtitle}</div>}</div>
@@ -250,14 +240,8 @@ function GruposTab({patients}){
   const [loaded,setLoaded]=useState(false);
   const [view,setView]=useState(null);
   const [dispMsg,setDispMsg]=useState("");
-
-  useEffect(()=>{
-    const u=fbListen("grupos",d=>{setGrupos(d?Object.values(d):[]);setLoaded(true);});
-    return()=>u();
-  },[]);
-
+  useEffect(()=>{const u=fbListen("grupos",d=>{setGrupos(d?Object.values(d):[]);setLoaded(true);});return()=>u();},[]);
   async function deleteGrupo(id){await fbSet(`grupos/${id}`,null);}
-
   async function disparar(g){
     const tasks=g.tasks?Object.values(g.tasks):[];
     const membros=g.membros||[];
@@ -272,9 +256,7 @@ function GruposTab({patients}){
     setDispMsg(`✅ Tarefas disparadas para ${membros.length} paciente(s)!`);
     setTimeout(()=>setDispMsg(""),3000);
   }
-
   if(view){return<GrupoForm grupo={view==="new"?null:view} patients={patients} onClose={()=>setView(null)}/>;}
-
   return<div>
     {dispMsg&&<div style={{background:"#d1fae5",borderRadius:12,padding:14,marginBottom:16,color:"#065f46",fontWeight:700,fontSize:14,textAlign:"center"}}>{dispMsg}</div>}
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
@@ -383,6 +365,206 @@ function GrupoForm({grupo,patients,onClose}){
   </div>;
 }
 
+// ── CSV Export Utils ──
+function toCSV(rows){return rows.map(r=>r.map(c=>`"${String(c??'').replace(/"/g,'""')}"`).join(",")).join("\n");}
+function downloadCSV(nome,conteudo){const b=new Blob(["\uFEFF"+conteudo],{type:"text/csv;charset=utf-8;"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=nome;a.click();URL.revokeObjectURL(a.href);}
+
+// ── Badge helper ──
+function Badge({children,color}){return<span style={{fontSize:11,fontWeight:700,background:`${color}15`,color,padding:"3px 10px",borderRadius:20}}>{children}</span>;}
+
+// ── CSV por paciente (adaptado para Firebase: extrai dados das tasks) ──
+function csvPaciente(p){
+  const tasks=p.tasks?Object.values(p.tasks):[];
+  const diarios=p.diarios?Object.values(p.diarios):[];
+  const escResp=tasks.filter(t=>t.type==="escala"&&t.response).slice(-1)[0]?.response||null;
+  const csaiResp=tasks.filter(t=>t.type==="csai2r"&&t.response?.totais).slice(-1)[0]?.response?.totais||null;
+  const sasResp=tasks.filter(t=>t.type==="sas"&&t.response?.totais).slice(-1)[0]?.response?.totais||null;
+  const acsiResp=tasks.filter(t=>t.type==="acsi28"&&t.response?.totais).slice(-1)[0]?.response?.totais||null;
+  let csv="";
+  csv+="RESUMO\n"+toCSV([["Campo","Valor"],["Paciente",p.name],["Grupo",p._grupo||"—"],["Data",new Date().toLocaleDateString("pt-BR")],["Registros no diário",diarios.length],["Total de tarefas",tasks.length],["Tarefas respondidas",tasks.filter(t=>t.response).length]])+"\n\n";
+  if(escResp){csv+="ESCALA DE BEM-ESTAR\n"+toCSV([["Dimensão","Valor (%)"],["Humor",escResp.humor],["Ansiedade",escResp.ansiedade],["Sono",escResp.sono],["Estresse",escResp.estresse],["Tristeza",escResp.tristeza]])+"\n\n";}
+  if(csaiResp){csv+="CSAI-2R\n"+toCSV([["Subescala","Pontuação","Máximo","%"],["Ans. Cognitiva",csaiResp.cognitiva,32,Math.round((csaiResp.cognitiva/32)*100)],["Ans. Somática",csaiResp.somatica,28,Math.round((csaiResp.somatica/28)*100)],["Autoconfiança",csaiResp.autoconfianca,20,Math.round((csaiResp.autoconfianca/20)*100)]])+"\n\n";}
+  if(sasResp){csv+="SAS\n"+toCSV([["Subescala","Pontuação","Máximo","%"],["Somática",sasResp.somatica,28,Math.round((sasResp.somatica/28)*100)],["Preocupação",sasResp.preocupacao,28,Math.round((sasResp.preocupacao/28)*100)],["Concentração",sasResp.concentracao,28,Math.round((sasResp.concentracao/28)*100)]])+"\n\n";}
+  if(acsiResp){csv+="ACSI-28\n"+toCSV([["Subescala","Pontuação","Máximo","%"],["Adversidade",acsiResp.adversidade,16,Math.round((acsiResp.adversidade/16)*100)],["Pressão",acsiResp.pressao,16,Math.round((acsiResp.pressao/16)*100)],["Metas",acsiResp.metas,16,Math.round((acsiResp.metas/16)*100)],["Concentração",acsiResp.concentracao,16,Math.round((acsiResp.concentracao/16)*100)],["Preocupação",acsiResp.preocupacao,16,Math.round((acsiResp.preocupacao/16)*100)],["Confiança",acsiResp.confianca,16,Math.round((acsiResp.confianca/16)*100)],["Treinabilidade",acsiResp.treinabilidade,16,Math.round((acsiResp.treinabilidade/16)*100)]])+"\n\n";}
+  if(diarios.length){csv+="DIÁRIO\n"+toCSV([["Emoção","Intensidade","Data","Hora","Contexto"],...diarios.map(d=>[d.emocao,d.intensidade,d.data||"—",d.hora||"—",d.contexto||"—"])]);}
+  return csv;
+}
+
+function exportarSelecionados(ps){
+  if(ps.length===1){downloadCSV(`MeuPsi_${ps[0].name.replace(/\s+/g,"_")}.csv`,csvPaciente(ps[0]));return;}
+  let csv="";
+  ps.forEach((p,i)=>{csv+=`${"=".repeat(40)}\nPACIENTE: ${p.name.toUpperCase()} | GRUPO: ${p._grupo||"—"}\n${"=".repeat(40)}\n\n`;csv+=csvPaciente(p);if(i<ps.length-1)csv+="\n\n";});
+  downloadCSV(`MeuPsi_Exportacao_${new Date().toLocaleDateString("pt-BR").replace(/\//g,"-")}.csv`,csv);
+}
+
+function exportarGrupoNome(grupoNome,patients){
+  const ps=patients.filter(p=>p._grupo===grupoNome);
+  let csv=`GRUPO: ${grupoNome.toUpperCase()}\nData: ${new Date().toLocaleDateString("pt-BR")}\nTotal de pacientes: ${ps.length}\n\n`;
+  const getTasks=(p)=>p.tasks?Object.values(p.tasks):[];
+  const getEscResp=(p)=>getTasks(p).filter(t=>t.type==="escala"&&t.response).slice(-1)[0]?.response||null;
+  const psComEsc=ps.filter(p=>getEscResp(p));
+  if(psComEsc.length>0){
+    const mediaEsc=(campo)=>Math.round(psComEsc.reduce((acc,p)=>{const r=getEscResp(p);return acc+(r?.[campo]||0);},0)/psComEsc.length);
+    csv+="MÉDIAS DO GRUPO — ESCALA DE BEM-ESTAR\n"+toCSV([["Dimensão","Média (%)","Classificação"],...["humor","ansiedade","sono","estresse","tristeza"].map(k=>{const m=mediaEsc(k);return[k.charAt(0).toUpperCase()+k.slice(1),m,m>=70?"Alto":m>=50?"Moderado":"Baixo"];})])+"\n\n";
+  }
+  const getCsaiResp=(p)=>getTasks(p).filter(t=>t.type==="csai2r"&&t.response?.totais).slice(-1)[0]?.response?.totais||null;
+  const psComCsai=ps.filter(p=>getCsaiResp(p));
+  if(psComCsai.length>0){
+    const mediaCsai=(k)=>Math.round(psComCsai.reduce((acc,p)=>{const r=getCsaiResp(p);return acc+(r?.[k]||0);},0)/psComCsai.length);
+    csv+="MÉDIAS DO GRUPO — CSAI-2R\n"+toCSV([["Subescala","Média","Máximo","%"],["Ans. Cognitiva",mediaCsai("cognitiva"),32,Math.round((mediaCsai("cognitiva")/32)*100)],["Ans. Somática",mediaCsai("somatica"),28,Math.round((mediaCsai("somatica")/28)*100)],["Autoconfiança",mediaCsai("autoconfianca"),20,Math.round((mediaCsai("autoconfianca")/20)*100)]])+"\n\n";
+  }
+  csv+="DADOS INDIVIDUAIS\n";
+  ps.forEach(p=>{csv+=`\n--- ${p.name} ---\n`;csv+=csvPaciente(p)+"\n";});
+  downloadCSV(`MeuPsi_Grupo_${grupoNome.replace(/\s+/g,"_")}_${new Date().toLocaleDateString("pt-BR").replace(/\//g,"-")}.csv`,csv);
+}
+
+// ── Exportar Screen — idêntico ao componente enviado, com dados Firebase ──
+function ExportarScreen({patients,grupos,onClose}){
+  // Descobre quais grupos existem a partir dos grupos do Firebase
+  // e enriquece cada paciente com o nome do grupo ao qual pertence (_grupo)
+  const gruposNomes=[...new Set(grupos.map(g=>g.nome))];
+  const patientsComGrupo=patients.map(p=>{
+    const g=grupos.find(g=>(g.membros||[]).includes(p.id));
+    return{...p,_grupo:g?.nome||"—"};
+  });
+
+  const [modo,setModo]=useState("pacientes");
+  const [selecionados,setSelecionados]=useState([]);
+  const [grupoSel,setGrupoSel]=useState(gruposNomes[0]||"");
+  const [exportando,setExportando]=useState(false);
+  const [sucesso,setSucesso]=useState("");
+
+  function togglePaciente(id){setSelecionados(s=>s.includes(id)?s.filter(x=>x!==id):[...s,id]);}
+  function selecionarTodos(){setSelecionados(patientsComGrupo.map(p=>p.id));}
+  function limparSelecao(){setSelecionados([]);}
+
+  function handleExport(){
+    setExportando(true);
+    if(modo==="pacientes"){
+      const ps=patientsComGrupo.filter(p=>selecionados.includes(p.id));
+      exportarSelecionados(ps);
+      setTimeout(()=>{setExportando(false);setSucesso(`✅ ${ps.length} paciente(s) exportados!`);setTimeout(()=>setSucesso(""),3000);},800);
+    }else{
+      exportarGrupoNome(grupoSel,patientsComGrupo);
+      setTimeout(()=>{setExportando(false);setSucesso(`✅ Grupo "${grupoSel}" exportado!`);setTimeout(()=>setSucesso(""),3000);},800);
+    }
+  }
+
+  const podeExportar=modo==="pacientes"?selecionados.length>0:!!grupoSel;
+  const grupoPatients=patientsComGrupo.filter(p=>p._grupo===grupoSel);
+
+  return(
+    <div style={{background:"#f5f5f7",minHeight:"100vh",maxWidth:480,margin:"0 auto",fontFamily:"-apple-system,sans-serif",display:"flex",flexDirection:"column"}}>
+      <div style={{background:"linear-gradient(135deg,#6d28d9,#4f46e5,#0ea5e9)",padding:"18px 20px",boxShadow:"0 4px 20px rgba(109,40,217,.3)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div>
+          <div style={{color:"#fff",fontWeight:800,fontSize:18}}>📊 Exportar Dados</div>
+          <div style={{color:"rgba(255,255,255,.75)",fontSize:12,marginTop:2}}>Selecione pacientes ou grupo</div>
+        </div>
+        <button onClick={onClose} style={{background:"rgba(255,255,255,.18)",border:"1px solid rgba(255,255,255,.25)",color:"#fff",padding:"7px 14px",borderRadius:10,cursor:"pointer",fontSize:12,fontWeight:600}}>← Voltar</button>
+      </div>
+
+      <div style={{padding:"16px 16px 40px",flex:1,overflowY:"auto"}}>
+        {sucesso&&<div style={{background:"#d1fae5",borderRadius:12,padding:14,marginBottom:14,color:"#065f46",fontWeight:700,fontSize:14,textAlign:"center"}}>{sucesso}</div>}
+
+        <div style={{display:"flex",background:"#fff",borderRadius:14,padding:4,gap:4,marginBottom:16,boxShadow:"0 2px 8px rgba(0,0,0,.05)"}}>
+          {[["pacientes","👤 Por paciente"],["grupo","👥 Por grupo"]].map(([id,label])=>(
+            <button key={id} onClick={()=>{setModo(id);setSelecionados([]);}}
+              style={{flex:1,padding:"10px 4px",border:"none",cursor:"pointer",fontWeight:700,fontSize:13,borderRadius:10,background:modo===id?"#6d28d9":"transparent",color:modo===id?"#fff":"#9ca3af",transition:"all .2s"}}>
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {modo==="pacientes"&&<>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+            <div style={{fontSize:13,fontWeight:700,color:"#374151"}}>{selecionados.length} selecionado(s)</div>
+            <div style={{display:"flex",gap:8}}>
+              <button onClick={selecionarTodos} style={{fontSize:12,fontWeight:700,color:"#6d28d9",background:"#ede9fe",border:"none",borderRadius:8,padding:"5px 12px",cursor:"pointer"}}>Todos</button>
+              {selecionados.length>0&&<button onClick={limparSelecao} style={{fontSize:12,fontWeight:700,color:"#9ca3af",background:"#f3f4f6",border:"none",borderRadius:8,padding:"5px 12px",cursor:"pointer"}}>Limpar</button>}
+            </div>
+          </div>
+
+          <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
+            {patientsComGrupo.map(p=>{
+              const sel=selecionados.includes(p.id);
+              const tasks=p.tasks?Object.values(p.tasks):[];
+              const escResp=tasks.filter(t=>t.type==="escala"&&t.response).slice(-1)[0]?.response||null;
+              const humor=escResp?.humor||0;
+              const hColor=humor>=60?"#059669":humor>=40?"#d97706":"#e11d48";
+              return(
+                <div key={p.id} onClick={()=>togglePaciente(p.id)}
+                  style={{background:"#fff",borderRadius:14,padding:"14px 16px",cursor:"pointer",boxShadow:"0 2px 8px rgba(0,0,0,.06)",border:`1.5px solid ${sel?"#6d28d9":"#f0f0f0"}`,display:"flex",alignItems:"center",gap:12,transition:"all .15s"}}>
+                  <div style={{width:36,height:36,borderRadius:10,background:sel?"#6d28d9":"#f3f4f6",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:sel?18:16,color:sel?"#fff":"#9ca3af",fontWeight:800,transition:"all .2s"}}>
+                    {sel?"✓":"○"}
+                  </div>
+                  <div style={{flex:1}}>
+                    <div style={{fontWeight:700,color:sel?"#6d28d9":"#1f2937",fontSize:14}}>{p.name}</div>
+                    <div style={{display:"flex",gap:6,marginTop:4,flexWrap:"wrap"}}>
+                      {p._grupo!=="—"&&<Badge color="#6d28d9">{p._grupo}</Badge>}
+                      <Badge color={hColor}>Humor: {humor}%</Badge>
+                      <Badge color="#9ca3af">{Object.values(p.diarios||{}).length} diários</Badge>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {selecionados.length>0&&(
+            <div style={{background:"#ede9fe",borderRadius:14,padding:16,marginBottom:14}}>
+              <div style={{fontSize:13,fontWeight:800,color:"#6d28d9",marginBottom:8}}>📋 O que será exportado:</div>
+              <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                {selecionados.map(id=>{const p=patientsComGrupo.find(x=>x.id===id);return p?<div key={id} style={{fontSize:12,color:"#4c1d95",fontWeight:600}}>• {p.name} — Bem-Estar, CSAI-2R, SAS, ACSI-28, Diário</div>:null;})}
+              </div>
+              {selecionados.length>1&&<div style={{fontSize:11,color:"#7c3aed",marginTop:8,fontStyle:"italic"}}>Arquivo único com todos os pacientes selecionados</div>}
+            </div>
+          )}
+        </>}
+
+        {modo==="grupo"&&<>
+          {gruposNomes.length===0&&<EmptyState icon="👥" text="Nenhum grupo criado ainda. Crie grupos na aba Grupos."/>}
+          <div style={{fontSize:12,fontWeight:700,color:"#9ca3af",marginBottom:8,textTransform:"uppercase",letterSpacing:".5px"}}>Selecione o grupo</div>
+          <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
+            {gruposNomes.map(g=>{
+              const ps=patientsComGrupo.filter(p=>p._grupo===g);
+              const sel=grupoSel===g;
+              return(
+                <div key={g} onClick={()=>setGrupoSel(g)}
+                  style={{background:"#fff",borderRadius:14,padding:16,cursor:"pointer",boxShadow:"0 2px 8px rgba(0,0,0,.06)",border:`1.5px solid ${sel?"#6d28d9":"#f0f0f0"}`,transition:"all .15s"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                    <div style={{fontWeight:800,color:sel?"#6d28d9":"#1f2937",fontSize:15}}>{sel?"✓ ":""}{g}</div>
+                    <Badge color="#6d28d9">{ps.length} paciente(s)</Badge>
+                  </div>
+                  <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                    {ps.map(p=><span key={p.id} style={{fontSize:11,background:"#f3f4f6",color:"#374151",padding:"3px 8px",borderRadius:20,fontWeight:600}}>{p.name}</span>)}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {grupoSel&&(
+            <div style={{background:"#d1fae5",borderRadius:14,padding:16,marginBottom:14}}>
+              <div style={{fontSize:13,fontWeight:800,color:"#065f46",marginBottom:8}}>📋 O que será exportado:</div>
+              <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                {["Médias do grupo — Escala de Bem-Estar","Médias do grupo — CSAI-2R","Dados individuais de cada paciente","Diários de emoções de cada paciente"].map(t=>(
+                  <div key={t} style={{fontSize:12,color:"#065f46",fontWeight:600}}>• {t}</div>
+                ))}
+              </div>
+              <div style={{fontSize:11,color:"#059669",marginTop:8,fontStyle:"italic"}}>Arquivo: MeuPsi_Grupo_{grupoSel.replace(/\s+/g,"_")}.csv</div>
+            </div>
+          )}
+        </>}
+
+        <button onClick={handleExport} disabled={!podeExportar||exportando}
+          style={{width:"100%",padding:"14px 0",borderRadius:12,border:"none",background:podeExportar?"linear-gradient(135deg,#059669,#34d399)":"#e5e7eb",color:podeExportar?"#fff":"#9ca3af",fontWeight:700,fontSize:15,cursor:podeExportar?"pointer":"default",boxShadow:podeExportar?"0 4px 12px rgba(5,150,105,.3)":"none",transition:"all .2s"}}>
+          {exportando?"⏳ Gerando arquivo...":modo==="pacientes"?selecionados.length===0?"Selecione ao menos 1 paciente":`📥 Exportar ${selecionados.length} paciente(s)`:`📥 Exportar grupo "${grupoSel}"`}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── Login ──
 function LoginScreen({onLogin}){
   const [role,setRole]=useState("therapist");const [pid,setPid]=useState("");const [pass,setPass]=useState("");const [err,setErr]=useState("");const [loading,setLoading]=useState(false);
@@ -422,11 +604,14 @@ function LoginScreen({onLogin}){
 function TherapistApp({onLogout}){
   const [tab,setTab]=useState("patients");
   const [patients,setPatients]=useState(null);
+  const [grupos,setGrupos]=useState([]);
   const [sel,setSel]=useState(null);
   const [modal,setModal]=useState(null);
   const [confirmDel,setConfirmDel]=useState(null);
+  const [showExport,setShowExport]=useState(false);
 
   useEffect(()=>{const u=fbListen("patients",d=>setPatients(d?Object.values(d):[]));return()=>u();},[]);
+  useEffect(()=>{const u=fbListen("grupos",d=>setGrupos(d?Object.values(d):[]));return()=>u();},[]);
 
   async function savePatient(name,pass){
     if(!name.trim())return;
@@ -445,6 +630,7 @@ function TherapistApp({onLogout}){
   async function deletePatient(id){await fbSet(`patients/${id}`,null);setConfirmDel(null);}
 
   if(patients===null)return<div style={aw}><Header title="MeuPsi" subtitle="Painel do Terapeuta" onBack={onLogout}/><Spinner/></div>;
+  if(showExport)return<ExportarScreen patients={patients} grupos={grupos} onClose={()=>setShowExport(false)}/>;
   if(sel){const p=patients.find(p=>p.id===sel);if(p)return<PatientDetail patient={p} onBack={()=>setSel(null)}/>;}
 
   return<div style={aw}>
@@ -474,7 +660,7 @@ function TherapistApp({onLogout}){
         </div>
       </>}
       {tab==="groups"&&<GruposTab patients={patients}/>}
-      {tab==="dashboard"&&<DashboardTab patients={patients}/>}
+      {tab==="dashboard"&&<DashboardTab patients={patients} onExport={()=>setShowExport(true)}/>}
       {tab==="overview"&&<>
         <h2 style={h2s}>Visão Geral</h2>
         {patients.length===0&&<EmptyState icon="📊" text="Nenhum dado ainda."/>}
@@ -601,7 +787,7 @@ function ProntuarioTab({patientId,prontuario}){
       {fields[ptab].map(([f,l,ph])=><div key={f} style={{marginBottom:14}}>
         <div style={{fontSize:11,fontWeight:700,color:"#9ca3af",marginBottom:6,textTransform:"uppercase",letterSpacing:".5px"}}>{l}</div>
         {ph?<textarea className="inp" placeholder={ph} value={(data[ptab]||{})[f]||""} onChange={e=>setData({...data,[ptab]:{...(data[ptab]||{}),[f]:e.target.value}})} style={{minHeight:70,resize:"vertical",marginBottom:0}}/>
-          :<input className="inp" placeholder={`Digite...`} value={(data[ptab]||{})[f]||""} onChange={e=>setData({...data,[ptab]:{...(data[ptab]||{}),[f]:e.target.value}})} style={{marginBottom:0}}/>}
+          :<input className="inp" placeholder="Digite..." value={(data[ptab]||{})[f]||""} onChange={e=>setData({...data,[ptab]:{...(data[ptab]||{}),[f]:e.target.value}})} style={{marginBottom:0}}/>}
       </div>)}
       <button className="btn-main" onClick={save} style={{marginTop:4}}>{saved?"✅ Salvo!":"Salvar"}</button>
     </div>}
@@ -707,7 +893,6 @@ function PatientApp({patientId,onLogout}){
   </div>;
 }
 
-// ── Diário Tab ──
 function DiarioTab({patientId}){
   const [diarios,setDiarios]=useState([]);
   const [emocaoSel,setEmocaoSel]=useState(null);const [intensidade,setIntensidade]=useState(5);const [contexto,setContexto]=useState("");const [pensamento,setPensamento]=useState("");const [enviado,setEnviado]=useState(false);
@@ -757,7 +942,7 @@ function DiarioTab({patientId}){
   </div>;
 }
 
-// ── Testes Cognitivos ──
+// ── Testes Cognitivos (mantidos integralmente) ──
 const CORES_STROOP=["vermelho","verde","azul","amarelo"];
 const CORES_CSS={vermelho:"#ef4444",verde:"#16a34a",azul:"#2563eb",amarelo:"#ca8a04"};
 const LETRAS_NBACK="BCDFGHJKLMNPQRSTVWXZ".split("");
@@ -765,254 +950,13 @@ const FLANKER_SETS=[{alvo:"→",dist:"←←",tipo:"incongruente"},{alvo:"←",d
 function classPct(p){return p>=80?{nivel:"Excelente",cor:"#059669"}:p>=65?{nivel:"Bom",cor:"#0891b2"}:p>=50?{nivel:"Moderado",cor:"#d97706"}:{nivel:"Baixo",cor:"#e11d48"};}
 function MiniScoreBar({label,value,max,color}){const p=max>0?Math.round((value/max)*100):0;return<div style={{marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}><span style={{fontSize:11,fontWeight:700,color:"#374151"}}>{label}</span><span style={{fontSize:11,fontWeight:800,color}}>{value}/{max}</span></div><div style={{background:"#f3f4f6",borderRadius:20,height:7,overflow:"hidden"}}><div style={{width:`${p}%`,background:color,height:"100%",borderRadius:20}}/></div></div>;}
 
-// Tempo de Reação
-function TRForm({color,onSubmit}){
-  const TOTAL=20;
-  const [fase,setFase]=useState("intro");
-  const [trial,setTrial]=useState(0);
-  const [tempos,setTempos]=useState([]);
-  const [falsosPos,setFalsosPos]=useState(0);
-  const [omissoes,setOmissoes]=useState(0);
-  const [alvoVis,setAlvoVis]=useState(false);
-  const [feedback,setFeedback]=useState(null);
-  const [tempoIni,setTempoIni]=useState(null);
-  const [ultimoTR,setUltimoTR]=useState(null);
-  const tRef=useRef(null),aRef=useRef(null);
-  function comecar(){
-    setFase("espera");setAlvoVis(false);setFeedback(null);
-    const e=1000+Math.random()*3000;
-    tRef.current=setTimeout(()=>{setAlvoVis(true);setTempoIni(Date.now());setFase("alvo");
-      aRef.current=setTimeout(()=>{setAlvoVis(false);setOmissoes(o=>o+1);setFeedback("omissao");setFase("feedback");setTimeout(()=>prox(),1200);},1500);
-    },e);
-  }
-  function prox(){const n=trial+1;if(n>=TOTAL)setFase("resultado");else{setTrial(n);comecar();}}
-  function click(){
-    if(fase==="espera"){clearTimeout(tRef.current);setFalsosPos(f=>f+1);setFeedback("falso");setFase("feedback");setTimeout(()=>prox(),1200);}
-    else if(fase==="alvo"){clearTimeout(aRef.current);const tr=Date.now()-tempoIni;setUltimoTR(tr);setTempos(t=>[...t,tr]);setAlvoVis(false);setFeedback("certo");setFase("feedback");setTimeout(()=>prox(),800);}
-  }
-  useEffect(()=>()=>{clearTimeout(tRef.current);clearTimeout(aRef.current);},[]);
-  if(fase==="intro")return<div style={{...crd,textAlign:"center"}}><div style={{fontSize:52,marginBottom:12}}>⚡</div><h3 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:8}}>Tempo de Reação</h3><p style={{fontSize:13,color:"#6b7280",marginBottom:20,lineHeight:1.6}}>Toque quando aparecer o círculo verde. <strong>Não toque antes!</strong></p><button className="btn-main" style={{background:color}} onClick={()=>{setTrial(0);setTempos([]);setFalsosPos(0);setOmissoes(0);comecar();}}>Começar</button></div>;
-  if(fase==="resultado"){
-    const media=tempos.length?Math.round(tempos.reduce((a,b)=>a+b,0)/tempos.length):0;
-    const desvio=tempos.length>1?Math.round(Math.sqrt(tempos.reduce((a,b)=>a+(b-media)**2,0)/tempos.length)):0;
-    const score=Math.max(0,100-Math.round((media-200)/5)-falsosPos*5-omissoes*3);
-    return<div style={crd}><div style={{textAlign:"center",marginBottom:16}}><div style={{fontSize:48,marginBottom:8}}>{score>=75?"🏆":score>=50?"🎯":"💪"}</div><h3 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>{score>=75?"Excelente!":score>=50?"Muito bem!":"Continue!"}</h3></div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
-        {[[media+"ms","TR Médio",color],[desvio+"ms","Desvio",color],[tempos.length,"Acertos","#059669"],[falsosPos,"Falsos","#e11d48"]].map(([v,l,c])=><div key={l} style={{background:"#f9fafb",borderRadius:12,padding:10,textAlign:"center"}}><div style={{fontSize:18,fontWeight:900,color:c}}>{v}</div><div style={{fontSize:10,color:"#9ca3af"}}>{l}</div></div>)}
-      </div>
-      <button className="btn-main" style={{background:color}} onClick={()=>onSubmit({media,desvio,acertos:tempos.length,falsosPos,omissoes,score,tipo:"tr"})}>Salvar resultado</button>
-    </div>;
-  }
-  const bg=feedback==="certo"?"#d1fae5":feedback==="falso"?"#fee2e2":feedback==="omissao"?"#fef3c7":alvoVis?"#d1fae5":"#f9fafb";
-  const pct=Math.round((trial/TOTAL)*100);
-  return<div onClick={click} style={{cursor:"pointer"}}>
-    <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}><span style={{fontSize:12,fontWeight:700,color:"#374151"}}>{trial+1}/{TOTAL}</span><span style={{fontSize:12,fontWeight:700,color}}>{pct}%</span></div>
-    <div style={{background:"#f3f4f6",borderRadius:20,height:8,overflow:"hidden",marginBottom:14}}><div style={{width:`${pct}%`,background:color,height:"100%",borderRadius:20}}/></div>
-    <div style={{background:bg,borderRadius:16,padding:40,textAlign:"center",minHeight:150,display:"flex",alignItems:"center",justifyContent:"center",transition:"background .15s",marginBottom:12}}>
-      {alvoVis&&<div style={{width:100,height:100,borderRadius:"50%",background:"linear-gradient(135deg,#059669,#34d399)",boxShadow:"0 0 40px rgba(5,150,105,.6)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:32}}>👆</div>}
-      {!alvoVis&&!feedback&&<div style={{textAlign:"center"}}><div style={{fontSize:48,marginBottom:8}}>⏳</div><p style={{fontSize:14,color:"#9ca3af",fontWeight:700}}>Aguarde...</p></div>}
-      {feedback==="certo"&&<div style={{textAlign:"center"}}><div style={{fontSize:52}}>✅</div><div style={{fontSize:22,fontWeight:900,color:"#059669"}}>{ultimoTR}ms</div></div>}
-      {feedback==="falso"&&<div style={{textAlign:"center"}}><div style={{fontSize:52}}>⚠️</div><div style={{fontSize:16,fontWeight:800,color:"#e11d48"}}>Muito cedo!</div></div>}
-      {feedback==="omissao"&&<div style={{textAlign:"center"}}><div style={{fontSize:52}}>😴</div><div style={{fontSize:16,fontWeight:800,color:"#d97706"}}>Perdeu!</div></div>}
-    </div>
-  </div>;
-}
+function TRForm({color,onSubmit}){const TOTAL=20;const [fase,setFase]=useState("intro");const [trial,setTrial]=useState(0);const [tempos,setTempos]=useState([]);const [falsosPos,setFalsosPos]=useState(0);const [omissoes,setOmissoes]=useState(0);const [alvoVis,setAlvoVis]=useState(false);const [feedback,setFeedback]=useState(null);const [tempoIni,setTempoIni]=useState(null);const [ultimoTR,setUltimoTR]=useState(null);const tRef=useRef(null),aRef=useRef(null);function comecar(){setFase("espera");setAlvoVis(false);setFeedback(null);const e=1000+Math.random()*3000;tRef.current=setTimeout(()=>{setAlvoVis(true);setTempoIni(Date.now());setFase("alvo");aRef.current=setTimeout(()=>{setAlvoVis(false);setOmissoes(o=>o+1);setFeedback("omissao");setFase("feedback");setTimeout(()=>prox(),1200);},1500);},e);}function prox(){const n=trial+1;if(n>=TOTAL)setFase("resultado");else{setTrial(n);comecar();}}function click(){if(fase==="espera"){clearTimeout(tRef.current);setFalsosPos(f=>f+1);setFeedback("falso");setFase("feedback");setTimeout(()=>prox(),1200);}else if(fase==="alvo"){clearTimeout(aRef.current);const tr=Date.now()-tempoIni;setUltimoTR(tr);setTempos(t=>[...t,tr]);setAlvoVis(false);setFeedback("certo");setFase("feedback");setTimeout(()=>prox(),800);}}useEffect(()=>()=>{clearTimeout(tRef.current);clearTimeout(aRef.current);},[]);if(fase==="intro")return<div style={{...crd,textAlign:"center"}}><div style={{fontSize:52,marginBottom:12}}>⚡</div><h3 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:8}}>Tempo de Reação</h3><p style={{fontSize:13,color:"#6b7280",marginBottom:20,lineHeight:1.6}}>Toque quando aparecer o círculo verde. <strong>Não toque antes!</strong></p><button className="btn-main" style={{background:color}} onClick={()=>{setTrial(0);setTempos([]);setFalsosPos(0);setOmissoes(0);comecar();}}>Começar</button></div>;if(fase==="resultado"){const media=tempos.length?Math.round(tempos.reduce((a,b)=>a+b,0)/tempos.length):0;const desvio=tempos.length>1?Math.round(Math.sqrt(tempos.reduce((a,b)=>a+(b-media)**2,0)/tempos.length)):0;const score=Math.max(0,100-Math.round((media-200)/5)-falsosPos*5-omissoes*3);return<div style={crd}><div style={{textAlign:"center",marginBottom:16}}><div style={{fontSize:48,marginBottom:8}}>{score>=75?"🏆":score>=50?"🎯":"💪"}</div><h3 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>{score>=75?"Excelente!":score>=50?"Muito bem!":"Continue!"}</h3></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>{[[media+"ms","TR Médio",color],[desvio+"ms","Desvio",color],[tempos.length,"Acertos","#059669"],[falsosPos,"Falsos","#e11d48"]].map(([v,l,c])=><div key={l} style={{background:"#f9fafb",borderRadius:12,padding:10,textAlign:"center"}}><div style={{fontSize:18,fontWeight:900,color:c}}>{v}</div><div style={{fontSize:10,color:"#9ca3af"}}>{l}</div></div>)}</div><button className="btn-main" style={{background:color}} onClick={()=>onSubmit({media,desvio,acertos:tempos.length,falsosPos,omissoes,score,tipo:"tr"})}>Salvar resultado</button></div>;}const bg=feedback==="certo"?"#d1fae5":feedback==="falso"?"#fee2e2":feedback==="omissao"?"#fef3c7":alvoVis?"#d1fae5":"#f9fafb";const pct=Math.round((trial/TOTAL)*100);return<div onClick={click}><div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}><span style={{fontSize:12,fontWeight:700,color:"#374151"}}>{trial+1}/{TOTAL}</span><span style={{fontSize:12,fontWeight:700,color}}>{pct}%</span></div><div style={{background:"#f3f4f6",borderRadius:20,height:8,overflow:"hidden",marginBottom:14}}><div style={{width:`${pct}%`,background:color,height:"100%",borderRadius:20}}/></div><div style={{background:bg,borderRadius:16,padding:40,textAlign:"center",minHeight:150,display:"flex",alignItems:"center",justifyContent:"center",transition:"background .15s",marginBottom:12}}>{alvoVis&&<div style={{width:100,height:100,borderRadius:"50%",background:"linear-gradient(135deg,#059669,#34d399)",boxShadow:"0 0 40px rgba(5,150,105,.6)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:32}}>👆</div>}{!alvoVis&&!feedback&&<div style={{textAlign:"center"}}><div style={{fontSize:48,marginBottom:8}}>⏳</div><p style={{fontSize:14,color:"#9ca3af",fontWeight:700}}>Aguarde...</p></div>}{feedback==="certo"&&<div style={{textAlign:"center"}}><div style={{fontSize:52}}>✅</div><div style={{fontSize:22,fontWeight:900,color:"#059669"}}>{ultimoTR}ms</div></div>}{feedback==="falso"&&<div style={{textAlign:"center"}}><div style={{fontSize:52}}>⚠️</div><div style={{fontSize:16,fontWeight:800,color:"#e11d48"}}>Muito cedo!</div></div>}{feedback==="omissao"&&<div style={{textAlign:"center"}}><div style={{fontSize:52}}>😴</div><div style={{fontSize:16,fontWeight:800,color:"#d97706"}}>Perdeu!</div></div>}</div></div>;}
+function StroopForm({color,onSubmit}){const TOTAL=24;const [fase,setFase]=useState("intro");const [trial,setTrial]=useState(0);const [item,setItem]=useState(null);const [acertos,setAcertos]=useState(0);const [erros,setErros]=useState(0);const [tempos,setTempos]=useState([]);const [feedback,setFeedback]=useState(null);const tRef=useRef(null);function gerar(){const p=CORES_STROOP[Math.floor(Math.random()*4)];const c=CORES_STROOP[Math.floor(Math.random()*4)];return{palavra:p,cor:c,inicio:Date.now()};}function prox(t,a,e,ts){if(t>=TOTAL){onSubmit({acertos:a,erros:e,media:ts.length?Math.round(ts.reduce((x,y)=>x+y,0)/ts.length):0,total:TOTAL,tipo:"stroop"});setFase("fim");return;}setFeedback(null);setTrial(t);setItem(gerar());}function responder(c){const tr=Date.now()-item.inicio;if(c===item.cor){setAcertos(a=>{const nt=[...tempos,tr];setTempos(nt);setFeedback("certo");setTimeout(()=>prox(trial+1,a+1,erros,nt),500);return a+1;});}else{setErros(e=>{setFeedback("errado");setTimeout(()=>prox(trial+1,acertos,e+1,tempos),500);return e+1;});}}if(fase==="fim")return<div style={{...crd,textAlign:"center"}}><div style={{fontSize:48,marginBottom:8}}>✅</div><p style={{fontSize:15,fontWeight:700,color:"#6b7280"}}>Respostas enviadas ao terapeuta.</p></div>;if(fase==="intro")return<div style={{...crd,textAlign:"center"}}><div style={{fontSize:52,marginBottom:12}}>🎨</div><h3 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:8}}>Teste de Stroop</h3><p style={{fontSize:13,color:"#6b7280",marginBottom:16,lineHeight:1.6}}>Selecione a <strong>COR DA TINTA</strong>, ignorando o significado da palavra.</p><div style={{background:"#ede9fe",borderRadius:12,padding:14,marginBottom:20}}><p style={{fontSize:28,fontWeight:900,color:"#ef4444",marginBottom:6}}>AZUL</p><p style={{fontSize:13,color:"#6d28d9"}}>Resposta: <strong>Vermelho</strong></p></div><button className="btn-main" style={{background:color}} onClick={()=>prox(0,0,0,[])}>Começar</button></div>;const pct=Math.round((trial/TOTAL)*100);const bg=feedback==="certo"?"#d1fae5":feedback==="errado"?"#fee2e2":"#f9fafb";return<div><div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}><span style={{fontSize:12,fontWeight:700,color:"#374151"}}>{trial+1}/{TOTAL}</span><span style={{fontSize:12,fontWeight:700,color}}>{pct}%</span></div><div style={{background:"#f3f4f6",borderRadius:20,height:8,overflow:"hidden",marginBottom:14}}><div style={{width:`${pct}%`,background:color,height:"100%",borderRadius:20}}/></div><div style={{background:bg,borderRadius:16,padding:32,textAlign:"center",marginBottom:14,minHeight:100,display:"flex",alignItems:"center",justifyContent:"center",transition:"background .15s"}}>{item&&<div style={{fontSize:42,fontWeight:900,color:CORES_CSS[item.cor]}}>{item.palavra.toUpperCase()}</div>}</div><p style={{textAlign:"center",fontSize:13,fontWeight:700,color:"#9ca3af",marginBottom:10}}>Cor da tinta:</p><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>{CORES_STROOP.map(c=><button key={c} onClick={()=>responder(c)} style={{padding:"12px 0",borderRadius:10,border:`2px solid ${CORES_CSS[c]}`,background:`${CORES_CSS[c]}15`,color:CORES_CSS[c],fontWeight:800,fontSize:14,cursor:"pointer"}}>{c.charAt(0).toUpperCase()+c.slice(1)}</button>)}</div><div style={{display:"flex",justifyContent:"space-around",marginTop:10}}><span style={{fontSize:12,color:"#059669",fontWeight:700}}>✓ {acertos}</span><span style={{fontSize:12,color:"#e11d48",fontWeight:700}}>✗ {erros}</span></div></div>;}
+function TMTForm({color,onSubmit}){const [parte,setParte]=useState("A");const [fase,setFase]=useState("intro");const [proximo,setProximo]=useState(0);const [erros,setErros]=useState(0);const [inicio,setInicio]=useState(null);const [tempoA,setTempoA]=useState(null);const [posicoes,setPosicoes]=useState([]);const [linhas,setLinhas]=useState([]);const N=10;function gerarPos(){const pos=[];for(let i=0;i<N;i++){let x,y,ok;do{x=8+Math.random()*80;y=8+Math.random()*80;ok=pos.every(p=>Math.hypot(p.x-x,p.y-y)>14);}while(!ok);pos.push({x,y});}return pos;}function iniciarParte(p){const pos=gerarPos();const labels=p==="A"?Array.from({length:N},(_,i)=>`${i+1}`):Array.from({length:N},(_,i)=>i%2===0?`${Math.floor(i/2)+1}`:"ABCDEFGHIJ"[Math.floor(i/2)]);setPosicoes(pos.map((p,i)=>({...p,label:labels[i]})));setProximo(0);setErros(0);setLinhas([]);setInicio(Date.now());setFase("jogo");}function tocar(idx){if(idx!==proximo){setErros(e=>e+1);return;}if(proximo>0)setLinhas(l=>[...l,{from:proximo-1,to:proximo}]);if(proximo+1>=N){const t=Math.round((Date.now()-inicio)/1000);if(parte==="A"){setTempoA(t);setParte("B");setFase("entre");}else{onSubmit({tempoA,tempoB:t,erros,tipo:"tmt"});setFase("fim");}}else setProximo(p=>p+1);}if(fase==="fim")return<div style={{...crd,textAlign:"center"}}><div style={{fontSize:48,marginBottom:8}}>✅</div><p style={{fontSize:15,fontWeight:700,color:"#6b7280"}}>Respostas enviadas ao terapeuta.</p></div>;if(fase==="intro")return<div style={{...crd,textAlign:"center"}}><div style={{fontSize:52,marginBottom:12}}>🔢</div><h3 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:8}}>Trail Making Test</h3><div style={{background:"#e0f2fe",borderRadius:10,padding:12,marginBottom:8,textAlign:"left"}}><p style={{fontSize:13,fontWeight:700,color:"#0369a1"}}>Parte A: conecte 1→2→3→...→10</p></div><div style={{background:"#fef3c7",borderRadius:10,padding:12,marginBottom:16,textAlign:"left"}}><p style={{fontSize:13,fontWeight:700,color:"#92400e"}}>Parte B: alterne 1→A→2→B→...</p></div><button className="btn-main" style={{background:color}} onClick={()=>iniciarParte("A")}>Começar Parte A</button></div>;if(fase==="entre")return<div style={{...crd,textAlign:"center"}}><div style={{fontSize:48,marginBottom:8}}>✅</div><h3 style={{fontSize:16,fontWeight:800,color:"#1f2937",marginBottom:4}}>Parte A: {tempoA}s</h3><p style={{fontSize:13,color:"#6b7280",marginBottom:16}}>Agora alterne números e letras</p><button className="btn-main" style={{background:color}} onClick={()=>iniciarParte("B")}>Parte B</button></div>;return<div><div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}><span style={{fontSize:13,fontWeight:800,color}}>{parte==="A"?"Parte A — números":"Parte B — alterne"}</span><span style={{fontSize:13,fontWeight:700,color:"#374151"}}>Próximo: <strong style={{color}}>{posicoes[proximo]?.label}</strong></span><span style={{fontSize:12,color:"#e11d48",fontWeight:700}}>✗{erros}</span></div><div style={{position:"relative",width:"100%",paddingBottom:"100%",background:"#f9fafb",borderRadius:16,overflow:"hidden",border:"1px solid #e5e7eb"}}><svg style={{position:"absolute",inset:0,width:"100%",height:"100%"}}>{linhas.map((l,i)=>{const f=posicoes[l.from],t=posicoes[l.to];return<line key={i} x1={`${f.x}%`} y1={`${f.y}%`} x2={`${t.x}%`} y2={`${t.y}%`} stroke={color} strokeWidth="2.5" strokeLinecap="round"/>;})}{posicoes.map((p,i)=>{const done=i<proximo,next=i===proximo;return<g key={i}><circle cx={`${p.x}%`} cy={`${p.y}%`} r="5.5%" fill={done?color:next?`${color}20`:"#fff"} stroke={next?color:"#d1d5db"} strokeWidth={next?"2.5":"1.5"} style={{cursor:"pointer"}} onClick={()=>tocar(i)}/><text x={`${p.x}%`} y={`${p.y}%`} textAnchor="middle" dominantBaseline="middle" fontSize="3.5%" fontWeight="800" fill={done?"#fff":next?color:"#374151"} style={{pointerEvents:"none"}}>{p.label}</text></g>;})}</svg></div></div>;}
+function NBackForm({color,onSubmit}){const N=2,TOTAL=25;const [fase,setFase]=useState("intro");const [seq,setSeq]=useState([]);const [pos,setPos]=useState(0);const [mostrando,setMostrando]=useState(false);const [acertos,setAcertos]=useState(0);const [erros,setErros]=useState(0);const [omissoes,setOmissoes]=useState(0);const tRef=useRef(null);const stateRef=useRef({pos:0,acertos:0,erros:0,omissoes:0,seq:[]});function gerar(){const s=Array.from({length:TOTAL},()=>LETRAS_NBACK[Math.floor(Math.random()*LETRAS_NBACK.length)]);for(let i=N;i<TOTAL;i++)if(Math.random()<.3)s[i]=s[i-N];return s;}function rodar(s,i,a,e,om){if(i>=TOTAL){onSubmit({acertos:a,erros:e,omissoes:om,total:TOTAL,tipo:"nback"});setFase("fim");return;}stateRef.current={pos:i,acertos:a,erros:e,omissoes:om,seq:s};setPos(i);setMostrando(true);setFase("jogo");tRef.current=setTimeout(()=>{setMostrando(false);if(i>=N&&s[i]===s[i-N]){const no=om+1;stateRef.current.omissoes=no;setOmissoes(no);setTimeout(()=>rodar(s,i+1,a,e,no),500);}else setTimeout(()=>rodar(s,i+1,a,e,om),500);},1500);}function responder(){const{pos:i,acertos:a,erros:e,omissoes:om,seq:s}=stateRef.current;if(!mostrando||i<N)return;clearTimeout(tRef.current);setMostrando(false);if(s[i]===s[i-N]){const na=a+1;stateRef.current.acertos=na;setAcertos(na);setTimeout(()=>rodar(s,i+1,na,e,om),400);}else{const ne=e+1;stateRef.current.erros=ne;setErros(ne);setTimeout(()=>rodar(s,i+1,a,ne,om),400);}}function iniciar(){const s=gerar();setSeq(s);setAcertos(0);setErros(0);setOmissoes(0);rodar(s,0,0,0,0);}useEffect(()=>()=>clearTimeout(tRef.current),[]);if(fase==="fim")return<div style={{...crd,textAlign:"center"}}><div style={{fontSize:48,marginBottom:8}}>✅</div><p style={{fontSize:15,fontWeight:700,color:"#6b7280"}}>Respostas enviadas ao terapeuta.</p></div>;if(fase==="intro")return<div style={{...crd,textAlign:"center"}}><div style={{fontSize:52,marginBottom:12}}>🧩</div><h3 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:8}}>N-Back (2-Back)</h3><p style={{fontSize:13,color:"#6b7280",lineHeight:1.6,marginBottom:16}}>Pressione quando a letra atual for <strong>igual à de 2 posições atrás</strong>.</p><div style={{background:"#fef3c7",borderRadius:12,padding:14,marginBottom:16}}><div style={{display:"flex",gap:6,justifyContent:"center"}}>{["B","K","B","L","B"].map((l,i)=><div key={i} style={{width:34,height:34,borderRadius:8,background:i===4?"#d97706":"#fff",border:"2px solid #f59e0b",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:14,color:i===4?"#fff":"#374151"}}>{l}</div>)}</div><p style={{fontSize:12,color:"#92400e",marginTop:6}}>5ª letra = 3ª → pressione!</p></div><button className="btn-main" style={{background:color}} onClick={iniciar}>Começar</button></div>;const pct=Math.round((pos/TOTAL)*100);return<div><div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}><span style={{fontSize:12,fontWeight:700,color:"#374151"}}>{pos+1}/{TOTAL}</span><span style={{fontSize:12,fontWeight:700,color}}>{pct}%</span></div><div style={{background:"#f3f4f6",borderRadius:20,height:8,overflow:"hidden",marginBottom:14}}><div style={{width:`${pct}%`,background:color,height:"100%",borderRadius:20}}/></div><div style={{background:"#fff",borderRadius:16,padding:32,textAlign:"center",marginBottom:14,boxShadow:"0 2px 10px rgba(0,0,0,.06)",minHeight:120,display:"flex",alignItems:"center",justifyContent:"center"}}>{mostrando?<div style={{fontSize:64,fontWeight:900,color}}>{seq[pos]}</div>:<div style={{fontSize:32,color:"#d1d5db"}}>?</div>}</div><button onClick={responder} disabled={!mostrando||pos<N} style={{width:"100%",padding:14,borderRadius:12,border:"none",background:mostrando&&pos>=N?`linear-gradient(135deg,${color},${color}cc)`:"#e5e7eb",color:mostrando&&pos>=N?"#fff":"#9ca3af",fontWeight:700,fontSize:15,cursor:mostrando&&pos>=N?"pointer":"default"}}>✓ É igual ao de 2 atrás!</button><div style={{display:"flex",justifyContent:"space-around",marginTop:10}}><span style={{fontSize:12,color:"#059669",fontWeight:700}}>✓{acertos}</span><span style={{fontSize:12,color:"#e11d48",fontWeight:700}}>✗{erros}</span><span style={{fontSize:12,color:"#d97706",fontWeight:700}}>○{omissoes}</span></div></div>;}
+function GoNoGoForm({color,onSubmit}){const TOTAL=30;const [fase,setFase]=useState("intro");const [trial,setTrial]=useState(0);const [stim,setStim]=useState(null);const [acertos,setAcertos]=useState(0);const [falsosGo,setFalsosGo]=useState(0);const [omissoes,setOmissoes]=useState(0);const [tempos,setTempos]=useState([]);const [feedback,setFeedback]=useState(null);const tRef=useRef(null);const iniRef=useRef(null);const stateRef=useRef({trial:0,acertos:0,falsosGo:0,omissoes:0,tempos:[]});function prox(t,a,fg,om,ts){if(t>=TOTAL){onSubmit({acertos:a,falsosGo:fg,omissoes:om,mediaTempos:ts.length?Math.round(ts.reduce((x,y)=>x+y,0)/ts.length):0,total:TOTAL,tipo:"gonogo"});setFase("fim");return;}setFeedback(null);const isGo=Math.random()<.7;setStim(isGo?"🟢":"🔴");iniRef.current=Date.now();setTrial(t);stateRef.current={trial:t,acertos:a,falsosGo:fg,omissoes:om,tempos:ts,isGo};tRef.current=setTimeout(()=>{if(isGo){const no=om+1;stateRef.current.omissoes=no;setOmissoes(no);setFeedback("omissao");setTimeout(()=>prox(t+1,a,fg,no,ts),600);}else{setFeedback("correto_nogo");setTimeout(()=>prox(t+1,a,fg,om,ts),600);}},1000);}function responder(){clearTimeout(tRef.current);const{trial:t,acertos:a,falsosGo:fg,omissoes:om,tempos:ts,isGo}=stateRef.current;const tr=Date.now()-iniRef.current;if(isGo){const na=a+1,nt=[...ts,tr];stateRef.current.acertos=na;setAcertos(na);setTempos(nt);setFeedback("certo");setTimeout(()=>prox(t+1,na,fg,om,nt),600);}else{const nf=fg+1;stateRef.current.falsosGo=nf;setFalsosGo(nf);setFeedback("falso");setTimeout(()=>prox(t+1,a,nf,om,ts),600);}}useEffect(()=>()=>clearTimeout(tRef.current),[]);if(fase==="fim")return<div style={{...crd,textAlign:"center"}}><div style={{fontSize:48,marginBottom:8}}>✅</div><p style={{fontSize:15,fontWeight:700,color:"#6b7280"}}>Respostas enviadas ao terapeuta.</p></div>;if(fase==="intro")return<div style={{...crd,textAlign:"center"}}><div style={{fontSize:52,marginBottom:12}}>🚦</div><h3 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:8}}>Go / No-Go</h3><div style={{display:"flex",gap:10,marginBottom:20}}><div style={{flex:1,background:"#d1fae5",borderRadius:12,padding:14}}><div style={{fontSize:28}}>🟢</div><div style={{fontSize:13,fontWeight:700,color:"#065f46",marginTop:4}}>GO — Toque!</div></div><div style={{flex:1,background:"#fee2e2",borderRadius:12,padding:14}}><div style={{fontSize:28}}>🔴</div><div style={{fontSize:13,fontWeight:700,color:"#991b1b",marginTop:4}}>NO-GO — Aguarde!</div></div></div><button className="btn-main" style={{background:color}} onClick={()=>prox(0,0,0,0,[])}>Começar</button></div>;const pct=Math.round((trial/TOTAL)*100);const bg=feedback==="certo"?"#d1fae5":feedback==="falso"?"#fee2e2":feedback==="omissao"?"#fef3c7":feedback==="correto_nogo"?"#d1fae5":"#f9fafb";return<div onClick={responder}><div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}><span style={{fontSize:12,fontWeight:700,color:"#374151"}}>{trial+1}/{TOTAL}</span><span style={{fontSize:12,fontWeight:700,color}}>{pct}%</span></div><div style={{background:"#f3f4f6",borderRadius:20,height:8,overflow:"hidden",marginBottom:14}}><div style={{width:`${pct}%`,background:color,height:"100%",borderRadius:20}}/></div><div style={{background:bg,borderRadius:16,padding:40,textAlign:"center",minHeight:150,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",transition:"background .15s",marginBottom:10}}>{stim&&!feedback?<div style={{fontSize:80}}>{stim}</div>:feedback==="certo"?<div><div style={{fontSize:48}}>✅</div><div style={{fontWeight:800,color:"#059669"}}>Ótimo!</div></div>:feedback==="falso"?<div><div style={{fontSize:48}}>⚠️</div><div style={{fontWeight:800,color:"#e11d48"}}>Não era pra tocar!</div></div>:feedback==="omissao"?<div><div style={{fontSize:48}}>😴</div><div style={{fontWeight:800,color:"#d97706"}}>Perdeu!</div></div>:feedback==="correto_nogo"?<div><div style={{fontSize:48}}>🛑</div><div style={{fontWeight:800,color:"#059669"}}>Correto!</div></div>:<div style={{fontSize:32,color:"#d1d5db"}}>⏳</div>}</div><div style={{display:"flex",justifyContent:"space-around"}}><span style={{fontSize:12,color:"#059669",fontWeight:700}}>✓{acertos}</span><span style={{fontSize:12,color:"#e11d48",fontWeight:700}}>✗{falsosGo}</span><span style={{fontSize:12,color:"#d97706",fontWeight:700}}>○{omissoes}</span></div></div>;}
+function FlankerForm({color,onSubmit}){const TOTAL=24;const [fase,setFase]=useState("intro");const [trial,setTrial]=useState(0);const [item,setItem]=useState(null);const [acertos,setAcertos]=useState(0);const [erros,setErros]=useState(0);const [tempos,setTempos]=useState({congruente:[],incongruente:[]});const [feedback,setFeedback]=useState(null);function gerar(){return{...FLANKER_SETS[Math.floor(Math.random()*4)],inicio:Date.now()};}function prox(t,a,e,ts){if(t>=TOTAL){onSubmit({acertos:a,erros:e,tempos:ts,total:TOTAL,tipo:"flanker"});setFase("fim");return;}setFeedback(null);setTrial(t);setItem(gerar());}function responder(dir){const tr=Date.now()-item.inicio;const certo=dir===item.alvo;if(certo){setAcertos(a=>{const nt={...tempos,[item.tipo]:[...tempos[item.tipo],tr]};setTempos(nt);setFeedback("certo");setTimeout(()=>prox(trial+1,a+1,erros,nt),500);return a+1;});}else{setErros(e=>{setFeedback("errado");setTimeout(()=>prox(trial+1,acertos,e+1,tempos),500);return e+1;});}}if(fase==="fim")return<div style={{...crd,textAlign:"center"}}><div style={{fontSize:48,marginBottom:8}}>✅</div><p style={{fontSize:15,fontWeight:700,color:"#6b7280"}}>Respostas enviadas ao terapeuta.</p></div>;if(fase==="intro")return<div style={{...crd,textAlign:"center"}}><div style={{fontSize:52,marginBottom:12}}>➡️</div><h3 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:8}}>Teste de Flanker</h3><p style={{fontSize:13,color:"#6b7280",lineHeight:1.6,marginBottom:16}}>Indique a direção da seta <strong>central</strong>.</p><div style={{display:"flex",gap:10,marginBottom:20}}><div style={{flex:1,background:"#d1fae5",borderRadius:12,padding:14,textAlign:"center"}}><div style={{fontSize:22,letterSpacing:4}}>→→→→→</div><div style={{fontSize:11,color:"#065f46",fontWeight:700,marginTop:4}}>Congruente</div></div><div style={{flex:1,background:"#fee2e2",borderRadius:12,padding:14,textAlign:"center"}}><div style={{fontSize:22,letterSpacing:4}}>←←→←←</div><div style={{fontSize:11,color:"#991b1b",fontWeight:700,marginTop:4}}>Incongruente</div></div></div><button className="btn-main" style={{background:color}} onClick={()=>prox(0,0,0,{congruente:[],incongruente:[]})}>Começar</button></div>;const pct=Math.round((trial/TOTAL)*100);const display=item?`${item.dist[0]} ${item.dist[1]} ${item.alvo} ${item.dist[0]} ${item.dist[1]}`:"";const bg=feedback==="certo"?"#d1fae5":feedback==="errado"?"#fee2e2":"#f9fafb";return<div><div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}><span style={{fontSize:12,fontWeight:700,color:"#374151"}}>{trial+1}/{TOTAL}</span><span style={{fontSize:12,fontWeight:700,color}}>{pct}%</span></div><div style={{background:"#f3f4f6",borderRadius:20,height:8,overflow:"hidden",marginBottom:14}}><div style={{width:`${pct}%`,background:color,height:"100%",borderRadius:20}}/></div><div style={{background:bg,borderRadius:16,padding:32,textAlign:"center",minHeight:100,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:14,transition:"background .15s"}}>{item&&<div style={{fontSize:40,letterSpacing:12,fontWeight:900,color:"#374151"}}>{display}</div>}</div><p style={{textAlign:"center",fontSize:13,fontWeight:700,color:"#9ca3af",marginBottom:10}}>Direção da seta central:</p><div style={{display:"flex",gap:12}}>{["←","→"].map(d=><button key={d} onClick={()=>responder(d)} style={{flex:1,padding:16,borderRadius:12,border:`2px solid ${color}`,background:`${color}10`,color,fontWeight:900,fontSize:28,cursor:"pointer"}}>{d}</button>)}</div><div style={{display:"flex",justifyContent:"space-around",marginTop:10}}><span style={{fontSize:12,color:"#059669",fontWeight:700}}>✓{acertos}</span><span style={{fontSize:12,color:"#e11d48",fontWeight:700}}>✗{erros}</span></div></div>;}
 
-// Stroop
-function StroopForm({color,onSubmit}){
-  const TOTAL=24;
-  const [fase,setFase]=useState("intro");
-  const [trial,setTrial]=useState(0);
-  const [item,setItem]=useState(null);
-  const [acertos,setAcertos]=useState(0);
-  const [erros,setErros]=useState(0);
-  const [tempos,setTempos]=useState([]);
-  const [feedback,setFeedback]=useState(null);
-  const tRef=useRef(null);
-  function gerar(){const p=CORES_STROOP[Math.floor(Math.random()*4)];const c=CORES_STROOP[Math.floor(Math.random()*4)];return{palavra:p,cor:c,inicio:Date.now()};}
-  function prox(t,a,e,ts){if(t>=TOTAL){onSubmit({acertos:a,erros:e,media:ts.length?Math.round(ts.reduce((x,y)=>x+y,0)/ts.length):0,total:TOTAL,tipo:"stroop"});setFase("fim");return;}setFeedback(null);setTrial(t);setItem(gerar());}
-  function responder(c){
-    const tr=Date.now()-item.inicio;
-    if(c===item.cor){setAcertos(a=>{const nt=[...tempos,tr];setTempos(nt);setFeedback("certo");setTimeout(()=>prox(trial+1,a+1,erros,nt),500);return a+1;});}
-    else{setErros(e=>{setFeedback("errado");setTimeout(()=>prox(trial+1,acertos,e+1,tempos),500);return e+1;});}
-  }
-  if(fase==="fim")return<div style={{...crd,textAlign:"center"}}><div style={{fontSize:48,marginBottom:8}}>✅</div><p style={{fontSize:15,fontWeight:700,color:"#6b7280"}}>Respostas enviadas ao terapeuta.</p></div>;
-  if(fase==="intro")return<div style={{...crd,textAlign:"center"}}><div style={{fontSize:52,marginBottom:12}}>🎨</div><h3 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:8}}>Teste de Stroop</h3><p style={{fontSize:13,color:"#6b7280",marginBottom:16,lineHeight:1.6}}>Selecione a <strong>COR DA TINTA</strong>, ignorando o significado da palavra.</p><div style={{background:"#ede9fe",borderRadius:12,padding:14,marginBottom:20}}><p style={{fontSize:28,fontWeight:900,color:"#ef4444",marginBottom:6}}>AZUL</p><p style={{fontSize:13,color:"#6d28d9"}}>Resposta: <strong>Vermelho</strong></p></div><button className="btn-main" style={{background:color}} onClick={()=>prox(0,0,0,[])}>Começar</button></div>;
-  const pct=Math.round((trial/TOTAL)*100);
-  const bg=feedback==="certo"?"#d1fae5":feedback==="errado"?"#fee2e2":"#f9fafb";
-  return<div><div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}><span style={{fontSize:12,fontWeight:700,color:"#374151"}}>{trial+1}/{TOTAL}</span><span style={{fontSize:12,fontWeight:700,color}}>{pct}%</span></div>
-    <div style={{background:"#f3f4f6",borderRadius:20,height:8,overflow:"hidden",marginBottom:14}}><div style={{width:`${pct}%`,background:color,height:"100%",borderRadius:20}}/></div>
-    <div style={{background:bg,borderRadius:16,padding:32,textAlign:"center",marginBottom:14,minHeight:100,display:"flex",alignItems:"center",justifyContent:"center",transition:"background .15s"}}>{item&&<div style={{fontSize:42,fontWeight:900,color:CORES_CSS[item.cor]}}>{item.palavra.toUpperCase()}</div>}</div>
-    <p style={{textAlign:"center",fontSize:13,fontWeight:700,color:"#9ca3af",marginBottom:10}}>Cor da tinta:</p>
-    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>{CORES_STROOP.map(c=><button key={c} onClick={()=>responder(c)} style={{padding:"12px 0",borderRadius:10,border:`2px solid ${CORES_CSS[c]}`,background:`${CORES_CSS[c]}15`,color:CORES_CSS[c],fontWeight:800,fontSize:14,cursor:"pointer"}}>{c.charAt(0).toUpperCase()+c.slice(1)}</button>)}</div>
-    <div style={{display:"flex",justifyContent:"space-around",marginTop:10}}><span style={{fontSize:12,color:"#059669",fontWeight:700}}>✓ {acertos}</span><span style={{fontSize:12,color:"#e11d48",fontWeight:700}}>✗ {erros}</span></div>
-  </div>;
-}
-
-// TMT
-function TMTForm({color,onSubmit}){
-  const [parte,setParte]=useState("A");
-  const [fase,setFase]=useState("intro");
-  const [proximo,setProximo]=useState(0);
-  const [erros,setErros]=useState(0);
-  const [inicio,setInicio]=useState(null);
-  const [tempoA,setTempoA]=useState(null);
-  const [posicoes,setPosicoes]=useState([]);
-  const [linhas,setLinhas]=useState([]);
-  const N=10;
-  function gerarPos(){const pos=[];for(let i=0;i<N;i++){let x,y,ok;do{x=8+Math.random()*80;y=8+Math.random()*80;ok=pos.every(p=>Math.hypot(p.x-x,p.y-y)>14);}while(!ok);pos.push({x,y});}return pos;}
-  function iniciarParte(p){
-    const pos=gerarPos();
-    const labels=p==="A"?Array.from({length:N},(_,i)=>`${i+1}`):Array.from({length:N},(_,i)=>i%2===0?`${Math.floor(i/2)+1}`:"ABCDEFGHIJ"[Math.floor(i/2)]);
-    setPosicoes(pos.map((p,i)=>({...p,label:labels[i]})));
-    setProximo(0);setErros(0);setLinhas([]);setInicio(Date.now());setFase("jogo");
-  }
-  function tocar(idx){
-    if(idx!==proximo){setErros(e=>e+1);return;}
-    if(proximo>0)setLinhas(l=>[...l,{from:proximo-1,to:proximo}]);
-    if(proximo+1>=N){
-      const t=Math.round((Date.now()-inicio)/1000);
-      if(parte==="A"){setTempoA(t);setParte("B");setFase("entre");}
-      else{onSubmit({tempoA,tempoB:t,erros,tipo:"tmt"});setFase("fim");}
-    }else setProximo(p=>p+1);
-  }
-  if(fase==="fim")return<div style={{...crd,textAlign:"center"}}><div style={{fontSize:48,marginBottom:8}}>✅</div><p style={{fontSize:15,fontWeight:700,color:"#6b7280"}}>Respostas enviadas ao terapeuta.</p></div>;
-  if(fase==="intro")return<div style={{...crd,textAlign:"center"}}><div style={{fontSize:52,marginBottom:12}}>🔢</div><h3 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:8}}>Trail Making Test</h3><div style={{background:"#e0f2fe",borderRadius:10,padding:12,marginBottom:8,textAlign:"left"}}><p style={{fontSize:13,fontWeight:700,color:"#0369a1"}}>Parte A: conecte 1→2→3→...→10</p></div><div style={{background:"#fef3c7",borderRadius:10,padding:12,marginBottom:16,textAlign:"left"}}><p style={{fontSize:13,fontWeight:700,color:"#92400e"}}>Parte B: alterne 1→A→2→B→...</p></div><button className="btn-main" style={{background:color}} onClick={()=>iniciarParte("A")}>Começar Parte A</button></div>;
-  if(fase==="entre")return<div style={{...crd,textAlign:"center"}}><div style={{fontSize:48,marginBottom:8}}>✅</div><h3 style={{fontSize:16,fontWeight:800,color:"#1f2937",marginBottom:4}}>Parte A: {tempoA}s</h3><p style={{fontSize:13,color:"#6b7280",marginBottom:16}}>Agora alterne números e letras</p><button className="btn-main" style={{background:color}} onClick={()=>iniciarParte("B")}>Parte B</button></div>;
-  return<div><div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}><span style={{fontSize:13,fontWeight:800,color}}>{parte==="A"?"Parte A — números":"Parte B — alterne"}</span><span style={{fontSize:13,fontWeight:700,color:"#374151"}}>Próximo: <strong style={{color}}>{posicoes[proximo]?.label}</strong></span><span style={{fontSize:12,color:"#e11d48",fontWeight:700}}>✗{erros}</span></div>
-    <div style={{position:"relative",width:"100%",paddingBottom:"100%",background:"#f9fafb",borderRadius:16,overflow:"hidden",border:"1px solid #e5e7eb"}}>
-      <svg style={{position:"absolute",inset:0,width:"100%",height:"100%"}}>
-        {linhas.map((l,i)=>{const f=posicoes[l.from],t=posicoes[l.to];return<line key={i} x1={`${f.x}%`} y1={`${f.y}%`} x2={`${t.x}%`} y2={`${t.y}%`} stroke={color} strokeWidth="2.5" strokeLinecap="round"/>;  })}
-        {posicoes.map((p,i)=>{const done=i<proximo,next=i===proximo;return<g key={i}><circle cx={`${p.x}%`} cy={`${p.y}%`} r="5.5%" fill={done?color:next?`${color}20`:"#fff"} stroke={next?color:"#d1d5db"} strokeWidth={next?"2.5":"1.5"} style={{cursor:"pointer"}} onClick={()=>tocar(i)}/><text x={`${p.x}%`} y={`${p.y}%`} textAnchor="middle" dominantBaseline="middle" fontSize="3.5%" fontWeight="800" fill={done?"#fff":next?color:"#374151"} style={{pointerEvents:"none"}}>{p.label}</text></g>;  })}
-      </svg>
-    </div>
-  </div>;
-}
-
-// N-Back
-function NBackForm({color,onSubmit}){
-  const N=2,TOTAL=25;
-  const [fase,setFase]=useState("intro");
-  const [seq,setSeq]=useState([]);
-  const [pos,setPos]=useState(0);
-  const [mostrando,setMostrando]=useState(false);
-  const [acertos,setAcertos]=useState(0);
-  const [erros,setErros]=useState(0);
-  const [omissoes,setOmissoes]=useState(0);
-  const tRef=useRef(null);
-  const stateRef=useRef({pos:0,acertos:0,erros:0,omissoes:0,seq:[]});
-  function gerar(){const s=Array.from({length:TOTAL},()=>LETRAS_NBACK[Math.floor(Math.random()*LETRAS_NBACK.length)]);for(let i=N;i<TOTAL;i++)if(Math.random()<.3)s[i]=s[i-N];return s;}
-  function rodar(s,i,a,e,om){
-    if(i>=TOTAL){onSubmit({acertos:a,erros:e,omissoes:om,total:TOTAL,tipo:"nback"});setFase("fim");return;}
-    stateRef.current={pos:i,acertos:a,erros:e,omissoes:om,seq:s};
-    setPos(i);setMostrando(true);setFase("jogo");
-    tRef.current=setTimeout(()=>{
-      setMostrando(false);
-      if(i>=N&&s[i]===s[i-N]){const no=om+1;stateRef.current.omissoes=no;setOmissoes(no);setTimeout(()=>rodar(s,i+1,a,e,no),500);}
-      else setTimeout(()=>rodar(s,i+1,a,e,om),500);
-    },1500);
-  }
-  function responder(){
-    const {pos:i,acertos:a,erros:e,omissoes:om,seq:s}=stateRef.current;
-    if(!mostrando||i<N)return;
-    clearTimeout(tRef.current);setMostrando(false);
-    if(s[i]===s[i-N]){const na=a+1;stateRef.current.acertos=na;setAcertos(na);setTimeout(()=>rodar(s,i+1,na,e,om),400);}
-    else{const ne=e+1;stateRef.current.erros=ne;setErros(ne);setTimeout(()=>rodar(s,i+1,a,ne,om),400);}
-  }
-  function iniciar(){const s=gerar();setSeq(s);setAcertos(0);setErros(0);setOmissoes(0);rodar(s,0,0,0,0);}
-  useEffect(()=>()=>clearTimeout(tRef.current),[]);
-  if(fase==="fim")return<div style={{...crd,textAlign:"center"}}><div style={{fontSize:48,marginBottom:8}}>✅</div><p style={{fontSize:15,fontWeight:700,color:"#6b7280"}}>Respostas enviadas ao terapeuta.</p></div>;
-  if(fase==="intro")return<div style={{...crd,textAlign:"center"}}><div style={{fontSize:52,marginBottom:12}}>🧩</div><h3 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:8}}>N-Back (2-Back)</h3><p style={{fontSize:13,color:"#6b7280",lineHeight:1.6,marginBottom:16}}>Pressione quando a letra atual for <strong>igual à de 2 posições atrás</strong>.</p><div style={{background:"#fef3c7",borderRadius:12,padding:14,marginBottom:16}}><div style={{display:"flex",gap:6,justifyContent:"center"}}>{["B","K","B","L","B"].map((l,i)=><div key={i} style={{width:34,height:34,borderRadius:8,background:i===4?"#d97706":"#fff",border:"2px solid #f59e0b",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:14,color:i===4?"#fff":"#374151"}}>{l}</div>)}</div><p style={{fontSize:12,color:"#92400e",marginTop:6}}>5ª letra = 3ª → pressione!</p></div><button className="btn-main" style={{background:color}} onClick={iniciar}>Começar</button></div>;
-  const pct=Math.round((pos/TOTAL)*100);
-  return<div><div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}><span style={{fontSize:12,fontWeight:700,color:"#374151"}}>{pos+1}/{TOTAL}</span><span style={{fontSize:12,fontWeight:700,color}}>{pct}%</span></div>
-    <div style={{background:"#f3f4f6",borderRadius:20,height:8,overflow:"hidden",marginBottom:14}}><div style={{width:`${pct}%`,background:color,height:"100%",borderRadius:20}}/></div>
-    <div style={{background:"#fff",borderRadius:16,padding:32,textAlign:"center",marginBottom:14,boxShadow:"0 2px 10px rgba(0,0,0,.06)",minHeight:120,display:"flex",alignItems:"center",justifyContent:"center"}}>
-      {mostrando?<div style={{fontSize:64,fontWeight:900,color}}>{seq[pos]}</div>:<div style={{fontSize:32,color:"#d1d5db"}}>?</div>}
-    </div>
-    <button onClick={responder} disabled={!mostrando||pos<N} style={{width:"100%",padding:14,borderRadius:12,border:"none",background:mostrando&&pos>=N?`linear-gradient(135deg,${color},${color}cc)`:"#e5e7eb",color:mostrando&&pos>=N?"#fff":"#9ca3af",fontWeight:700,fontSize:15,cursor:mostrando&&pos>=N?"pointer":"default"}}>✓ É igual ao de 2 atrás!</button>
-    <div style={{display:"flex",justifyContent:"space-around",marginTop:10}}><span style={{fontSize:12,color:"#059669",fontWeight:700}}>✓{acertos}</span><span style={{fontSize:12,color:"#e11d48",fontWeight:700}}>✗{erros}</span><span style={{fontSize:12,color:"#d97706",fontWeight:700}}>○{omissoes}</span></div>
-  </div>;
-}
-
-// Go/No-Go
-function GoNoGoForm({color,onSubmit}){
-  const TOTAL=30;
-  const [fase,setFase]=useState("intro");
-  const [trial,setTrial]=useState(0);
-  const [stim,setStim]=useState(null);
-  const [acertos,setAcertos]=useState(0);
-  const [falsosGo,setFalsosGo]=useState(0);
-  const [omissoes,setOmissoes]=useState(0);
-  const [tempos,setTempos]=useState([]);
-  const [feedback,setFeedback]=useState(null);
-  const tRef=useRef(null);
-  const iniRef=useRef(null);
-  const stateRef=useRef({trial:0,acertos:0,falsosGo:0,omissoes:0,tempos:[]});
-  function prox(t,a,fg,om,ts){
-    if(t>=TOTAL){onSubmit({acertos:a,falsosGo:fg,omissoes:om,mediaTempos:ts.length?Math.round(ts.reduce((x,y)=>x+y,0)/ts.length):0,total:TOTAL,tipo:"gonogo"});setFase("fim");return;}
-    setFeedback(null);const isGo=Math.random()<.7;setStim(isGo?"🟢":"🔴");iniRef.current=Date.now();setTrial(t);
-    stateRef.current={trial:t,acertos:a,falsosGo:fg,omissoes:om,tempos:ts,isGo};
-    tRef.current=setTimeout(()=>{
-      if(isGo){const no=om+1;stateRef.current.omissoes=no;setOmissoes(no);setFeedback("omissao");setTimeout(()=>prox(t+1,a,fg,no,ts),600);}
-      else{setFeedback("correto_nogo");setTimeout(()=>prox(t+1,a,fg,om,ts),600);}
-    },1000);
-  }
-  function responder(){
-    clearTimeout(tRef.current);
-    const{trial:t,acertos:a,falsosGo:fg,omissoes:om,tempos:ts,isGo}=stateRef.current;
-    const tr=Date.now()-iniRef.current;
-    if(isGo){const na=a+1,nt=[...ts,tr];stateRef.current.acertos=na;setAcertos(na);setTempos(nt);setFeedback("certo");setTimeout(()=>prox(t+1,na,fg,om,nt),600);}
-    else{const nf=fg+1;stateRef.current.falsosGo=nf;setFalsosGo(nf);setFeedback("falso");setTimeout(()=>prox(t+1,a,nf,om,ts),600);}
-  }
-  useEffect(()=>()=>clearTimeout(tRef.current),[]);
-  if(fase==="fim")return<div style={{...crd,textAlign:"center"}}><div style={{fontSize:48,marginBottom:8}}>✅</div><p style={{fontSize:15,fontWeight:700,color:"#6b7280"}}>Respostas enviadas ao terapeuta.</p></div>;
-  if(fase==="intro")return<div style={{...crd,textAlign:"center"}}><div style={{fontSize:52,marginBottom:12}}>🚦</div><h3 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:8}}>Go / No-Go</h3><div style={{display:"flex",gap:10,marginBottom:20}}><div style={{flex:1,background:"#d1fae5",borderRadius:12,padding:14}}><div style={{fontSize:28}}>🟢</div><div style={{fontSize:13,fontWeight:700,color:"#065f46",marginTop:4}}>GO — Toque!</div></div><div style={{flex:1,background:"#fee2e2",borderRadius:12,padding:14}}><div style={{fontSize:28}}>🔴</div><div style={{fontSize:13,fontWeight:700,color:"#991b1b",marginTop:4}}>NO-GO — Aguarde!</div></div></div><button className="btn-main" style={{background:color}} onClick={()=>prox(0,0,0,0,[])}>Começar</button></div>;
-  const pct=Math.round((trial/TOTAL)*100);
-  const bg=feedback==="certo"?"#d1fae5":feedback==="falso"?"#fee2e2":feedback==="omissao"?"#fef3c7":feedback==="correto_nogo"?"#d1fae5":"#f9fafb";
-  return<div onClick={responder}><div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}><span style={{fontSize:12,fontWeight:700,color:"#374151"}}>{trial+1}/{TOTAL}</span><span style={{fontSize:12,fontWeight:700,color}}>{pct}%</span></div>
-    <div style={{background:"#f3f4f6",borderRadius:20,height:8,overflow:"hidden",marginBottom:14}}><div style={{width:`${pct}%`,background:color,height:"100%",borderRadius:20}}/></div>
-    <div style={{background:bg,borderRadius:16,padding:40,textAlign:"center",minHeight:150,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",transition:"background .15s",marginBottom:10}}>
-      {stim&&!feedback?<div style={{fontSize:80}}>{stim}</div>
-      :feedback==="certo"?<div><div style={{fontSize:48}}>✅</div><div style={{fontWeight:800,color:"#059669"}}>Ótimo!</div></div>
-      :feedback==="falso"?<div><div style={{fontSize:48}}>⚠️</div><div style={{fontWeight:800,color:"#e11d48"}}>Não era pra tocar!</div></div>
-      :feedback==="omissao"?<div><div style={{fontSize:48}}>😴</div><div style={{fontWeight:800,color:"#d97706"}}>Perdeu!</div></div>
-      :feedback==="correto_nogo"?<div><div style={{fontSize:48}}>🛑</div><div style={{fontWeight:800,color:"#059669"}}>Correto!</div></div>
-      :<div style={{fontSize:32,color:"#d1d5db"}}>⏳</div>}
-    </div>
-    <div style={{display:"flex",justifyContent:"space-around"}}><span style={{fontSize:12,color:"#059669",fontWeight:700}}>✓{acertos}</span><span style={{fontSize:12,color:"#e11d48",fontWeight:700}}>✗{falsosGo}</span><span style={{fontSize:12,color:"#d97706",fontWeight:700}}>○{omissoes}</span></div>
-  </div>;
-}
-
-// Flanker
-function FlankerForm({color,onSubmit}){
-  const TOTAL=24;
-  const [fase,setFase]=useState("intro");
-  const [trial,setTrial]=useState(0);
-  const [item,setItem]=useState(null);
-  const [acertos,setAcertos]=useState(0);
-  const [erros,setErros]=useState(0);
-  const [tempos,setTempos]=useState({congruente:[],incongruente:[]});
-  const [feedback,setFeedback]=useState(null);
-  function gerar(){return{...FLANKER_SETS[Math.floor(Math.random()*4)],inicio:Date.now()};}
-  function prox(t,a,e,ts){if(t>=TOTAL){onSubmit({acertos:a,erros:e,tempos:ts,total:TOTAL,tipo:"flanker"});setFase("fim");return;}setFeedback(null);setTrial(t);setItem(gerar());}
-  function responder(dir){
-    const tr=Date.now()-item.inicio;const certo=dir===item.alvo;
-    if(certo){setAcertos(a=>{const nt={...tempos,[item.tipo]:[...tempos[item.tipo],tr]};setTempos(nt);setFeedback("certo");setTimeout(()=>prox(trial+1,a+1,erros,nt),500);return a+1;});}
-    else{setErros(e=>{setFeedback("errado");setTimeout(()=>prox(trial+1,acertos,e+1,tempos),500);return e+1;});}
-  }
-  if(fase==="fim")return<div style={{...crd,textAlign:"center"}}><div style={{fontSize:48,marginBottom:8}}>✅</div><p style={{fontSize:15,fontWeight:700,color:"#6b7280"}}>Respostas enviadas ao terapeuta.</p></div>;
-  if(fase==="intro")return<div style={{...crd,textAlign:"center"}}><div style={{fontSize:52,marginBottom:12}}>➡️</div><h3 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:8}}>Teste de Flanker</h3><p style={{fontSize:13,color:"#6b7280",lineHeight:1.6,marginBottom:16}}>Indique a direção da seta <strong>central</strong>.</p><div style={{display:"flex",gap:10,marginBottom:20}}><div style={{flex:1,background:"#d1fae5",borderRadius:12,padding:14,textAlign:"center"}}><div style={{fontSize:22,letterSpacing:4}}>→→→→→</div><div style={{fontSize:11,color:"#065f46",fontWeight:700,marginTop:4}}>Congruente</div></div><div style={{flex:1,background:"#fee2e2",borderRadius:12,padding:14,textAlign:"center"}}><div style={{fontSize:22,letterSpacing:4}}>←←→←←</div><div style={{fontSize:11,color:"#991b1b",fontWeight:700,marginTop:4}}>Incongruente</div></div></div><button className="btn-main" style={{background:color}} onClick={()=>prox(0,0,0,{congruente:[],incongruente:[]})}>Começar</button></div>;
-  const pct=Math.round((trial/TOTAL)*100);
-  const display=item?`${item.dist[0]} ${item.dist[1]} ${item.alvo} ${item.dist[0]} ${item.dist[1]}`:"";
-  const bg=feedback==="certo"?"#d1fae5":feedback==="errado"?"#fee2e2":"#f9fafb";
-  return<div><div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}><span style={{fontSize:12,fontWeight:700,color:"#374151"}}>{trial+1}/{TOTAL}</span><span style={{fontSize:12,fontWeight:700,color}}>{pct}%</span></div>
-    <div style={{background:"#f3f4f6",borderRadius:20,height:8,overflow:"hidden",marginBottom:14}}><div style={{width:`${pct}%`,background:color,height:"100%",borderRadius:20}}/></div>
-    <div style={{background:bg,borderRadius:16,padding:32,textAlign:"center",minHeight:100,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:14,transition:"background .15s"}}>{item&&<div style={{fontSize:40,letterSpacing:12,fontWeight:900,color:"#374151"}}>{display}</div>}</div>
-    <p style={{textAlign:"center",fontSize:13,fontWeight:700,color:"#9ca3af",marginBottom:10}}>Direção da seta central:</p>
-    <div style={{display:"flex",gap:12}}>{["←","→"].map(d=><button key={d} onClick={()=>responder(d)} style={{flex:1,padding:16,borderRadius:12,border:`2px solid ${color}`,background:`${color}10`,color,fontWeight:900,fontSize:28,cursor:"pointer"}}>{d}</button>)}</div>
-    <div style={{display:"flex",justifyContent:"space-around",marginTop:10}}><span style={{fontSize:12,color:"#059669",fontWeight:700}}>✓{acertos}</span><span style={{fontSize:12,color:"#e11d48",fontWeight:700}}>✗{erros}</span></div>
-  </div>;
-}
 function TaskForm({task,onSubmit,onBack}){
   const ti=getTypeInfo(task.type);
   return<div style={aw}>
@@ -1034,140 +978,12 @@ function TaskForm({task,onSubmit,onBack}){
   </div>;
 }
 
-function PensamentosForm({color,onSubmit}){
-  const [s,setS]=useState("");const [p,setP]=useState("");const [e,setE]=useState("");const [i,setI]=useState(5);const [a,setA]=useState("");
-  return<div style={crd}>
-    <h3 style={{color,fontSize:16,marginBottom:16}}>💭 Registro ABC</h3>
-    <label style={lbl}>A — Situação</label><textarea className="inp" value={s} onChange={x=>setS(x.target.value)} placeholder="O que aconteceu?" style={{minHeight:60,resize:"vertical"}}/>
-    <label style={lbl}>B — Pensamento automático</label><textarea className="inp" value={p} onChange={x=>setP(x.target.value)} placeholder="O que você pensou?" style={{minHeight:60,resize:"vertical"}}/>
-    <label style={lbl}>C — Emoção</label><input className="inp" value={e} onChange={x=>setE(x.target.value)} placeholder="ex: fiquei ansioso..."/>
-    <label style={lbl}>Intensidade: {i}/10</label>
-    <div style={{background:"#f3f4f6",borderRadius:20,height:10,overflow:"hidden",marginBottom:6}}><div style={{width:`${(i/10)*100}%`,background:color,height:"100%",borderRadius:20,transition:"width .1s"}}/></div>
-    <input type="range" min={1} max={10} value={i} onChange={x=>setI(+x.target.value)} style={{width:"100%",marginBottom:12,accentColor:color}}/>
-    <label style={lbl}>Pensamento alternativo</label><textarea className="inp" value={a} onChange={x=>setA(x.target.value)} placeholder="Outra forma de ver?" style={{minHeight:60,resize:"vertical"}}/>
-    <button className="btn-main" style={{background:color}} onClick={()=>{if(s&&p)onSubmit({situacao:s,pensamento:p,emocao:e,intensidade:i,pensamentoAlternativo:a});}}>Enviar</button>
-  </div>;
-}
+function PensamentosForm({color,onSubmit}){const [s,setS]=useState("");const [p,setP]=useState("");const [e,setE]=useState("");const [i,setI]=useState(5);const [a,setA]=useState("");return<div style={crd}><h3 style={{color,fontSize:16,marginBottom:16}}>💭 Registro ABC</h3><label style={lbl}>A — Situação</label><textarea className="inp" value={s} onChange={x=>setS(x.target.value)} placeholder="O que aconteceu?" style={{minHeight:60,resize:"vertical"}}/><label style={lbl}>B — Pensamento automático</label><textarea className="inp" value={p} onChange={x=>setP(x.target.value)} placeholder="O que você pensou?" style={{minHeight:60,resize:"vertical"}}/><label style={lbl}>C — Emoção</label><input className="inp" value={e} onChange={x=>setE(x.target.value)} placeholder="ex: fiquei ansioso..."/><label style={lbl}>Intensidade: {i}/10</label><div style={{background:"#f3f4f6",borderRadius:20,height:10,overflow:"hidden",marginBottom:6}}><div style={{width:`${(i/10)*100}%`,background:color,height:"100%",borderRadius:20,transition:"width .1s"}}/></div><input type="range" min={1} max={10} value={i} onChange={x=>setI(+x.target.value)} style={{width:"100%",marginBottom:12,accentColor:color}}/><label style={lbl}>Pensamento alternativo</label><textarea className="inp" value={a} onChange={x=>setA(x.target.value)} placeholder="Outra forma de ver?" style={{minHeight:60,resize:"vertical"}}/><button className="btn-main" style={{background:color}} onClick={()=>{if(s&&p)onSubmit({situacao:s,pensamento:p,emocao:e,intensidade:i,pensamentoAlternativo:a});}}>Enviar</button></div>;}
+function EscalaForm({color,onSubmit}){const [vals,setVals]=useState({humor:50,ansiedade:50,sono:50,estresse:50,tristeza:50});const [obs,setObs]=useState("");const desc=v=>v<=20?"Muito baixo":v<=40?"Baixo":v<=60?"Moderado":v<=80?"Alto":"Muito alto";return<div style={crd}><h3 style={{color,fontSize:16,marginBottom:16}}>📊 Escala de Bem-Estar</h3>{ESCALAS_DEF.map(sc=><div key={sc.id} style={{marginBottom:18}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}><span style={{fontSize:13,fontWeight:700,color:"#374151"}}>{sc.emoji} {sc.nome}</span><span style={{fontSize:18,fontWeight:800,color:sc.color}}>{vals[sc.id]}%</span></div><div style={{background:"#f3f4f6",borderRadius:20,height:10,overflow:"hidden",marginBottom:4}}><div style={{width:`${vals[sc.id]}%`,background:sc.color,height:"100%",borderRadius:20,transition:"width .1s"}}/></div><div style={{fontSize:11,color:"#888",marginBottom:6}}>{desc(vals[sc.id])}</div><input type="range" min={0} max={100} value={vals[sc.id]} onChange={e=>setVals({...vals,[sc.id]:+e.target.value})} style={{width:"100%",accentColor:sc.color}}/></div>)}<label style={lbl}>Observações</label><textarea className="inp" value={obs} onChange={e=>setObs(e.target.value)} placeholder="Como você está hoje?" style={{minHeight:70,resize:"vertical"}}/><button className="btn-main" style={{background:color}} onClick={()=>onSubmit({...vals,obs})}>Enviar</button></div>;}
+function ExperimentoForm({color,onSubmit}){const [h,setH]=useState("");const [a,setA]=useState("");const [r,setR]=useState("");const [ap,setAp]=useState("");return<div style={crd}><h3 style={{color,fontSize:16,marginBottom:16}}>🔬 Experimento Comportamental</h3><label style={lbl}>Hipótese</label><textarea className="inp" value={h} onChange={e=>setH(e.target.value)} placeholder="O que você acha que vai acontecer?" style={{minHeight:70,resize:"vertical"}}/><label style={lbl}>Ação planejada</label><textarea className="inp" value={a} onChange={e=>setA(e.target.value)} placeholder="O que vai fazer?" style={{minHeight:60,resize:"vertical"}}/><label style={lbl}>O que aconteceu?</label><textarea className="inp" value={r} onChange={e=>setR(e.target.value)} placeholder="Resultado real..." style={{minHeight:70,resize:"vertical"}}/><label style={lbl}>Aprendizado</label><textarea className="inp" value={ap} onChange={e=>setAp(e.target.value)} placeholder="Reflexão..." style={{minHeight:60,resize:"vertical"}}/><button className="btn-main" style={{background:color}} onClick={()=>{if(h&&a)onSubmit({hipotese:h,acao:a,resultado:r,aprendizado:ap});}}>Enviar</button></div>;}
 
-function EscalaForm({color,onSubmit}){
-  const [vals,setVals]=useState({humor:50,ansiedade:50,sono:50,estresse:50,tristeza:50});const [obs,setObs]=useState("");
-  const desc=v=>v<=20?"Muito baixo":v<=40?"Baixo":v<=60?"Moderado":v<=80?"Alto":"Muito alto";
-  return<div style={crd}>
-    <h3 style={{color,fontSize:16,marginBottom:16}}>📊 Escala de Bem-Estar</h3>
-    {ESCALAS_DEF.map(sc=><div key={sc.id} style={{marginBottom:18}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}><span style={{fontSize:13,fontWeight:700,color:"#374151"}}>{sc.emoji} {sc.nome}</span><span style={{fontSize:18,fontWeight:800,color:sc.color}}>{vals[sc.id]}%</span></div>
-      <div style={{background:"#f3f4f6",borderRadius:20,height:10,overflow:"hidden",marginBottom:4}}><div style={{width:`${vals[sc.id]}%`,background:sc.color,height:"100%",borderRadius:20,transition:"width .1s"}}/></div>
-      <div style={{fontSize:11,color:"#888",marginBottom:6}}>{desc(vals[sc.id])}</div>
-      <input type="range" min={0} max={100} value={vals[sc.id]} onChange={e=>setVals({...vals,[sc.id]:+e.target.value})} style={{width:"100%",accentColor:sc.color}}/>
-    </div>)}
-    <label style={lbl}>Observações</label>
-    <textarea className="inp" value={obs} onChange={e=>setObs(e.target.value)} placeholder="Como você está hoje?" style={{minHeight:70,resize:"vertical"}}/>
-    <button className="btn-main" style={{background:color}} onClick={()=>onSubmit({...vals,obs})}>Enviar</button>
-  </div>;
-}
+function AtencaoForm({color,onSubmit}){const [fase,setFase]=useState("intro");const [timeLeft,setTimeLeft]=useState(40);const [totalScore,setTotalScore]=useState(0);const [totalMisses,setTotalMisses]=useState(0);const [currentPage,setCurrentPage]=useState(1);const [items,setItems]=useState([]);const [showTurn,setShowTurn]=useState(false);const [result,setResult]=useState(null);const timerRef=useRef(null);const scoreRef=useRef(0);const missesRef=useRef(0);const targetsRef=useRef(0);const timeRef=useRef(40);const pageRef=useRef(1);const pageClickedRef=useRef(new Set());const pageTargetsRef=useRef(0);const SHAPES=["quadrado","circulo","triangulo","losango","estrela"];const COLORS=["#6d28d9","#e11d48","#059669","#d97706","#0891b2","#7c3aed","#dc2626","#0284c7"];const TARGETS=["quadrado","triangulo"];function getDiff(p){if(p===1)return{cols:5,rows:6,ratio:.35,size:38};if(p===2)return{cols:6,rows:7,ratio:.30,size:33};if(p===3)return{cols:6,rows:8,ratio:.25,size:30};if(p===4)return{cols:7,rows:8,ratio:.22,size:27};return{cols:7,rows:9,ratio:.20,size:24};}function drawShape(type,color,size){const s=size;if(type==="quadrado")return`<rect x="2" y="2" width="${s-4}" height="${s-4}" rx="3" fill="${color}"/>`;if(type==="circulo")return`<circle cx="${s/2}" cy="${s/2}" r="${s/2-2}" fill="${color}"/>`;if(type==="triangulo")return`<polygon points="${s/2},2 ${s-2},${s-2} 2,${s-2}" fill="${color}"/>`;if(type==="losango")return`<polygon points="${s/2},2 ${s-2},${s/2} ${s/2},${s-2} 2,${s/2}" fill="${color}"/>`;const cx=s/2,cy=s/2,r1=s/2-2,r2=s/4;let pts="";for(let i=0;i<10;i++){const a=Math.PI/5*i-Math.PI/2,r=i%2===0?r1:r2;pts+=`${cx+r*Math.cos(a)},${cy+r*Math.sin(a)} `;}return`<polygon points="${pts}" fill="${color}"/>`;}function buildPage(page){pageClickedRef.current=new Set();const d=getDiff(page);const total=d.cols*d.rows;const nT=Math.max(4,Math.floor(total*d.ratio));const arr=[];for(let i=0;i<nT;i++)arr.push(TARGETS[i%2]);while(arr.length<total)arr.push(SHAPES.filter(s=>!TARGETS.includes(s))[Math.floor(Math.random()*3)]);arr.sort(()=>Math.random()-.5);pageTargetsRef.current=nT;targetsRef.current+=nT;setItems(arr.map((type,i)=>({type,i,color:COLORS[Math.floor(Math.random()*COLORS.length)],size:d.size+Math.floor(Math.random()*8)-4,cols:d.cols,state:"idle"})));setCurrentPage(page);window.scrollTo(0,0);}function startGame(){scoreRef.current=0;missesRef.current=0;targetsRef.current=0;timeRef.current=40;pageRef.current=1;setTotalScore(0);setTotalMisses(0);setTimeLeft(40);setCurrentPage(1);buildPage(1);setFase("game");timerRef.current=setInterval(()=>{timeRef.current--;setTimeLeft(timeRef.current);if(timeRef.current<=0)endGame();},1000);}function handleClick(idx,type){if(pageClickedRef.current.has(idx))return;pageClickedRef.current.add(idx);if(TARGETS.includes(type)){scoreRef.current++;setTotalScore(scoreRef.current);setItems(prev=>prev.map((it,i)=>i===idx?{...it,state:"correct"}:it));const pa=[...pageClickedRef.current].filter(i=>{const it=items[i];return it&&TARGETS.includes(it.type);}).length;if(pa+1>=pageTargetsRef.current)setTimeout(()=>doPageTurn(),300);}else{missesRef.current++;setTotalMisses(missesRef.current);setItems(prev=>prev.map((it,i)=>i===idx?{...it,state:"wrong"}:it));}}function doPageTurn(){if(timeRef.current<=0)return;setShowTurn(true);const next=pageRef.current+1;pageRef.current=next;setTimeout(()=>{buildPage(next);setTimeout(()=>setShowTurn(false),500);},400);}function endGame(){clearInterval(timerRef.current);const precisao=(scoreRef.current+missesRef.current)>0?Math.round(scoreRef.current/(scoreRef.current+missesRef.current)*100):0;setResult({paginas:pageRef.current,acertos:scoreRef.current,erros:missesRef.current,precisao});setFase("result");}const cols=items[0]?.cols||5;const urgent=timeLeft<=10;if(fase==="intro")return<div style={{...crd,textAlign:"center"}}><div style={{fontSize:52,marginBottom:12}}>🎯</div><h3 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:8}}>Teste de Atenção</h3><p style={{fontSize:13,color:"#6b7280",marginBottom:20,lineHeight:1.6}}>Toque em todos os <strong>quadrados</strong> e <strong>triângulos</strong>!</p><div style={{display:"flex",justifyContent:"center",gap:24,marginBottom:20}}><div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6}}><svg width="48" height="48"><rect x="4" y="4" width="40" height="40" rx="4" fill="#6d28d9"/></svg><span style={{fontSize:11,fontWeight:700}}>Quadrado ✅</span></div><div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6}}><svg width="48" height="48"><polygon points="24,4 46,44 2,44" fill="#0891b2"/></svg><span style={{fontSize:11,fontWeight:700}}>Triângulo ✅</span></div></div><div style={{background:"#fef3c7",borderRadius:10,padding:12,fontSize:13,color:"#92400e",fontWeight:600,marginBottom:20}}>⏱ <strong>40 segundos</strong></div><button className="btn-main" style={{background:color}} onClick={startGame}>Começar!</button></div>;if(fase==="result")return<div style={crd}><div style={{textAlign:"center",marginBottom:16}}><div style={{fontSize:48,marginBottom:8}}>{result.precisao>=80?"🏆":result.precisao>=60?"🎉":"💪"}</div><h3 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>{result.precisao>=80?"Excelente!":result.precisao>=60?"Muito bem!":"Continue!"}</h3></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>{[[result.paginas,"Páginas","#6d28d9"],[result.acertos,"Acertos","#059669"],[result.erros,"Erros","#e11d48"],[`${result.precisao}%`,"Precisão","#0891b2"]].map(([v,l,c])=><div key={l} style={{background:"#f9fafb",borderRadius:12,padding:12,textAlign:"center"}}><div style={{fontSize:24,fontWeight:900,color:c}}>{v}</div><div style={{fontSize:11,color:"#888"}}>{l}</div></div>)}</div><button className="btn-main" style={{background:color,marginBottom:8}} onClick={()=>onSubmit(result)}>Salvar</button><button style={{...btn("#e5e7eb"),width:"100%"}} onClick={startGame}>Tentar novamente</button></div>;return<div style={{position:"relative"}}>{showTurn&&<div style={{position:"fixed",inset:0,zIndex:100,pointerEvents:"none",overflow:"hidden"}}><div style={{position:"absolute",inset:0,background:"linear-gradient(to right,#fafafa,#fff)",animation:"slideOut .9s cubic-bezier(.77,0,.18,1) forwards"}}/><div style={{position:"absolute",inset:0,background:"#fff",transform:"translateX(100%)",animation:"slideIn .9s cubic-bezier(.77,0,.18,1) forwards"}}/></div>}<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 4px",marginBottom:8}}><div style={{textAlign:"center"}}><div style={{fontSize:26,fontWeight:900,color:urgent?"#e11d48":"#6d28d9"}}>{timeLeft}</div><div style={{fontSize:10,color:"#aaa"}}>seg</div></div><div style={{background:"#ede9fe",color:"#6d28d9",borderRadius:20,padding:"4px 12px",fontSize:12,fontWeight:800}}>Página {currentPage}</div><div style={{textAlign:"right"}}><div style={{fontSize:20,fontWeight:800,color:"#059669"}}>{totalScore}</div><div style={{fontSize:10,color:"#aaa"}}>acertos</div><div style={{fontSize:12,fontWeight:700,color:"#e11d48"}}>{totalMisses} erro(s)</div></div></div><div style={{background:"#ede9fe",borderRadius:10,padding:"7px 12px",marginBottom:10,fontSize:12,color:"#5b21b6",fontWeight:600,textAlign:"center"}}>Toque nos <strong>quadrados</strong> e <strong>triângulos</strong>!</div><div style={{display:"grid",gridTemplateColumns:`repeat(${cols},1fr)`,gap:6}}>{items.map((it,idx)=><button key={idx} onClick={()=>handleClick(idx,it.type)} style={{background:it.state==="correct"?"#d1fae5":it.state==="wrong"?"#fee2e2":"transparent",border:"none",cursor:"pointer",padding:2,borderRadius:8,aspectRatio:"1",opacity:it.state==="missed"?.35:1,transition:"background .2s"}}><svg width={it.size} height={it.size} dangerouslySetInnerHTML={{__html:drawShape(it.type,it.color,it.size)}}/></button>)}</div></div>;}
 
-function ExperimentoForm({color,onSubmit}){
-  const [h,setH]=useState("");const [a,setA]=useState("");const [r,setR]=useState("");const [ap,setAp]=useState("");
-  return<div style={crd}>
-    <h3 style={{color,fontSize:16,marginBottom:16}}>🔬 Experimento Comportamental</h3>
-    <label style={lbl}>Hipótese</label><textarea className="inp" value={h} onChange={e=>setH(e.target.value)} placeholder="O que você acha que vai acontecer?" style={{minHeight:70,resize:"vertical"}}/>
-    <label style={lbl}>Ação planejada</label><textarea className="inp" value={a} onChange={e=>setA(e.target.value)} placeholder="O que vai fazer?" style={{minHeight:60,resize:"vertical"}}/>
-    <label style={lbl}>O que aconteceu?</label><textarea className="inp" value={r} onChange={e=>setR(e.target.value)} placeholder="Resultado real..." style={{minHeight:70,resize:"vertical"}}/>
-    <label style={lbl}>Aprendizado</label><textarea className="inp" value={ap} onChange={e=>setAp(e.target.value)} placeholder="Reflexão..." style={{minHeight:60,resize:"vertical"}}/>
-    <button className="btn-main" style={{background:color}} onClick={()=>{if(h&&a)onSubmit({hipotese:h,acao:a,resultado:r,aprendizado:ap});}}>Enviar</button>
-  </div>;
-}
-
-// ── Teste de Atenção ──
-function AtencaoForm({color,onSubmit}){
-  const [fase,setFase]=useState("intro");const [timeLeft,setTimeLeft]=useState(40);
-  const [totalScore,setTotalScore]=useState(0);const [totalMisses,setTotalMisses]=useState(0);
-  const [currentPage,setCurrentPage]=useState(1);const [items,setItems]=useState([]);
-  const [showTurn,setShowTurn]=useState(false);const [result,setResult]=useState(null);
-  const timerRef=useRef(null);const scoreRef=useRef(0);const missesRef=useRef(0);const targetsRef=useRef(0);
-  const timeRef=useRef(40);const pageRef=useRef(1);const pageClickedRef=useRef(new Set());const pageTargetsRef=useRef(0);
-  const SHAPES=["quadrado","circulo","triangulo","losango","estrela"];
-  const COLORS=["#6d28d9","#e11d48","#059669","#d97706","#0891b2","#7c3aed","#dc2626","#0284c7"];
-  const TARGETS=["quadrado","triangulo"];
-  function getDiff(p){if(p===1)return{cols:5,rows:6,ratio:.35,size:38};if(p===2)return{cols:6,rows:7,ratio:.30,size:33};if(p===3)return{cols:6,rows:8,ratio:.25,size:30};if(p===4)return{cols:7,rows:8,ratio:.22,size:27};return{cols:7,rows:9,ratio:.20,size:24};}
-  function drawShape(type,color,size){const s=size;if(type==="quadrado")return`<rect x="2" y="2" width="${s-4}" height="${s-4}" rx="3" fill="${color}"/>`;if(type==="circulo")return`<circle cx="${s/2}" cy="${s/2}" r="${s/2-2}" fill="${color}"/>`;if(type==="triangulo")return`<polygon points="${s/2},2 ${s-2},${s-2} 2,${s-2}" fill="${color}"/>`;if(type==="losango")return`<polygon points="${s/2},2 ${s-2},${s/2} ${s/2},${s-2} 2,${s/2}" fill="${color}"/>`;const cx=s/2,cy=s/2,r1=s/2-2,r2=s/4;let pts="";for(let i=0;i<10;i++){const a=Math.PI/5*i-Math.PI/2,r=i%2===0?r1:r2;pts+=`${cx+r*Math.cos(a)},${cy+r*Math.sin(a)} `;}return`<polygon points="${pts}" fill="${color}"/>`;}
-  function buildPage(page){
-    pageClickedRef.current=new Set();
-    const d=getDiff(page);const total=d.cols*d.rows;const nT=Math.max(4,Math.floor(total*d.ratio));
-    const arr=[];for(let i=0;i<nT;i++)arr.push(TARGETS[i%2]);
-    while(arr.length<total)arr.push(SHAPES.filter(s=>!TARGETS.includes(s))[Math.floor(Math.random()*3)]);
-    arr.sort(()=>Math.random()-.5);
-    pageTargetsRef.current=nT;targetsRef.current+=nT;
-    setItems(arr.map((type,i)=>({type,i,color:COLORS[Math.floor(Math.random()*COLORS.length)],size:d.size+Math.floor(Math.random()*8)-4,cols:d.cols,state:"idle"})));
-    setCurrentPage(page);window.scrollTo(0,0);
-  }
-  function startGame(){
-    scoreRef.current=0;missesRef.current=0;targetsRef.current=0;timeRef.current=40;pageRef.current=1;
-    setTotalScore(0);setTotalMisses(0);setTimeLeft(40);setCurrentPage(1);
-    buildPage(1);setFase("game");
-    timerRef.current=setInterval(()=>{timeRef.current--;setTimeLeft(timeRef.current);if(timeRef.current<=0)endGame();},1000);
-  }
-  function handleClick(idx,type){
-    if(pageClickedRef.current.has(idx))return;
-    pageClickedRef.current.add(idx);
-    if(TARGETS.includes(type)){
-      scoreRef.current++;setTotalScore(scoreRef.current);
-      setItems(prev=>prev.map((it,i)=>i===idx?{...it,state:"correct"}:it));
-      const pa=[...pageClickedRef.current].filter(i=>{const it=items[i];return it&&TARGETS.includes(it.type);}).length;
-      if(pa+1>=pageTargetsRef.current)setTimeout(()=>doPageTurn(),300);
-    }else{missesRef.current++;setTotalMisses(missesRef.current);setItems(prev=>prev.map((it,i)=>i===idx?{...it,state:"wrong"}:it));}
-  }
-  function doPageTurn(){
-    if(timeRef.current<=0)return;
-    setShowTurn(true);const next=pageRef.current+1;pageRef.current=next;
-    setTimeout(()=>{buildPage(next);setTimeout(()=>setShowTurn(false),500);},400);
-  }
-  function endGame(){
-    clearInterval(timerRef.current);
-    const precisao=(scoreRef.current+missesRef.current)>0?Math.round(scoreRef.current/(scoreRef.current+missesRef.current)*100):0;
-    setResult({paginas:pageRef.current,acertos:scoreRef.current,erros:missesRef.current,precisao});
-    setFase("result");
-  }
-  const cols=items[0]?.cols||5;const urgent=timeLeft<=10;
-  if(fase==="intro")return<div style={{...crd,textAlign:"center"}}>
-    <div style={{fontSize:52,marginBottom:12}}>🎯</div>
-    <h3 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:8}}>Teste de Atenção</h3>
-    <p style={{fontSize:13,color:"#6b7280",marginBottom:20,lineHeight:1.6}}>Toque em todos os <strong>quadrados</strong> e <strong>triângulos</strong>!</p>
-    <div style={{display:"flex",justifyContent:"center",gap:24,marginBottom:20}}>
-      <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6}}><svg width="48" height="48"><rect x="4" y="4" width="40" height="40" rx="4" fill="#6d28d9"/></svg><span style={{fontSize:11,fontWeight:700}}>Quadrado ✅</span></div>
-      <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6}}><svg width="48" height="48"><polygon points="24,4 46,44 2,44" fill="#0891b2"/></svg><span style={{fontSize:11,fontWeight:700}}>Triângulo ✅</span></div>
-    </div>
-    <div style={{background:"#fef3c7",borderRadius:10,padding:12,fontSize:13,color:"#92400e",fontWeight:600,marginBottom:20}}>⏱ <strong>40 segundos</strong></div>
-    <button className="btn-main" style={{background:color}} onClick={startGame}>Começar!</button>
-  </div>;
-  if(fase==="result")return<div style={crd}>
-    <div style={{textAlign:"center",marginBottom:16}}><div style={{fontSize:48,marginBottom:8}}>{result.precisao>=80?"🏆":result.precisao>=60?"🎉":"💪"}</div><h3 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>{result.precisao>=80?"Excelente!":result.precisao>=60?"Muito bem!":"Continue!"}</h3></div>
-    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
-      {[[result.paginas,"Páginas","#6d28d9"],[result.acertos,"Acertos","#059669"],[result.erros,"Erros","#e11d48"],[`${result.precisao}%`,"Precisão","#0891b2"]].map(([v,l,c])=><div key={l} style={{background:"#f9fafb",borderRadius:12,padding:12,textAlign:"center"}}><div style={{fontSize:24,fontWeight:900,color:c}}>{v}</div><div style={{fontSize:11,color:"#888"}}>{l}</div></div>)}
-    </div>
-    <button className="btn-main" style={{background:color,marginBottom:8}} onClick={()=>onSubmit(result)}>Salvar</button>
-    <button style={{...btn("#e5e7eb"),width:"100%"}} onClick={startGame}>Tentar novamente</button>
-  </div>;
-  return<div style={{position:"relative"}}>
-    {showTurn&&<div style={{position:"fixed",inset:0,zIndex:100,pointerEvents:"none",overflow:"hidden"}}>
-      <div style={{position:"absolute",inset:0,background:"linear-gradient(to right,#fafafa,#fff)",animation:"slideOut .9s cubic-bezier(.77,0,.18,1) forwards"}}/>
-      <div style={{position:"absolute",inset:0,background:"#fff",transform:"translateX(100%)",animation:"slideIn .9s cubic-bezier(.77,0,.18,1) forwards"}}/>
-    </div>}
-    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 4px",marginBottom:8}}>
-      <div style={{textAlign:"center"}}><div style={{fontSize:26,fontWeight:900,color:urgent?"#e11d48":"#6d28d9"}}>{timeLeft}</div><div style={{fontSize:10,color:"#aaa"}}>seg</div></div>
-      <div style={{background:"#ede9fe",color:"#6d28d9",borderRadius:20,padding:"4px 12px",fontSize:12,fontWeight:800}}>Página {currentPage}</div>
-      <div style={{textAlign:"right"}}><div style={{fontSize:20,fontWeight:800,color:"#059669"}}>{totalScore}</div><div style={{fontSize:10,color:"#aaa"}}>acertos</div><div style={{fontSize:12,fontWeight:700,color:"#e11d48"}}>{totalMisses} erro(s)</div></div>
-    </div>
-    <div style={{background:"#ede9fe",borderRadius:10,padding:"7px 12px",marginBottom:10,fontSize:12,color:"#5b21b6",fontWeight:600,textAlign:"center"}}>Toque nos <strong>quadrados</strong> e <strong>triângulos</strong>!</div>
-    <div style={{display:"grid",gridTemplateColumns:`repeat(${cols},1fr)`,gap:6}}>
-      {items.map((it,idx)=><button key={idx} onClick={()=>handleClick(idx,it.type)} style={{background:it.state==="correct"?"#d1fae5":it.state==="wrong"?"#fee2e2":"transparent",border:"none",cursor:"pointer",padding:2,borderRadius:8,aspectRatio:"1",opacity:it.state==="missed"?.35:1,transition:"background .2s"}}>
-        <svg width={it.size} height={it.size} dangerouslySetInnerHTML={{__html:drawShape(it.type,it.color,it.size)}}/>
-      </button>)}
-    </div>
-  </div>;
-}
-
-// ── Response View (somente terapeuta) ──
 function ResponseView({response,type}){
   if(!response)return null;
   const items=[];
@@ -1182,238 +998,75 @@ function ResponseView({response,type}){
   return<div style={{display:"flex",flexDirection:"column",gap:6}}>{items.filter(([,v])=>v!=null&&v!=="").map(([k,v])=><div key={k} style={{fontSize:13,padding:"8px 12px",background:"#f9fafb",borderRadius:10}}><strong style={{color:"#374151"}}>{k}:</strong> <span style={{color:"#555"}}>{v}</span></div>)}</div>;
 }
 
-// ── Exportar CSV ──
-function exportarCSV(patient){
-  function toCSV(rows){return rows.map(r=>r.map(c=>`"${String(c??'').replace(/"/g,'""')}"`).join(",")).join("\n");}
-  function download(nome,conteudo){const blob=new Blob(["\uFEFF"+conteudo],{type:"text/csv;charset=utf-8;"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=nome;a.click();URL.revokeObjectURL(a.href);}
-  let csv="";
-  csv+="RESUMO\n"+toCSV([["Campo","Valor"],["Paciente",patient.name],["Data de exportação",new Date().toLocaleDateString("pt-BR")],["Registros no diário",(patient.diarios||[]).length]])+"\n\n";
-  const esc=patient.escalaResp;
-  if(esc){csv+="ESCALA DE BEM-ESTAR\n"+toCSV([["Dimensão","Valor (%)"],["Humor",esc.humor],["Ansiedade",esc.ansiedade],["Sono",esc.sono],["Estresse",esc.estresse],["Tristeza",esc.tristeza]])+"\n\n";}
-  if(patient.csai2r){const t=patient.csai2r;csv+="CSAI-2R\n"+toCSV([["Subescala","Pontuação","Máximo","% do Máximo"],["Ansiedade Cognitiva",t.cognitiva,32,Math.round((t.cognitiva/32)*100)],["Ansiedade Somática",t.somatica,28,Math.round((t.somatica/28)*100)],["Autoconfiança",t.autoconfianca,20,Math.round((t.autoconfianca/20)*100)]])+"\n\n";}
-  if(patient.sas){const t=patient.sas;csv+="SAS\n"+toCSV([["Subescala","Pontuação","Máximo","% do Máximo"],["Ansiedade Somática",t.somatica,28,Math.round((t.somatica/28)*100)],["Preocupação",t.preocupacao,28,Math.round((t.preocupacao/28)*100)],["Perturbação da Concentração",t.concentracao,28,Math.round((t.concentracao/28)*100)]])+"\n\n";}
-  if(patient.acsi28){const t=patient.acsi28;csv+="ACSI-28\n"+toCSV([["Subescala","Pontuação","Máximo","% do Máximo"],["Coping com Adversidade",t.adversidade,16,Math.round((t.adversidade/16)*100)],["Rendimento sob Pressão",t.pressao,16,Math.round((t.pressao/16)*100)],["Metas e Preparação",t.metas,16,Math.round((t.metas/16)*100)],["Concentração",t.concentracao,16,Math.round((t.concentracao/16)*100)],["Ausência de Preocupação",t.preocupacao,16,Math.round((t.preocupacao/16)*100)],["Confiança e Motivação",t.confianca,16,Math.round((t.confianca/16)*100)],["Treinabilidade",t.treinabilidade,16,Math.round((t.treinabilidade/16)*100)]])+"\n\n";}
-  if((patient.diarios||[]).length){csv+="DIÁRIO DE EMOÇÕES\n"+toCSV([["Emoção","Intensidade","Data","Horário","Contexto","Pensamento"],...(patient.diarios||[]).map(d=>[d.emocao,d.intensidade,d.data||"—",d.hora||"—",d.contexto||"—",d.pensamento||"—"])]);}
-  download(`MeuPsi_${patient.name.replace(/\s+/g,"_")}_${new Date().toLocaleDateString("pt-BR").replace(/\//g,"-")}.csv`,csv);
-}
+function RadarChart({labels,values,colors,size=220}){const cx=size/2,cy=size/2+10,r=size/2-45,n=labels.length;const angle=i=>((2*Math.PI*i)/n)-Math.PI/2;const pt=(i,radius)=>({x:cx+radius*Math.cos(angle(i)),y:cy+radius*Math.sin(angle(i))});const norm=values.map(v=>Math.min(100,Math.max(0,v)));const polyPts=norm.map((v,i)=>{const p=pt(i,r*(v/100));return`${p.x},${p.y}`;}).join(" ");return(<svg width={size} height={size+10} style={{overflow:"visible",display:"block",margin:"0 auto"}}>{[20,40,60,80,100].map(g=><polygon key={g} points={Array.from({length:n},(_,i)=>{const p=pt(i,r*(g/100));return`${p.x},${p.y}`;}).join(" ")} fill="none" stroke="#e5e7eb" strokeWidth="1"/>)}{Array.from({length:n},(_,i)=>{const p=pt(i,r);return<line key={i} x1={cx} y1={cy} x2={p.x} y2={p.y} stroke="#e5e7eb" strokeWidth="1"/>;})}<polygon points={polyPts} fill={`${colors[0]}25`} stroke={colors[0]} strokeWidth="2.5" strokeLinejoin="round"/>{norm.map((v,i)=>{const p=pt(i,r*(v/100));return<circle key={i} cx={p.x} cy={p.y} r="4" fill={colors[i]||colors[0]} stroke="#fff" strokeWidth="2"/>;})}{labels.map((l,i)=>{const p=pt(i,r+22);const anchor=p.x<cx-5?"end":p.x>cx+5?"start":"middle";return<text key={i} x={p.x} y={p.y} textAnchor={anchor} fontSize="10" fontWeight="700" fill="#374151">{l}</text>;})}</svg>);}
+function MiniBar({label,value,max,color}){const pct=max>0?Math.round((value/max)*100):0;return<div style={{marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}><span style={{fontSize:11,fontWeight:700,color:"#374151"}}>{label}</span><span style={{fontSize:11,fontWeight:800,color}}>{value}/{max}</span></div><div style={{background:"#f3f4f6",borderRadius:20,height:7,overflow:"hidden"}}><div style={{width:`${pct}%`,background:color,height:"100%",borderRadius:20}}/></div></div>;}
 
-// ── Radar Chart ──
-function RadarChart({labels,values,colors,size=220}){
-  const cx=size/2,cy=size/2+10,r=size/2-45,n=labels.length;
-  const angle=i=>((2*Math.PI*i)/n)-Math.PI/2;
-  const pt=(i,radius)=>({x:cx+radius*Math.cos(angle(i)),y:cy+radius*Math.sin(angle(i))});
-  const norm=values.map(v=>Math.min(100,Math.max(0,v)));
-  const polyPts=norm.map((v,i)=>{const p=pt(i,r*(v/100));return`${p.x},${p.y}`;}).join(" ");
-  return(
-    <svg width={size} height={size+10} style={{overflow:"visible",display:"block",margin:"0 auto"}}>
-      {[20,40,60,80,100].map(g=><polygon key={g} points={Array.from({length:n},(_,i)=>{const p=pt(i,r*(g/100));return`${p.x},${p.y}`;}).join(" ")} fill="none" stroke="#e5e7eb" strokeWidth="1"/>)}
-      {Array.from({length:n},(_,i)=>{const p=pt(i,r);return<line key={i} x1={cx} y1={cy} x2={p.x} y2={p.y} stroke="#e5e7eb" strokeWidth="1"/>;  })}
-      <polygon points={polyPts} fill={`${colors[0]}25`} stroke={colors[0]} strokeWidth="2.5" strokeLinejoin="round"/>
-      {norm.map((v,i)=>{const p=pt(i,r*(v/100));return<circle key={i} cx={p.x} cy={p.y} r="4" fill={colors[i]||colors[0]} stroke="#fff" strokeWidth="2"/>;  })}
-      {labels.map((l,i)=>{const p=pt(i,r+22);const anchor=p.x<cx-5?"end":p.x>cx+5?"start":"middle";return<text key={i} x={p.x} y={p.y} textAnchor={anchor} fontSize="10" fontWeight="700" fill="#374151">{l}</text>;  })}
-    </svg>
-  );
-}
-
-// ── Mini Bar ──
-function MiniBar({label,value,max,color}){
-  const pct=max>0?Math.round((value/max)*100):0;
-  return<div style={{marginBottom:8}}>
-    <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}><span style={{fontSize:11,fontWeight:700,color:"#374151"}}>{label}</span><span style={{fontSize:11,fontWeight:800,color}}>{value}/{max}</span></div>
-    <div style={{background:"#f3f4f6",borderRadius:20,height:7,overflow:"hidden"}}><div style={{width:`${pct}%`,background:color,height:"100%",borderRadius:20}}/></div>
-  </div>;
-}
-
-// ── Dashboard Tab ──
-function DashboardTab({patients}){
-  const [sel,setSel]=useState(0);
-  const [subTab,setSubTab]=useState("radar");
-  const [loading,setLoading]=useState(false);
-
-  // Coleta dados das respostas do paciente
+// ── Dashboard Tab — agora com botão que chama onExport ──
+function DashboardTab({patients,onExport}){
+  const [sel,setSel]=useState(0);const [subTab,setSubTab]=useState("radar");
   const p=patients[sel];
   const tasks=p?.tasks?Object.values(p.tasks):[];
   const diarios=p?.diarios?Object.values(p.diarios):[];
-
-  // Escala bem-estar (última resposta)
   const escResp=tasks.filter(t=>t.type==="escala"&&t.response).slice(-1)[0]?.response||null;
-  // CSAI-2R
   const csaiResp=tasks.filter(t=>t.type==="csai2r"&&t.response?.totais).slice(-1)[0]?.response?.totais||null;
-  // SAS
   const sasResp=tasks.filter(t=>t.type==="sas"&&t.response?.totais).slice(-1)[0]?.response?.totais||null;
-  // ACSI-28
   const acsiResp=tasks.filter(t=>t.type==="acsi28"&&t.response?.totais).slice(-1)[0]?.response?.totais||null;
-
-  // Radares
   const beValues=escResp?[escResp.humor,escResp.ansiedade,escResp.sono,escResp.estresse,escResp.tristeza]:[0,0,0,0,0];
   const beColors=["#f59e0b","#8b5cf6","#3b82f6","#ef4444","#60a5fa"];
   const csaiValues=csaiResp?[Math.round((csaiResp.cognitiva/32)*100),Math.round((csaiResp.somatica/28)*100),Math.round((csaiResp.autoconfianca/20)*100)]:[0,0,0];
   const sasValues=sasResp?[Math.round((sasResp.somatica/28)*100),Math.round((sasResp.preocupacao/28)*100),Math.round((sasResp.concentracao/28)*100)]:[0,0,0];
   const acsiValues=acsiResp?[Math.round((acsiResp.adversidade/16)*100),Math.round((acsiResp.pressao/16)*100),Math.round((acsiResp.metas/16)*100),Math.round((acsiResp.concentracao/16)*100),Math.round((acsiResp.preocupacao/16)*100),Math.round((acsiResp.confianca/16)*100),Math.round((acsiResp.treinabilidade/16)*100)]:[0,0,0,0,0,0,0];
-
-  // Emoções
   const ECORES={Alegria:"#f59e0b",Tristeza:"#3b82f6",Raiva:"#ef4444",Ansiedade:"#8b5cf6",Medo:"#6366f1",Nojo:"#10b981",Vergonha:"#f97316",Culpa:"#64748b",Cansaço:"#94a3b8",Amor:"#ec4899",Neutro:"#6b7280",Empolgação:"#fbbf24"};
   const emoCounts={};diarios.forEach(d=>{emoCounts[d.emocao]=(emoCounts[d.emocao]||0)+1;});
   const emoSorted=Object.entries(emoCounts).sort((a,b)=>b[1]-a[1]);
-
-  function handleExport(){
-    setLoading(true);
-    exportarCSV({name:p.name,diarios,escalaResp:escResp,csai2r:csaiResp,sas:sasResp,acsi28:acsiResp});
-    setTimeout(()=>setLoading(false),1000);
-  }
-
   if(patients.length===0)return<EmptyState icon="📊" text="Nenhum paciente cadastrado ainda."/>;
-
   return<div>
-    {/* Seletor */}
     <div style={{marginBottom:14}}>
       <div style={{fontSize:11,fontWeight:700,color:"#9ca3af",marginBottom:8,textTransform:"uppercase",letterSpacing:".5px"}}>Paciente</div>
       <div style={{display:"flex",flexDirection:"column",gap:8}}>
-        {patients.map((pt,i)=>{
-          const ptTasks=pt.tasks?Object.values(pt.tasks):[];
-          const humor=ptTasks.filter(t=>t.type==="escala"&&t.response).slice(-1)[0]?.response?.humor||null;
-          const color=humor>=60?"#059669":humor>=40?"#d97706":"#e11d48";
-          return<div key={pt.id} onClick={()=>setSel(i)} style={{background:sel===i?"#ede9fe":"#fff",borderRadius:14,padding:"12px 14px",cursor:"pointer",boxShadow:"0 2px 8px rgba(0,0,0,.06)",border:`1.5px solid ${sel===i?"#6d28d9":"#f0f0f0"}`,display:"flex",alignItems:"center",gap:12,transition:"all .2s"}}>
-            <div style={{width:36,height:36,borderRadius:10,background:sel===i?"#6d28d9":"#f3f4f6",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>👤</div>
-            <div style={{flex:1}}><div style={{fontWeight:700,color:sel===i?"#6d28d9":"#1f2937",fontSize:14}}>{pt.name}</div><div style={{fontSize:11,color:"#9ca3af",marginTop:1}}>{humor!==null?<span>Humor: <span style={{color,fontWeight:700}}>{humor}%</span></span>:"Sem dados ainda"}</div></div>
-            <div style={{fontSize:18,color:sel===i?"#6d28d9":"#d1d5db"}}>›</div>
-          </div>;
-        })}
+        {patients.map((pt,i)=>{const ptTasks=pt.tasks?Object.values(pt.tasks):[];const humor=ptTasks.filter(t=>t.type==="escala"&&t.response).slice(-1)[0]?.response?.humor||null;const color=humor>=60?"#059669":humor>=40?"#d97706":"#e11d48";return<div key={pt.id} onClick={()=>setSel(i)} style={{background:sel===i?"#ede9fe":"#fff",borderRadius:14,padding:"12px 14px",cursor:"pointer",boxShadow:"0 2px 8px rgba(0,0,0,.06)",border:`1.5px solid ${sel===i?"#6d28d9":"#f0f0f0"}`,display:"flex",alignItems:"center",gap:12,transition:"all .2s"}}><div style={{width:36,height:36,borderRadius:10,background:sel===i?"#6d28d9":"#f3f4f6",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>👤</div><div style={{flex:1}}><div style={{fontWeight:700,color:sel===i?"#6d28d9":"#1f2937",fontSize:14}}>{pt.name}</div><div style={{fontSize:11,color:"#9ca3af",marginTop:1}}>{humor!==null?<span>Humor: <span style={{color,fontWeight:700}}>{humor}%</span></span>:"Sem dados ainda"}</div></div><div style={{fontSize:18,color:sel===i?"#6d28d9":"#d1d5db"}}>›</div></div>;})}
       </div>
     </div>
 
-    {/* Exportar */}
-    <button onClick={handleExport} disabled={loading} style={{width:"100%",marginBottom:14,padding:"11px 0",borderRadius:12,border:"none",background:"linear-gradient(135deg,#059669,#34d399)",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer",boxShadow:"0 4px 12px rgba(5,150,105,.3)"}}>
-      {loading?"⏳ Gerando...":"📥 Exportar dados — "+p.name}
+    {/* Botão exportar — agora abre tela completa */}
+    <button onClick={onExport} style={{width:"100%",marginBottom:14,padding:"11px 0",borderRadius:12,border:"none",background:"linear-gradient(135deg,#059669,#34d399)",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer",boxShadow:"0 4px 12px rgba(5,150,105,.3)"}}>
+      📥 Exportar dados
     </button>
 
-    {/* Sub-tabs */}
     <div style={{display:"flex",background:"#fff",borderRadius:14,padding:4,gap:4,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.05)"}}>
       {[["radar","📡 Radar"],["escalas","📋 Escalas"],["emocoes","😊 Emoções"]].map(([id,label])=>(
         <button key={id} onClick={()=>setSubTab(id)} style={{flex:1,padding:"9px 4px",border:"none",cursor:"pointer",fontWeight:700,fontSize:12,borderRadius:10,background:subTab===id?"#6d28d9":"transparent",color:subTab===id?"#fff":"#9ca3af",transition:"all .2s"}}>{label}</button>
       ))}
     </div>
 
-    {/* Conteúdo */}
     {subTab==="radar"&&<div>
-      {/* Bem-estar */}
-      <div style={{...crd,marginBottom:14}}>
-        <div style={{fontSize:14,fontWeight:800,color:"#1f2937",marginBottom:2}}>📊 Bem-Estar</div>
-        <div style={{fontSize:12,color:"#9ca3af",marginBottom:10}}>Humor, ansiedade, sono, estresse e tristeza</div>
-        {escResp?<><RadarChart labels={["Humor","Ansiedade","Sono","Estresse","Tristeza"]} values={beValues} colors={beColors} size={220}/><div style={{display:"flex",flexWrap:"wrap",gap:6,marginTop:8,justifyContent:"center"}}>{["Humor","Ansiedade","Sono","Estresse","Tristeza"].map((l,i)=><div key={l} style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:8,height:8,borderRadius:"50%",background:beColors[i]}}/><span style={{fontSize:10,color:"#6b7280",fontWeight:600}}>{l}</span></div>)}</div></>:<EmptyState icon="📊" text="Nenhuma escala respondida ainda."/>}
-      </div>
-      {/* CSAI-2R */}
-      <div style={{...crd,marginBottom:14}}>
-        <div style={{fontSize:14,fontWeight:800,color:"#6d28d9",marginBottom:2}}>📋 CSAI-2R</div>
-        <div style={{fontSize:12,color:"#9ca3af",marginBottom:10}}>Ansiedade cognitiva, somática e autoconfiança</div>
-        {csaiResp?<RadarChart labels={["Ans. Cognitiva","Ans. Somática","Autoconfiança"]} values={csaiValues} colors={["#6d28d9","#e11d48","#059669"]} size={200}/>:<EmptyState icon="📋" text="CSAI-2R não respondido ainda."/>}
-      </div>
-      {/* ACSI-28 */}
-      <div style={crd}>
-        <div style={{fontSize:14,fontWeight:800,color:"#059669",marginBottom:2}}>📋 ACSI-28</div>
-        <div style={{fontSize:12,color:"#9ca3af",marginBottom:10}}>7 subescalas de habilidades de coping</div>
-        {acsiResp?<RadarChart labels={["Adversid.","Pressão","Metas","Concentr.","Preocup.","Confiança","Treinab."]} values={acsiValues} colors={["#ef4444","#f97316","#eab308","#22c55e","#06b6d4","#8b5cf6","#ec4899"]} size={240}/>:<EmptyState icon="📋" text="ACSI-28 não respondido ainda."/>}
-      </div>
+      <div style={{...crd,marginBottom:14}}><div style={{fontSize:14,fontWeight:800,color:"#1f2937",marginBottom:2}}>📊 Bem-Estar</div><div style={{fontSize:12,color:"#9ca3af",marginBottom:10}}>Humor, ansiedade, sono, estresse e tristeza</div>{escResp?<><RadarChart labels={["Humor","Ansiedade","Sono","Estresse","Tristeza"]} values={beValues} colors={beColors} size={220}/><div style={{display:"flex",flexWrap:"wrap",gap:6,marginTop:8,justifyContent:"center"}}>{["Humor","Ansiedade","Sono","Estresse","Tristeza"].map((l,i)=><div key={l} style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:8,height:8,borderRadius:"50%",background:beColors[i]}}/><span style={{fontSize:10,color:"#6b7280",fontWeight:600}}>{l}</span></div>)}</div></>:<EmptyState icon="📊" text="Nenhuma escala respondida ainda."/>}</div>
+      <div style={{...crd,marginBottom:14}}><div style={{fontSize:14,fontWeight:800,color:"#6d28d9",marginBottom:2}}>📋 CSAI-2R</div><div style={{fontSize:12,color:"#9ca3af",marginBottom:10}}>Ansiedade cognitiva, somática e autoconfiança</div>{csaiResp?<RadarChart labels={["Ans. Cognitiva","Ans. Somática","Autoconfiança"]} values={csaiValues} colors={["#6d28d9","#e11d48","#059669"]} size={200}/>:<EmptyState icon="📋" text="CSAI-2R não respondido ainda."/>}</div>
+      <div style={crd}><div style={{fontSize:14,fontWeight:800,color:"#059669",marginBottom:2}}>📋 ACSI-28</div><div style={{fontSize:12,color:"#9ca3af",marginBottom:10}}>7 subescalas de habilidades de coping</div>{acsiResp?<RadarChart labels={["Adversid.","Pressão","Metas","Concentr.","Preocup.","Confiança","Treinab."]} values={acsiValues} colors={["#ef4444","#f97316","#eab308","#22c55e","#06b6d4","#8b5cf6","#ec4899"]} size={240}/>:<EmptyState icon="📋" text="ACSI-28 não respondido ainda."/>}</div>
     </div>}
-
     {subTab==="escalas"&&<div>
-      <div style={{...crd,marginBottom:14}}>
-        <div style={{fontSize:14,fontWeight:800,color:"#6d28d9",marginBottom:12}}>📋 CSAI-2R</div>
-        {csaiResp?<><MiniBar label="Ansiedade Cognitiva" value={csaiResp.cognitiva} max={32} color="#6d28d9"/><MiniBar label="Ansiedade Somática" value={csaiResp.somatica} max={28} color="#e11d48"/><MiniBar label="Autoconfiança" value={csaiResp.autoconfianca} max={20} color="#059669"/></>:<p style={{fontSize:13,color:"#9ca3af"}}>Nenhuma resposta ainda.</p>}
-      </div>
-      <div style={{...crd,marginBottom:14}}>
-        <div style={{fontSize:14,fontWeight:800,color:"#0891b2",marginBottom:12}}>📋 SAS</div>
-        {sasResp?<><MiniBar label="Ansiedade Somática" value={sasResp.somatica} max={28} color="#e11d48"/><MiniBar label="Preocupação" value={sasResp.preocupacao} max={28} color="#d97706"/><MiniBar label="Perturbação Concentração" value={sasResp.concentracao} max={28} color="#7c3aed"/></>:<p style={{fontSize:13,color:"#9ca3af"}}>Nenhuma resposta ainda.</p>}
-      </div>
-      <div style={crd}>
-        <div style={{fontSize:14,fontWeight:800,color:"#059669",marginBottom:12}}>📋 ACSI-28</div>
-        {acsiResp?[["adversidade","Coping Adversidade","#ef4444",16],["pressao","Pressão","#f97316",16],["metas","Metas","#eab308",16],["concentracao","Concentração","#22c55e",16],["preocupacao","Preocupação","#06b6d4",16],["confianca","Confiança","#8b5cf6",16],["treinabilidade","Treinabilidade","#ec4899",16]].map(([k,l,c,m])=><MiniBar key={k} label={l} value={acsiResp[k]||0} max={m} color={c}/>):<p style={{fontSize:13,color:"#9ca3af"}}>Nenhuma resposta ainda.</p>}
-      </div>
+      <div style={{...crd,marginBottom:14}}><div style={{fontSize:14,fontWeight:800,color:"#6d28d9",marginBottom:12}}>📋 CSAI-2R</div>{csaiResp?<><MiniBar label="Ansiedade Cognitiva" value={csaiResp.cognitiva} max={32} color="#6d28d9"/><MiniBar label="Ansiedade Somática" value={csaiResp.somatica} max={28} color="#e11d48"/><MiniBar label="Autoconfiança" value={csaiResp.autoconfianca} max={20} color="#059669"/></>:<p style={{fontSize:13,color:"#9ca3af"}}>Nenhuma resposta ainda.</p>}</div>
+      <div style={{...crd,marginBottom:14}}><div style={{fontSize:14,fontWeight:800,color:"#0891b2",marginBottom:12}}>📋 SAS</div>{sasResp?<><MiniBar label="Ansiedade Somática" value={sasResp.somatica} max={28} color="#e11d48"/><MiniBar label="Preocupação" value={sasResp.preocupacao} max={28} color="#d97706"/><MiniBar label="Perturbação Concentração" value={sasResp.concentracao} max={28} color="#7c3aed"/></>:<p style={{fontSize:13,color:"#9ca3af"}}>Nenhuma resposta ainda.</p>}</div>
+      <div style={crd}><div style={{fontSize:14,fontWeight:800,color:"#059669",marginBottom:12}}>📋 ACSI-28</div>{acsiResp?[["adversidade","Coping Adversidade","#ef4444",16],["pressao","Pressão","#f97316",16],["metas","Metas","#eab308",16],["concentracao","Concentração","#22c55e",16],["preocupacao","Preocupação","#06b6d4",16],["confianca","Confiança","#8b5cf6",16],["treinabilidade","Treinabilidade","#ec4899",16]].map(([k,l,c,m])=><MiniBar key={k} label={l} value={acsiResp[k]||0} max={m} color={c}/>):<p style={{fontSize:13,color:"#9ca3af"}}>Nenhuma resposta ainda.</p>}</div>
     </div>}
-
     {subTab==="emocoes"&&<div>
-      <div style={{...crd,marginBottom:14}}>
-        <div style={{fontSize:14,fontWeight:800,color:"#1f2937",marginBottom:4}}>😊 Frequência das Emoções</div>
-        <div style={{fontSize:12,color:"#9ca3af",marginBottom:12}}>{diarios.length} registro(s) no diário</div>
-        {diarios.length===0?<EmptyState icon="📔" text="Nenhum registro no diário ainda."/>:
-        <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
-          {emoSorted.map(([nome,count])=><div key={nome} style={{display:"flex",alignItems:"center",gap:5,background:"#f9fafb",borderRadius:20,padding:"5px 10px"}}>
-            <div style={{width:8,height:8,borderRadius:"50%",background:ECORES[nome]||"#888",flexShrink:0}}/>
-            <span style={{fontSize:12,fontWeight:700,color:"#374151"}}>{nome}</span>
-            <span style={{fontSize:11,color:"#9ca3af"}}>{Math.round((count/diarios.length)*100)}%</span>
-          </div>)}
-        </div>}
-      </div>
-      {diarios.length>0&&<div style={{...crd,marginBottom:14}}>
-        <div style={{fontSize:14,fontWeight:800,color:"#1f2937",marginBottom:12}}>📈 Intensidade Média</div>
-        {Object.entries(diarios.reduce((acc,d)=>{if(!acc[d.emocao])acc[d.emocao]={total:0,count:0};acc[d.emocao].total+=d.intensidade;acc[d.emocao].count++;return acc;},{})).map(([nome,{total,count}])=>(
-          <MiniBar key={nome} label={nome} value={Math.round((total/count)*10)} max={100} color={ECORES[nome]||"#888"}/>
-        ))}
-      </div>}
-      {escResp&&<div style={crd}>
-        <div style={{fontSize:14,fontWeight:800,color:"#1f2937",marginBottom:12}}>📊 Escala de Bem-Estar</div>
-        {[["humor","Humor","#f59e0b"],["ansiedade","Ansiedade","#8b5cf6"],["sono","Sono","#3b82f6"],["estresse","Estresse","#ef4444"],["tristeza","Tristeza","#60a5fa"]].map(([k,l,c])=><MiniBar key={k} label={l} value={escResp[k]} max={100} color={c}/>)}
-      </div>}
+      <div style={{...crd,marginBottom:14}}><div style={{fontSize:14,fontWeight:800,color:"#1f2937",marginBottom:4}}>😊 Frequência das Emoções</div><div style={{fontSize:12,color:"#9ca3af",marginBottom:12}}>{diarios.length} registro(s) no diário</div>{diarios.length===0?<EmptyState icon="📔" text="Nenhum registro no diário ainda."/>:<div style={{display:"flex",flexWrap:"wrap",gap:6}}>{emoSorted.map(([nome,count])=><div key={nome} style={{display:"flex",alignItems:"center",gap:5,background:"#f9fafb",borderRadius:20,padding:"5px 10px"}}><div style={{width:8,height:8,borderRadius:"50%",background:ECORES[nome]||"#888",flexShrink:0}}/><span style={{fontSize:12,fontWeight:700,color:"#374151"}}>{nome}</span><span style={{fontSize:11,color:"#9ca3af"}}>{Math.round((count/diarios.length)*100)}%</span></div>)}</div>}</div>
+      {diarios.length>0&&<div style={{...crd,marginBottom:14}}><div style={{fontSize:14,fontWeight:800,color:"#1f2937",marginBottom:12}}>📈 Intensidade Média</div>{Object.entries(diarios.reduce((acc,d)=>{if(!acc[d.emocao])acc[d.emocao]={total:0,count:0};acc[d.emocao].total+=d.intensidade;acc[d.emocao].count++;return acc;},{})).map(([nome,{total,count}])=>(<MiniBar key={nome} label={nome} value={Math.round((total/count)*10)} max={100} color={ECORES[nome]||"#888"}/>))}</div>}
+      {escResp&&<div style={crd}><div style={{fontSize:14,fontWeight:800,color:"#1f2937",marginBottom:12}}>📊 Escala de Bem-Estar</div>{[["humor","Humor","#f59e0b"],["ansiedade","Ansiedade","#8b5cf6"],["sono","Sono","#3b82f6"],["estresse","Estresse","#ef4444"],["tristeza","Tristeza","#60a5fa"]].map(([k,l,c])=><MiniBar key={k} label={l} value={escResp[k]} max={100} color={c}/>)}</div>}
     </div>}
   </div>;
 }
+
 function ConfigTab({role,patientId,onLogout}){
-  const [oldPass,setOldPass]=useState("");
-  const [newPass,setNewPass]=useState("");
-  const [confirmPass,setConfirmPass]=useState("");
-  const [msg,setMsg]=useState("");
-  const [err,setErr]=useState("");
-  const [loading,setLoading]=useState(false);
-
-  async function changePass(){
-    setMsg("");setErr("");
-    if(!oldPass||!newPass||!confirmPass){setErr("Preencha todos os campos.");return;}
-    if(newPass!==confirmPass){setErr("A nova senha e a confirmação não coincidem.");return;}
-    if(newPass.length<4){setErr("A nova senha deve ter pelo menos 4 caracteres.");return;}
-    setLoading(true);
-    try{
-      if(role==="therapist"){
-        const d=await fbGet("therapist");
-        const stored=d?.password||"1234";
-        if(oldPass!==stored){setErr("Senha atual incorreta.");setLoading(false);return;}
-        await fbSet("therapist",{...d,password:newPass});
-        setMsg("✅ Senha do terapeuta alterada com sucesso!");
-      }else{
-        const p=await fbGet(`patients/${patientId}`);
-        if(!p){setErr("Paciente não encontrado.");setLoading(false);return;}
-        if(oldPass!==(p.password||"1234")){setErr("Senha atual incorreta.");setLoading(false);return;}
-        await fbUpdate(`patients/${patientId}`,{password:newPass});
-        setMsg("✅ Sua senha foi alterada com sucesso!");
-      }
-      setOldPass("");setNewPass("");setConfirmPass("");
-    }catch(e){setErr("Erro ao alterar senha. Tente novamente.");}
-    setLoading(false);
-  }
-
+  const [oldPass,setOldPass]=useState("");const [newPass,setNewPass]=useState("");const [confirmPass,setConfirmPass]=useState("");const [msg,setMsg]=useState("");const [err,setErr]=useState("");const [loading,setLoading]=useState(false);
+  async function changePass(){setMsg("");setErr("");if(!oldPass||!newPass||!confirmPass){setErr("Preencha todos os campos.");return;}if(newPass!==confirmPass){setErr("A nova senha e a confirmação não coincidem.");return;}if(newPass.length<4){setErr("A nova senha deve ter pelo menos 4 caracteres.");return;}setLoading(true);try{if(role==="therapist"){const d=await fbGet("therapist");const stored=d?.password||"1234";if(oldPass!==stored){setErr("Senha atual incorreta.");setLoading(false);return;}await fbSet("therapist",{...d,password:newPass});setMsg("✅ Senha do terapeuta alterada com sucesso!");}else{const p=await fbGet(`patients/${patientId}`);if(!p){setErr("Paciente não encontrado.");setLoading(false);return;}if(oldPass!==(p.password||"1234")){setErr("Senha atual incorreta.");setLoading(false);return;}await fbUpdate(`patients/${patientId}`,{password:newPass});setMsg("✅ Sua senha foi alterada com sucesso!");}setOldPass("");setNewPass("");setConfirmPass("");}catch(e){setErr("Erro ao alterar senha. Tente novamente.");}setLoading(false);}
   return<div>
     <h2 style={h2s}>⚙️ Configurações</h2>
-    <div style={crd}>
-      <h3 style={{fontSize:15,fontWeight:800,color:"#1f2937",marginBottom:4}}>🔑 Alterar Senha</h3>
-      <p style={{fontSize:12,color:"#9ca3af",marginBottom:16}}>{role==="therapist"?"Altere a senha de acesso do terapeuta":"Altere sua senha de acesso"}</p>
-      <label style={lbl}>Senha atual</label>
-      <input type="password" className="inp" value={oldPass} onChange={e=>setOldPass(e.target.value)} placeholder="Digite a senha atual"/>
-      <label style={lbl}>Nova senha</label>
-      <input type="password" className="inp" value={newPass} onChange={e=>setNewPass(e.target.value)} placeholder="Digite a nova senha"/>
-      <label style={lbl}>Confirmar nova senha</label>
-      <input type="password" className="inp" value={confirmPass} onChange={e=>setConfirmPass(e.target.value)} onKeyDown={e=>e.key==="Enter"&&changePass()} placeholder="Repita a nova senha"/>
-      {err&&<div style={{background:"#fee2e2",borderRadius:10,padding:"10px 14px",marginBottom:10,fontSize:13,color:"#e11d48",fontWeight:600}}>{err}</div>}
-      {msg&&<div style={{background:"#d1fae5",borderRadius:10,padding:"10px 14px",marginBottom:10,fontSize:13,color:"#065f46",fontWeight:600}}>{msg}</div>}
-      <button className="btn-main" onClick={changePass} disabled={loading}>{loading?"Salvando...":"Alterar Senha"}</button>
-    </div>
-    <div style={{...crd,marginTop:14}}>
-      <h3 style={{fontSize:15,fontWeight:800,color:"#1f2937",marginBottom:4}}>🚪 Sair</h3>
-      <p style={{fontSize:12,color:"#9ca3af",marginBottom:14}}>Encerrar sessão atual</p>
-      <button onClick={onLogout} style={{...btn("#fee2e2"),width:"100%",padding:"12px 0"}}>Sair do app</button>
-    </div>
+    <div style={crd}><h3 style={{fontSize:15,fontWeight:800,color:"#1f2937",marginBottom:4}}>🔑 Alterar Senha</h3><p style={{fontSize:12,color:"#9ca3af",marginBottom:16}}>{role==="therapist"?"Altere a senha de acesso do terapeuta":"Altere sua senha de acesso"}</p><label style={lbl}>Senha atual</label><input type="password" className="inp" value={oldPass} onChange={e=>setOldPass(e.target.value)} placeholder="Digite a senha atual"/><label style={lbl}>Nova senha</label><input type="password" className="inp" value={newPass} onChange={e=>setNewPass(e.target.value)} placeholder="Digite a nova senha"/><label style={lbl}>Confirmar nova senha</label><input type="password" className="inp" value={confirmPass} onChange={e=>setConfirmPass(e.target.value)} onKeyDown={e=>e.key==="Enter"&&changePass()} placeholder="Repita a nova senha"/>{err&&<div style={{background:"#fee2e2",borderRadius:10,padding:"10px 14px",marginBottom:10,fontSize:13,color:"#e11d48",fontWeight:600}}>{err}</div>}{msg&&<div style={{background:"#d1fae5",borderRadius:10,padding:"10px 14px",marginBottom:10,fontSize:13,color:"#065f46",fontWeight:600}}>{msg}</div>}<button className="btn-main" onClick={changePass} disabled={loading}>{loading?"Salvando...":"Alterar Senha"}</button></div>
+    <div style={{...crd,marginTop:14}}><h3 style={{fontSize:15,fontWeight:800,color:"#1f2937",marginBottom:4}}>🚪 Sair</h3><p style={{fontSize:12,color:"#9ca3af",marginBottom:14}}>Encerrar sessão atual</p><button onClick={onLogout} style={{...btn("#fee2e2"),width:"100%",padding:"12px 0"}}>Sair do app</button></div>
   </div>;
 }
 
-// ── Root ──
 function App(){
   const [ready,setReady]=useState(window._firebaseReady||false);
   const [session,setSession]=useState({role:null,patientId:null});
