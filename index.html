@@ -1,1127 +1,620 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>MeuPsi</title>
-  <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f7;max-width:480px;margin:0 auto}
-    input,textarea,select,button{font-family:inherit;font-size:16px}
-    #root{min-height:100vh}
-    @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-    @keyframes popIn{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}
-    @keyframes flutuar{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
-    @keyframes balanco{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(6deg)}}
-    @keyframes respirar{0%,100%{transform:scaleY(1)}50%{transform:scaleY(1.06)}}
-    @keyframes piscar{0%,90%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
-    @keyframes bracoE{0%,100%{transform:rotate(-10deg)}50%{transform:rotate(-30deg)}}
-    @keyframes bracoD{0%,100%{transform:rotate(10deg)}50%{transform:rotate(30deg)}}
-    @keyframes pular{0%,100%{transform:translateY(0)}40%{transform:translateY(-10px)}}
-    @keyframes tremer{0%,100%{transform:translateX(0)}25%{transform:translateX(-2px)}75%{transform:translateX(2px)}}
-    @keyframes dormir{0%,100%{transform:rotate(0deg)}50%{transform:rotate(5deg)}}
-    @keyframes estrela{0%,100%{transform:scale(1) rotate(0deg);opacity:.8}50%{transform:scale(1.3) rotate(20deg);opacity:1}}
-    @keyframes chama{0%,100%{transform:scaleY(1) scaleX(1)}25%{transform:scaleY(1.15) scaleX(.92)}50%{transform:scaleY(.92) scaleX(1.08)}75%{transform:scaleY(1.1) scaleX(.95)}}
-    @keyframes pulso{0%,100%{transform:scale(1);opacity:.7}50%{transform:scale(1.18);opacity:1}}
-    @keyframes girar{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-    @keyframes expandir{0%,100%{transform:scale(.85);opacity:.5}50%{transform:scale(1.1);opacity:1}}
-    @keyframes slideOut{0%{transform:translateX(0)}100%{transform:translateX(-100%)}}
-    @keyframes slideIn{0%{transform:translateX(100%)}100%{transform:translateX(0)}}
-    .fade-in{animation:fadeIn .3s ease}
-    .inp{width:100%;padding:11px 14px;border-radius:12px;border:1.5px solid #e5e7eb;font-size:14px;margin-bottom:10px;outline:none;background:#fafafa;display:block;transition:border-color .2s,box-shadow .2s;font-family:inherit}
-    .inp:focus{border-color:#6d28d9;box-shadow:0 0 0 3px rgba(109,40,217,.1)}
-    .btn-main{background:linear-gradient(135deg,#6d28d9,#7c3aed);color:#fff;border:none;border-radius:12px;padding:13px 18px;cursor:pointer;font-weight:700;font-size:14px;width:100%;transition:all .2s;box-shadow:0 4px 14px rgba(109,40,217,.3)}
-    .btn-main:active{transform:scale(.97)}
-    .card-hover{transition:transform .2s cubic-bezier(.34,1.56,.64,1),box-shadow .2s;cursor:pointer}
-    .card-hover:active{transform:scale(.97)}
-    .emocao-btn{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;border-radius:14px;border:2px solid #e5e7eb;background:#fff;cursor:pointer;transition:transform .25s cubic-bezier(.34,1.56,.64,1),background .2s,border-color .2s,box-shadow .2s}
-    .emocao-btn:active{transform:scale(.88)!important}
-    .emocao-btn.sel{transform:scale(1.1);box-shadow:0 4px 16px rgba(0,0,0,.13)}
-    .diario-fields{overflow:hidden;transition:max-height .4s cubic-bezier(.4,0,.2,1),opacity .35s ease}
-    .diario-fields.show{max-height:700px;opacity:1}
-    .diario-fields.hide{max-height:0;opacity:0}
-  </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Painel RH — DrogaFarma (Demo)</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --blue:#1A3C8F;--blue-d:#0F2460;--blue-p:#E8EDF8;
+    --yellow:#FFD700;--ydark:#E6C200;
+    --red:#E31E2D;--red-p:#FFEAEC;
+    --green:#1A8C5A;--green-p:#D4F0E2;
+    --orange:#E67E22;--orange-p:#FEF3E2;
+    --gray-bg:#F4F6FB;--gray-mid:#B0BAD0;--gray-drk:#4A5570;
+    --white:#FFFFFF;
+    --sidebar-w:220px;
+    --fd:'Barlow Condensed',sans-serif;
+    --fb:'Barlow',sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:var(--fb);background:var(--gray-bg);color:var(--gray-drk);min-height:100vh;}
+
+  /* ── SIDEBAR ── */
+  .sidebar{position:fixed;top:0;left:0;width:var(--sidebar-w);height:100vh;background:var(--blue);display:flex;flex-direction:column;z-index:100;box-shadow:4px 0 20px rgba(26,60,143,.2);}
+  .sb-logo{padding:22px 18px 18px;border-bottom:1px solid rgba(255,255,255,.1);}
+  .sb-badge{display:flex;align-items:center;gap:10px;}
+  .sb-icon{width:38px;height:38px;background:var(--yellow);border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-weight:800;font-size:18px;color:var(--blue);}
+  .sb-name{font-family:var(--fd);font-size:18px;font-weight:700;color:#fff;}
+  .sb-sub{font-size:10px;color:rgba(255,255,255,.35);letter-spacing:1.5px;text-transform:uppercase;margin-top:6px;font-weight:600;padding-left:2px;}
+  .sb-footer{padding:14px 18px;border-top:1px solid rgba(255,255,255,.08);margin-top:auto;}
+  .sb-user{font-size:11px;color:rgba(255,255,255,.4);margin-bottom:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .sb-demo-badge{background:var(--yellow);color:var(--blue);font-family:var(--fd);font-size:11px;font-weight:800;letter-spacing:.5px;padding:4px 10px;border-radius:6px;text-align:center;}
+
+  /* ── MAIN ── */
+  .main{margin-left:var(--sidebar-w);min-height:100vh;display:flex;flex-direction:column;}
+
+  /* ── TOPBAR ── */
+  .topbar{background:#fff;padding:0 28px;height:58px;display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid var(--yellow);box-shadow:0 2px 10px rgba(26,60,143,.06);position:sticky;top:0;z-index:50;}
+  .topbar-title{font-family:var(--fd);font-size:20px;font-weight:800;color:var(--blue);}
+  .btn-new{display:flex;align-items:center;gap:7px;padding:9px 20px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-family:var(--fd);font-size:14px;font-weight:700;cursor:pointer;transition:all .18s;letter-spacing:.4px;}
+  .btn-new:hover{background:#2550B8;transform:translateY(-1px);}
+
+  /* ── COUNTERS ── */
+  .counters{display:flex;gap:12px;padding:22px 28px 0;flex-wrap:wrap;}
+  .counter-card{flex:1;min-width:100px;background:#fff;border-radius:10px;padding:14px 16px;box-shadow:0 2px 10px rgba(26,60,143,.07);border-top:3px solid;cursor:pointer;transition:transform .15s;}
+  .counter-card:hover{transform:translateY(-2px);}
+  .cc-all    {border-color:var(--gray-mid);}
+  .cc-pending{border-color:var(--orange);}
+  .cc-sub    {border-color:var(--blue);}
+  .cc-app    {border-color:var(--green);}
+  .cc-rej    {border-color:var(--red);}
+  .counter-num{font-family:var(--fd);font-size:32px;font-weight:800;line-height:1;}
+  .cc-all .counter-num    {color:var(--gray-mid);}
+  .cc-pending .counter-num{color:var(--orange);}
+  .cc-sub .counter-num    {color:var(--blue);}
+  .cc-app .counter-num    {color:var(--green);}
+  .cc-rej .counter-num    {color:var(--red);}
+  .counter-label{font-size:11px;color:var(--gray-mid);font-weight:600;margin-top:4px;text-transform:uppercase;letter-spacing:.5px;}
+
+  /* ── FILTROS ── */
+  .filters{padding:16px 28px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .filter-group{display:flex;gap:4px;background:var(--blue-p);border-radius:8px;padding:4px;}
+  .fbtn{padding:6px 14px;border-radius:6px;border:none;background:none;font-family:var(--fd);font-size:12px;font-weight:700;letter-spacing:.4px;cursor:pointer;color:var(--gray-drk);transition:all .15s;}
+  .fbtn.active{background:var(--blue);color:var(--yellow);}
+  .fbtn:hover:not(.active){background:rgba(26,60,143,.1);}
+  .search-box{display:flex;align-items:center;gap:8px;background:#fff;border:1.5px solid #D8E2F0;border-radius:8px;padding:7px 12px;flex:1;max-width:280px;}
+  .search-box input{border:none;background:none;outline:none;font-family:var(--fb);font-size:13px;width:100%;color:var(--gray-drk);}
+
+  /* ── LISTA ── */
+  .content{padding:0 28px 48px;}
+  .candidate-card{background:#fff;border-radius:10px;padding:16px 18px;margin-bottom:8px;display:flex;align-items:center;gap:14px;cursor:pointer;box-shadow:0 2px 10px rgba(26,60,143,.06);border:1.5px solid transparent;transition:all .18s;}
+  .candidate-card:hover{border-color:var(--blue);transform:translateY(-1px);box-shadow:0 4px 18px rgba(26,60,143,.12);}
+  .cc-avatar{width:44px;height:44px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-weight:800;font-size:16px;color:var(--yellow);flex-shrink:0;}
+  .cc-info{flex:1;min-width:0;}
+  .cc-name{font-weight:700;font-size:14px;color:var(--gray-drk);}
+  .cc-meta{font-size:12px;color:var(--gray-mid);margin-top:3px;}
+  .cc-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;}
+  .cc-actions{display:flex;gap:4px;}
+  .btn-icon{width:30px;height:30px;border-radius:6px;border:none;background:var(--blue-p);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+  .btn-icon:hover{background:var(--blue);color:#fff;}
+  .btn-icon.danger:hover{background:var(--red);}
+
+  /* STATUS */
+  .spill{display:inline-block;padding:4px 11px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.3px;}
+  .st-pending  {background:var(--orange-p);color:var(--orange);}
+  .st-submitted{background:var(--blue-p);color:var(--blue);}
+  .st-approved {background:var(--green-p);color:var(--green);}
+  .st-rejected {background:var(--red-p);color:var(--red);}
+
+  /* ── MODAL ── */
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:none;align-items:center;justify-content:center;padding:16px;}
+  .overlay.open{display:flex;}
+  .modal{background:#fff;border-radius:14px;width:100%;max-width:680px;max-height:90vh;overflow-y:auto;box-shadow:0 24px 80px rgba(0,0,0,.25);}
+  .modal-sm{max-width:440px;}
+  .mhdr{padding:20px 24px 16px;border-bottom:1px solid var(--blue-p);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:#fff;z-index:10;}
+  .mhdr h3{font-family:var(--fd);font-size:18px;font-weight:800;color:var(--blue);}
+  .mclose{width:30px;height:30px;border-radius:6px;border:none;background:var(--blue-p);cursor:pointer;font-size:15px;color:var(--gray-drk);display:flex;align-items:center;justify-content:center;}
+  .mclose:hover{background:var(--red-p);color:var(--red);}
+  .mbody{padding:24px;}
+
+  /* Detalhe */
+  .detail-bar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:22px;}
+  .sec-title{font-family:var(--fd);font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--blue);margin-bottom:10px;}
+  .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:4px;}
+  .dfield span{font-size:11px;color:var(--gray-mid);display:block;margin-bottom:2px;}
+  .dfield strong{font-size:13px;color:var(--gray-drk);}
+
+  .doc-group{margin-bottom:14px;}
+  .doc-group-lbl{font-size:11px;font-weight:700;color:var(--gray-mid);text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px;}
+  .file-row{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:7px;background:var(--gray-bg);margin-bottom:4px;cursor:pointer;transition:background .15s;text-decoration:none;}
+  .file-row:hover{background:var(--blue-p);}
+  .fr-icon{font-size:20px;flex-shrink:0;}
+  .fr-name{flex:1;font-size:13px;color:var(--gray-drk);}
+  .fr-size{font-size:11px;color:var(--gray-mid);}
+  .fr-open{font-size:14px;color:var(--blue);}
+
+  .decision-bar{display:flex;gap:10px;margin-top:24px;padding-top:20px;border-top:1px solid var(--blue-p);}
+  .btn-approve{flex:1;padding:12px;background:var(--green);color:#fff;border:none;border-radius:8px;font-family:var(--fd);font-size:15px;font-weight:700;cursor:pointer;transition:background .15s;}
+  .btn-approve:hover{background:#157a4d;}
+  .btn-reject{flex:1;padding:12px;background:var(--red);color:#fff;border:none;border-radius:8px;font-family:var(--fd);font-size:15px;font-weight:700;cursor:pointer;transition:background .15s;}
+  .btn-reject:hover{background:#c0001e;}
+  .btn-undo{flex:1;padding:12px;background:var(--blue-p);color:var(--blue);border:none;border-radius:8px;font-family:var(--fd);font-size:14px;font-weight:700;cursor:pointer;}
+
+  /* Btns gerais */
+  .btn{padding:9px 18px;border-radius:8px;font-family:var(--fd);font-size:14px;font-weight:700;cursor:pointer;border:none;transition:all .18s;}
+  .btn-primary{background:var(--blue);color:#fff;}
+  .btn-primary:hover{background:#2550B8;}
+  .btn-outline{background:var(--blue-p);color:var(--blue);border:1px solid var(--blue);}
+  .btn-outline:hover{background:var(--blue);color:#fff;}
+  .btn-zip{background:var(--blue-d);color:var(--yellow);border:none;padding:8px 16px;border-radius:7px;font-family:var(--fd);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:6px;}
+  .btn-zip:hover{background:var(--blue);}
+
+  /* Modal novo candidato */
+  .mlabel{font-size:11px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:var(--gray-drk);display:block;margin-bottom:6px;margin-top:14px;}
+  .minput{width:100%;padding:10px 12px;border-radius:8px;border:1.5px solid #D8E2F0;font-family:var(--fb);font-size:14px;outline:none;background:var(--gray-bg);transition:border-color .15s;}
+  .minput:focus{border-color:var(--blue);background:#fff;}
+  .mbtn-row{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;}
+
+  /* Link box */
+  .link-box{background:var(--blue-p);border-radius:8px;padding:12px 16px;margin-top:14px;display:flex;align-items:center;gap:10px;border:1px solid #C8D4F0;}
+  .link-url{flex:1;font-size:12px;color:var(--blue);font-family:monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .link-copy{padding:6px 14px;background:var(--blue);color:#fff;border:none;border-radius:6px;font-family:var(--fd);font-size:12px;font-weight:700;cursor:pointer;transition:background .15s;flex-shrink:0;}
+  .link-copy:hover{background:#2550B8;}
+
+  /* TOAST */
+  #toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(60px);background:#1a3a2a;color:#fff;font-size:13px;font-weight:600;padding:10px 22px;border-radius:8px;opacity:0;transition:all .25s;z-index:999;pointer-events:none;white-space:nowrap;}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  #toast.error{background:var(--red);}
+  #toast.info {background:var(--blue);}
+
+  /* EMPTY */
+  .empty{text-align:center;padding:64px 24px;}
+  .empty-icon{font-size:48px;margin-bottom:12px;}
+  .empty-title{font-family:var(--fd);font-size:20px;font-weight:800;color:var(--blue);margin-bottom:4px;}
+  .empty-sub{font-size:13px;color:var(--gray-mid);}
+
+  /* Demo banner */
+  .demo-banner{background:var(--yellow);padding:8px 28px;font-family:var(--fd);font-size:12px;font-weight:700;color:var(--blue-d);letter-spacing:.5px;display:flex;align-items:center;gap:8px;}
+
+  @media(max-width:640px){
+    .sidebar{width:0;overflow:hidden;}
+    .main{margin-left:0;}
+    .counters{gap:8px;}
+    .counter-card{min-width:70px;}
+    .topbar{padding:0 16px;}
+    .content,.filters{padding-left:16px;padding-right:16px;}
+    .counters{padding:16px 16px 0;}
+    .detail-grid{grid-template-columns:1fr;}
+  }
+</style>
 </head>
 <body>
-<div id="root"><div style="min-height:100vh;background:linear-gradient(160deg,#1e1b4b,#4c1d95,#0c4a6e);display:flex;align-items:center;justify-content:center"><div style="color:#fff;text-align:center"><div style="font-size:40px;margin-bottom:12px">🧠</div><div style="font-size:16px;font-weight:700">MeuPsi</div><div style="font-size:13px;margin-top:8px;opacity:.8">Carregando...</div></div></div></div>
-<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-<script type="module">
-  import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import{getDatabase,ref,set,get,update,onValue}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-  const cfg={apiKey:"AIzaSyDrQDc6-GANiIcU_Eg2X5J7XMLRQwh7UQo",authDomain:"meupsi-91fad.firebaseapp.com",projectId:"meupsi-91fad",storageBucket:"meupsi-91fad.firebasestorage.app",messagingSenderId:"70457582233",appId:"1:70457582233:web:4114186b782d888d9e8e08",databaseURL:"https://meupsi-91fad-default-rtdb.firebaseio.com"};
-  const app=initializeApp(cfg);const db=getDatabase(app);
-  window._db=db;window._ref=ref;window._set=set;window._get=get;window._update=update;window._onValue=onValue;
-  window._firebaseReady=true;window.dispatchEvent(new Event("firebaseReady"));
-</script>
-<script type="text/babel" data-presets="react">
-const {useState,useEffect,useRef}=React;
+<div id="toast"></div>
 
-async function fbGet(p){const s=await window._get(window._ref(window._db,p));return s.exists()?s.val():null}
-async function fbSet(p,v){await window._set(window._ref(window._db,p),v)}
-async function fbUpdate(p,v){await window._update(window._ref(window._db,p),v)}
-function fbListen(p,cb){return window._onValue(window._ref(window._db,p),s=>cb(s.exists()?s.val():null))}
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sb-logo">
+    <div class="sb-badge">
+      <div class="sb-icon">DF</div>
+      <div class="sb-name">DrogaFarma</div>
+    </div>
+    <div class="sb-sub">Gestão RH</div>
+  </div>
+  <div class="sb-footer">
+    <div class="sb-user">marina@drogafarma.com.br</div>
+    <div class="sb-demo-badge">✦ VERSÃO DEMO</div>
+  </div>
+</aside>
 
-const TASK_TYPES=[
-  {id:"pensamentos",label:"💭 Pensamentos Automáticos",color:"#0891b2"},
-  {id:"atencao",label:"🎯 Teste de Atenção Visual",color:"#d97706"},
-  {id:"experimento",label:"🔬 Experimento Comportamental",color:"#059669"},
-  {id:"escala",label:"📊 Escala de Bem-Estar",color:"#e11d48"},
-  {id:"csai2r",label:"📋 CSAI-2R",color:"#6d28d9"},
-  {id:"sas",label:"📋 SAS",color:"#0891b2"},
-  {id:"acsi28",label:"📋 ACSI-28",color:"#059669"},
-  {id:"tr",label:"⚡ Tempo de Reação",color:"#7c3aed"},
-  {id:"stroop",label:"🎨 Teste de Stroop",color:"#6d28d9"},
-  {id:"tmt",label:"🔢 Trail Making Test",color:"#0891b2"},
-  {id:"nback",label:"🧩 N-Back",color:"#d97706"},
-  {id:"gonogo",label:"🚦 Go/No-Go",color:"#059669"},
-  {id:"flanker",label:"➡️ Teste de Flanker",color:"#e11d48"},
-];
-function getTypeInfo(id){return TASK_TYPES.find(t=>t.id===id)||{}}
+<!-- MAIN -->
+<div class="main">
+  <div class="demo-banner">⚡ Modo demonstração — dados simulados. Na versão real, tudo é salvo no Firebase.</div>
 
-const EMOCOES=[
-  {emoji:"😊",nome:"Alegria",color:"#f59e0b",bg:"#fef3c7"},
-  {emoji:"😢",nome:"Tristeza",color:"#3b82f6",bg:"#dbeafe"},
-  {emoji:"😡",nome:"Raiva",color:"#ef4444",bg:"#fee2e2"},
-  {emoji:"😰",nome:"Ansiedade",color:"#8b5cf6",bg:"#ede9fe"},
-  {emoji:"😨",nome:"Medo",color:"#6366f1",bg:"#e0e7ff"},
-  {emoji:"🤢",nome:"Nojo",color:"#10b981",bg:"#d1fae5"},
-  {emoji:"😳",nome:"Vergonha",color:"#f97316",bg:"#ffedd5"},
-  {emoji:"😔",nome:"Culpa",color:"#64748b",bg:"#f1f5f9"},
-  {emoji:"😴",nome:"Cansaço",color:"#94a3b8",bg:"#f8fafc"},
-  {emoji:"🥰",nome:"Amor",color:"#ec4899",bg:"#fce7f3"},
-  {emoji:"😐",nome:"Neutro",color:"#6b7280",bg:"#f3f4f6"},
-  {emoji:"🤩",nome:"Empolgação",color:"#f59e0b",bg:"#fef9c3"},
-];
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="topbar-title">Candidatos</div>
+    <button class="btn-new" onclick="openModal('modal-new')">＋ Novo candidato</button>
+  </header>
 
-const ESCALAS_DEF=[
-  {id:"humor",nome:"Humor",emoji:"😊",color:"#f59e0b"},
-  {id:"ansiedade",nome:"Ansiedade",emoji:"😰",color:"#8b5cf6"},
-  {id:"sono",nome:"Qualidade do Sono",emoji:"😴",color:"#3b82f6"},
-  {id:"estresse",nome:"Estresse",emoji:"🤯",color:"#ef4444"},
-  {id:"tristeza",nome:"Tristeza",emoji:"😢",color:"#60a5fa"},
-];
+  <!-- COUNTERS -->
+  <div class="counters">
+    <div class="counter-card cc-all"     onclick="setFilter('all')">      <div class="counter-num" id="cnt-all">0</div><div class="counter-label">Total</div></div>
+    <div class="counter-card cc-pending" onclick="setFilter('pending')">  <div class="counter-num" id="cnt-pending">0</div><div class="counter-label">Aguardando</div></div>
+    <div class="counter-card cc-sub"     onclick="setFilter('submitted')"><div class="counter-num" id="cnt-sub">0</div><div class="counter-label">Docs enviados</div></div>
+    <div class="counter-card cc-app"     onclick="setFilter('approved')"> <div class="counter-num" id="cnt-app">0</div><div class="counter-label">Aprovados</div></div>
+    <div class="counter-card cc-rej"     onclick="setFilter('rejected')"> <div class="counter-num" id="cnt-rej">0</div><div class="counter-label">Reprovados</div></div>
+  </div>
 
-const CSAI2R_DATA={id:"csai2r",nome:"CSAI-2R",color:"#6d28d9",escala:["Nada","Um pouco","Moderadamente","Muito"],subescalas:{cognitiva:{nome:"Ansiedade Cognitiva",cor:"#6d28d9"},somatica:{nome:"Ansiedade Somática",cor:"#e11d48"},autoconfianca:{nome:"Autoconfiança",cor:"#059669"}},itens:[{id:1,texto:"Estou preocupado com esta competição.",sub:"cognitiva"},{id:2,texto:"Sinto meu corpo tenso.",sub:"somatica"},{id:3,texto:"Estou confiante porque consigo enfrentar os desafios.",sub:"autoconfianca"},{id:4,texto:"Estou preocupado com o fato de não me sair tão bem quanto poderia.",sub:"cognitiva"},{id:5,texto:"Sinto meu estômago agitado.",sub:"somatica"},{id:6,texto:"Estou confiante, pois consigo ter um bom desempenho sob pressão.",sub:"autoconfianca"},{id:7,texto:"Estou preocupado com a possibilidade de não cumprir meu objetivo.",sub:"cognitiva"},{id:8,texto:"Meu corpo está tenso.",sub:"somatica"},{id:9,texto:"Estou confiante porque atinjo meus objetivos de desempenho.",sub:"autoconfianca"},{id:10,texto:"Estou preocupado com o fato de os outros ficarem desapontados.",sub:"cognitiva"},{id:11,texto:"Meu coração está acelerado.",sub:"somatica"},{id:12,texto:"Estou confiante, pois me saio bem mesmo sob pressão.",sub:"autoconfianca"},{id:13,texto:"Estou preocupado com o fato de não poder me concentrar.",sub:"cognitiva"},{id:14,texto:"Estou com o estômago embrulhado.",sub:"somatica"},{id:15,texto:"Estou confiante em relação ao desempenho que apresentarei.",sub:"autoconfianca"},{id:16,texto:"Estou preocupado com minha capacidade de realizar bem esta competição.",sub:"cognitiva"},{id:17,texto:"Sinto meu corpo relaxado.",sub:"somatica",inverso:true}]};
-const SAS_DATA={id:"sas",nome:"SAS",color:"#0891b2",escala:["Nada","Um pouco","Bastante","Muito"],subescalas:{somatica:{nome:"Ansiedade Somática",cor:"#e11d48"},preocupacao:{nome:"Preocupação",cor:"#d97706"},concentracao:{nome:"Perturbação da Concentração",cor:"#7c3aed"}},itens:[{id:1,texto:"Meu corpo fica tenso.",sub:"somatica"},{id:2,texto:"Começo a me preocupar que não me sairei bem.",sub:"preocupacao"},{id:3,texto:"É difícil se concentrar no que tenho que fazer.",sub:"concentracao"},{id:4,texto:"Meu corpo fica rígido.",sub:"somatica"},{id:5,texto:"Começo a me preocupar sobre como o público reagirá ao meu desempenho.",sub:"preocupacao"},{id:6,texto:"Não consigo me concentrar.",sub:"concentracao"},{id:7,texto:"Meu estômago fica embrulhado.",sub:"somatica"},{id:8,texto:"Preocupo-me com possibilidade de um mau desempenho.",sub:"preocupacao"},{id:9,texto:"Minha atenção fica voltada para coisas que não têm nada a ver com o que estou fazendo.",sub:"concentracao"},{id:10,texto:"Meu coração acelera.",sub:"somatica"},{id:11,texto:"Preocupo-me com a possibilidade de não atingir meu objetivo.",sub:"preocupacao"},{id:12,texto:"Perco minha concentração na competição por causa da ansiedade.",sub:"concentracao"},{id:13,texto:"Meu corpo fica parado e contraído.",sub:"somatica"},{id:14,texto:"Preocupo-me com a possibilidade de decepcionar as pessoas.",sub:"preocupacao"},{id:15,texto:"Tenho dificuldade em me concentrar nos meus pensamentos.",sub:"concentracao"},{id:16,texto:"Sinto meu estômago pesado.",sub:"somatica"},{id:17,texto:"Preocupo-me em não me sair tão bem quanto poderia.",sub:"preocupacao"},{id:18,texto:"Minha atenção fica distraída.",sub:"concentracao"},{id:19,texto:"Meu coração acelera muito.",sub:"somatica"},{id:20,texto:"Preocupo-me com a possibilidade de ficar aquém das expectativas dos outros.",sub:"preocupacao"},{id:21,texto:"Tenho pensamentos intrusos que perturbam minha concentração.",sub:"concentracao"}]};
-const ACSI28_DATA={id:"acsi28",nome:"ACSI-28",color:"#059669",escala:["Quase nunca","Às vezes","Frequentemente","Quase sempre"],subescalas:{adversidade:{nome:"Coping com Adversidade",cor:"#ef4444"},pressao:{nome:"Rendimento sob Pressão",cor:"#f97316"},metas:{nome:"Metas e Preparação Mental",cor:"#eab308"},concentracao:{nome:"Concentração",cor:"#22c55e"},preocupacao:{nome:"Ausência de Preocupação",cor:"#06b6d4"},confianca:{nome:"Confiança e Motivação",cor:"#8b5cf6"},treinabilidade:{nome:"Treinabilidade",cor:"#ec4899"}},itens:[{id:1,texto:"Em situações difíceis, percebo que penso de forma negativa.",sub:"adversidade",inverso:true},{id:2,texto:"Tenho meu melhor desempenho quando estou sob pressão.",sub:"pressao"},{id:3,texto:"Estabeleço meus próprios objetivos para cada treino e competição.",sub:"metas"},{id:4,texto:"Quando o técnico me diz como corrigir um erro, fico na defensiva.",sub:"treinabilidade",inverso:true},{id:5,texto:"Fico preocupado com a possibilidade de cometer erros ou falhar.",sub:"preocupacao",inverso:true},{id:6,texto:"Antes de uma competição, imagino mentalmente como vou me sair bem.",sub:"metas"},{id:7,texto:"Quando começo a competir mal, é difícil recuperar a concentração.",sub:"adversidade",inverso:true},{id:8,texto:"Sinto-me confiante de que terei um bom desempenho.",sub:"confianca"},{id:9,texto:"Quando o técnico me critica, fico chateado ao invés de motivado.",sub:"treinabilidade",inverso:true},{id:10,texto:"Quando o desempenho melhora, é porque trabalho duro para isso.",sub:"confianca"},{id:11,texto:"Fico muito ansioso quando as coisas não correm bem na competição.",sub:"adversidade",inverso:true},{id:12,texto:"Quanto mais pressão existe numa competição, mais me envolvo.",sub:"pressao"},{id:13,texto:"Defino metas muito específicas para os treinos.",sub:"metas"},{id:14,texto:"Não preciso ser empurrado para treinar com intensidade.",sub:"confianca"},{id:15,texto:"Se errar uma jogada importante, é difícil colocar o erro de lado.",sub:"adversidade",inverso:true},{id:16,texto:"Os adversários não conseguem bloquear mentalmente minha concentração.",sub:"concentracao"},{id:17,texto:"Quando o técnico critica meu desempenho, escuto atentamente.",sub:"treinabilidade"},{id:18,texto:"Fico preocupado com a possibilidade de não me sair bem.",sub:"preocupacao",inverso:true},{id:19,texto:"Tenho um plano de ação mental para superar situações difíceis.",sub:"metas"},{id:20,texto:"Confio em mim mesmo nos momentos de grande pressão.",sub:"pressao"},{id:21,texto:"Quando me esforço ao máximo, geralmente tenho sucesso.",sub:"confianca"},{id:22,texto:"Quando começo a pensar negativamente, consigo rapidamente parar.",sub:"adversidade"},{id:23,texto:"Durante a competição, consigo manter o foco nos requisitos da tarefa.",sub:"concentracao"},{id:24,texto:"Quando o técnico me diz como melhorar, presto atenção e aprendo.",sub:"treinabilidade"},{id:25,texto:"Fico perturbado quando me preocupo com como me saio.",sub:"preocupacao",inverso:true},{id:26,texto:"Executo com técnica e eficiência em momentos importantes.",sub:"pressao"},{id:27,texto:"Quando algo atrapalha minha concentração, consigo rapidamente recentrá-la.",sub:"concentracao"},{id:28,texto:"Estar mentalmente pronto é fundamental para alcançar meu potencial.",sub:"metas"}]};
+  <!-- FILTROS -->
+  <div class="filters">
+    <div class="filter-group">
+      <button class="fbtn active" id="fbtn-all"       onclick="setFilter('all')">Todos</button>
+      <button class="fbtn"        id="fbtn-pending"   onclick="setFilter('pending')">Aguardando</button>
+      <button class="fbtn"        id="fbtn-submitted" onclick="setFilter('submitted')">Enviados</button>
+      <button class="fbtn"        id="fbtn-approved"  onclick="setFilter('approved')">Aprovados</button>
+      <button class="fbtn"        id="fbtn-rejected"  onclick="setFilter('rejected')">Reprovados</button>
+    </div>
+    <div class="search-box">
+      <span>🔍</span>
+      <input type="text" id="search-input" placeholder="Buscar por nome ou cargo..." oninput="renderList()"/>
+    </div>
+  </div>
 
-function getEscalaData(id){return{csai2r:CSAI2R_DATA,sas:SAS_DATA,acsi28:ACSI28_DATA}[id]||null}
-function calcEscala(ed,resp){const t={};const c={};Object.keys(ed.subescalas).forEach(k=>{t[k]=0;c[k]=0;});ed.itens.forEach(item=>{const v=resp[item.id];if(v!=null){const val=item.inverso?(ed.escala.length+1-v):v;t[item.sub]+=val;c[item.sub]++;}});return{totais:t,contagens:c}}
+  <!-- LISTA -->
+  <div class="content">
+    <div id="list"></div>
+  </div>
+</div>
 
-const aw={minHeight:"100vh",background:"#f5f5f7",display:"flex",flexDirection:"column"};
-const ct={padding:"16px 16px 40px",flex:1,overflowY:"auto"};
-const tb={display:"flex",background:"#fff",borderBottom:"1px solid #f0f0f0",overflowX:"auto",boxShadow:"0 2px 8px rgba(0,0,0,.04)"};
-const tBtn=a=>({padding:"12px 14px",border:"none",background:"none",cursor:"pointer",fontWeight:600,fontSize:12,color:a?"#6d28d9":"#9ca3af",borderBottom:a?"2.5px solid #6d28d9":"2.5px solid transparent",whiteSpace:"nowrap"});
-const h2s={fontSize:17,fontWeight:800,color:"#1f2937",margin:"0 0 14px"};
-const btn=(bg="#6d28d9")=>({background:bg,color:bg==="#e5e7eb"?"#374151":bg==="#fee2e2"?"#e11d48":"#fff",border:"none",borderRadius:10,padding:"10px 18px",cursor:"pointer",fontWeight:700,fontSize:14});
-const lbl={fontSize:12,fontWeight:700,color:"#374151",display:"block",marginBottom:4};
-const crd={background:"#fff",borderRadius:16,padding:20,boxShadow:"0 2px 12px rgba(0,0,0,.07)"};
-
-// ── Personagens ──
-const PAnsiedade=()=><svg width="70" height="86" viewBox="0 0 90 110" style={{animation:"tremer 1.5s ease-in-out infinite"}}><ellipse cx="45" cy="75" rx="18" ry="22" fill="#c4b5fd" style={{animation:"respirar 2s ease-in-out infinite"}}/><circle cx="45" cy="40" r="20" fill="#fde68a"/><ellipse cx="38" cy="37" rx="3" ry="4" fill="#1f2937"/><ellipse cx="52" cy="37" rx="3" ry="4" fill="#1f2937"/><path d="M34,30 Q38,27 42,30" stroke="#1f2937" strokeWidth="2" fill="none"/><path d="M48,30 Q52,27 56,30" stroke="#1f2937" strokeWidth="2" fill="none"/><path d="M38,50 Q42,46 46,50 Q50,54 54,50" stroke="#ef4444" strokeWidth="2" fill="none"/><line x1="27" y1="68" x2="14" y2="58" stroke="#c4b5fd" strokeWidth="6" strokeLinecap="round" style={{transformOrigin:"27px 68px",animation:"bracoE 1.5s ease-in-out infinite"}}/><line x1="63" y1="68" x2="76" y2="58" stroke="#c4b5fd" strokeWidth="6" strokeLinecap="round" style={{transformOrigin:"63px 68px",animation:"bracoD 1.5s ease-in-out infinite"}}/><line x1="38" y1="96" x2="33" y2="110" stroke="#c4b5fd" strokeWidth="6" strokeLinecap="round"/><line x1="52" y1="96" x2="57" y2="110" stroke="#c4b5fd" strokeWidth="6" strokeLinecap="round"/></svg>;
-const PTristeza=()=><svg width="70" height="86" viewBox="0 0 90 110" style={{animation:"dormir 3s ease-in-out infinite"}}><ellipse cx="45" cy="78" rx="18" ry="20" fill="#93c5fd"/><circle cx="45" cy="42" r="20" fill="#fde68a"/><path d="M35,37 Q38,41 41,37" stroke="#1f2937" strokeWidth="2.5" fill="none" strokeLinecap="round"/><path d="M49,37 Q52,41 55,37" stroke="#1f2937" strokeWidth="2.5" fill="none" strokeLinecap="round"/><path d="M37,52 Q45,46 53,52" stroke="#1f2937" strokeWidth="2" fill="none"/><ellipse cx="37" cy="45" rx="2" ry="3" fill="#93c5fd" style={{animation:"flutuar 2s ease-in-out infinite"}}/><line x1="27" y1="70" x2="18" y2="85" stroke="#93c5fd" strokeWidth="6" strokeLinecap="round"/><line x1="63" y1="70" x2="72" y2="85" stroke="#93c5fd" strokeWidth="6" strokeLinecap="round"/><line x1="38" y1="97" x2="33" y2="110" stroke="#93c5fd" strokeWidth="6" strokeLinecap="round"/><line x1="52" y1="97" x2="57" y2="110" stroke="#93c5fd" strokeWidth="6" strokeLinecap="round"/></svg>;
-const PRaiva=()=><svg width="70" height="86" viewBox="0 0 90 110" style={{animation:"balanco 0.4s ease-in-out infinite"}}><ellipse cx="45" cy="76" rx="19" ry="21" fill="#fca5a5"/><circle cx="45" cy="40" r="21" fill="#fde68a"/><ellipse cx="38" cy="38" rx="4" ry="3" fill="#1f2937"/><ellipse cx="52" cy="38" rx="4" ry="3" fill="#1f2937"/><line x1="33" y1="30" x2="43" y2="33" stroke="#1f2937" strokeWidth="3" strokeLinecap="round"/><line x1="47" y1="33" x2="57" y2="30" stroke="#1f2937" strokeWidth="3" strokeLinecap="round"/><path d="M36,51 Q45,56 54,51" stroke="#ef4444" strokeWidth="2.5" fill="none"/><line x1="26" y1="67" x2="10" y2="55" stroke="#fca5a5" strokeWidth="7" strokeLinecap="round" style={{transformOrigin:"26px 67px",animation:"bracoE .4s ease-in-out infinite"}}/><line x1="64" y1="67" x2="80" y2="55" stroke="#fca5a5" strokeWidth="7" strokeLinecap="round" style={{transformOrigin:"64px 67px",animation:"bracoD .4s ease-in-out infinite"}}/><line x1="38" y1="96" x2="33" y2="110" stroke="#fca5a5" strokeWidth="6" strokeLinecap="round"/><line x1="52" y1="96" x2="57" y2="110" stroke="#fca5a5" strokeWidth="6" strokeLinecap="round"/></svg>;
-const PEstresse=()=><svg width="70" height="90" viewBox="0 0 90 115" style={{animation:"flutuar 2s ease-in-out infinite"}}><ellipse cx="45" cy="78" rx="18" ry="21" fill="#fed7aa"/><circle cx="45" cy="40" r="20" fill="#fde68a"/><rect x="28" y="12" width="34" height="6" rx="2" fill="#fff" stroke="#e5e7eb" strokeWidth="1" style={{animation:"balanco 2s ease-in-out infinite"}}/><rect x="30" y="6" width="30" height="6" rx="2" fill="#fff" stroke="#e5e7eb" strokeWidth="1"/><rect x="32" y="0" width="26" height="6" rx="2" fill="#fff" stroke="#e5e7eb" strokeWidth="1"/><ellipse cx="38" cy="37" rx="3.5" ry="4" fill="#1f2937"/><ellipse cx="52" cy="37" rx="3.5" ry="4" fill="#1f2937"/><ellipse cx="45" cy="51" rx="5" ry="3" fill="#ef4444"/><line x1="27" y1="68" x2="12" y2="60" stroke="#fed7aa" strokeWidth="6" strokeLinecap="round" style={{transformOrigin:"27px 68px",animation:"bracoE 1s ease-in-out infinite"}}/><line x1="63" y1="68" x2="78" y2="60" stroke="#fed7aa" strokeWidth="6" strokeLinecap="round" style={{transformOrigin:"63px 68px",animation:"bracoD 1s ease-in-out infinite"}}/><line x1="38" y1="98" x2="33" y2="112" stroke="#fed7aa" strokeWidth="6" strokeLinecap="round"/><line x1="52" y1="98" x2="57" y2="112" stroke="#fed7aa" strokeWidth="6" strokeLinecap="round"/></svg>;
-const PAutoestima=()=><svg width="70" height="90" viewBox="0 0 90 115" style={{animation:"pular 1.5s ease-in-out infinite"}}><ellipse cx="45" cy="78" rx="18" ry="21" fill="#6ee7b7"/><circle cx="45" cy="40" r="20" fill="#fde68a"/>{[[-18,-5],[18,-5],[0,-22],[-14,-16],[14,-16]].map(([dx,dy],i)=><text key={i} x={45+dx} y={40+dy} fontSize="10" textAnchor="middle" style={{animation:`estrela ${1+i*.2}s ease-in-out infinite`}}>⭐</text>)}<path d="M35,36 Q38,40 41,36" stroke="#1f2937" strokeWidth="2.5" fill="none" strokeLinecap="round"/><path d="M49,36 Q52,40 55,36" stroke="#1f2937" strokeWidth="2.5" fill="none" strokeLinecap="round"/><path d="M35,50 Q45,58 55,50" stroke="#059669" strokeWidth="2.5" fill="none" strokeLinecap="round"/><line x1="27" y1="66" x2="12" y2="50" stroke="#6ee7b7" strokeWidth="6" strokeLinecap="round" style={{transformOrigin:"27px 66px",animation:"bracoE 1.5s ease-in-out infinite"}}/><line x1="63" y1="66" x2="78" y2="50" stroke="#6ee7b7" strokeWidth="6" strokeLinecap="round" style={{transformOrigin:"63px 66px",animation:"bracoD 1.5s ease-in-out infinite"}}/><line x1="38" y1="98" x2="30" y2="112" stroke="#6ee7b7" strokeWidth="6" strokeLinecap="round"/><line x1="52" y1="98" x2="60" y2="112" stroke="#6ee7b7" strokeWidth="6" strokeLinecap="round"/></svg>;
-const PSono=()=><svg width="70" height="86" viewBox="0 0 90 110" style={{animation:"dormir 3s ease-in-out infinite"}}><ellipse cx="45" cy="98" rx="30" ry="12" fill="#bfdbfe" opacity=".7"/><ellipse cx="45" cy="85" rx="28" ry="14" fill="#a5b4fc"/><circle cx="45" cy="60" r="20" fill="#fde68a"/><path d="M35,58 Q38,62 41,58" stroke="#1f2937" strokeWidth="2" fill="none" strokeLinecap="round"/><path d="M49,58 Q52,62 55,58" stroke="#1f2937" strokeWidth="2" fill="none" strokeLinecap="round"/>{["Z","z","z"].map((z,i)=><text key={i} x={62+i*8} y={35-i*8} fontSize={16-i*3} fill="#6366f1" fontWeight="800" style={{animation:`flutuar ${1.5+i*.3}s ease-in-out infinite`,animationDelay:`${i*.4}s`,opacity:.8}}>{z}</text>)}</svg>;
-const PEstrategias=()=><svg width="70" height="90" viewBox="0 0 90 115" style={{animation:"flutuar 2s ease-in-out infinite"}}><ellipse cx="45" cy="78" rx="18" ry="21" fill="#7dd3fc"/><path d="M27,70 Q20,90 28,100 Q36,80 45,85 Q54,80 62,100 Q70,90 63,70" fill="#3b82f6" opacity=".8"/><circle cx="45" cy="40" r="20" fill="#fde68a"/><ellipse cx="38" cy="38" rx="4" ry="3.5" fill="#1f2937"/><ellipse cx="52" cy="38" rx="4" ry="3.5" fill="#1f2937"/><path d="M37,50 Q45,56 53,50" stroke="#059669" strokeWidth="2" fill="none" strokeLinecap="round"/><line x1="27" y1="67" x2="10" y2="58" stroke="#7dd3fc" strokeWidth="6" strokeLinecap="round"/><line x1="63" y1="67" x2="78" y2="62" stroke="#7dd3fc" strokeWidth="6" strokeLinecap="round"/><line x1="38" y1="98" x2="33" y2="112" stroke="#7dd3fc" strokeWidth="6" strokeLinecap="round"/><line x1="52" y1="98" x2="57" y2="112" stroke="#7dd3fc" strokeWidth="6" strokeLinecap="round"/><text x="5" y="65" fontSize="16">🛡️</text></svg>;
-const PReforcadores=()=><svg width="70" height="90" viewBox="0 0 90 115" style={{animation:"pular 1.2s ease-in-out infinite"}}><ellipse cx="45" cy="78" rx="18" ry="21" fill="#fcd34d"/><circle cx="45" cy="40" r="20" fill="#fde68a"/><text x="33" y="18" fontSize="22" style={{animation:"balanco 1.5s ease-in-out infinite"}}>🏆</text><path d="M35,36 Q38,41 41,36" stroke="#1f2937" strokeWidth="2.5" fill="none" strokeLinecap="round"/><path d="M49,36 Q52,41 55,36" stroke="#1f2937" strokeWidth="2.5" fill="none" strokeLinecap="round"/><path d="M35,50 Q45,59 55,50" stroke="#d97706" strokeWidth="2.5" fill="none" strokeLinecap="round"/><line x1="27" y1="66" x2="10" y2="48" stroke="#fcd34d" strokeWidth="6" strokeLinecap="round" style={{transformOrigin:"27px 66px",animation:"bracoE 1.2s ease-in-out infinite"}}/><line x1="63" y1="66" x2="80" y2="48" stroke="#fcd34d" strokeWidth="6" strokeLinecap="round" style={{transformOrigin:"63px 66px",animation:"bracoD 1.2s ease-in-out infinite"}}/><line x1="38" y1="98" x2="30" y2="112" stroke="#fcd34d" strokeWidth="6" strokeLinecap="round"/><line x1="52" y1="98" x2="60" y2="112" stroke="#fcd34d" strokeWidth="6" strokeLinecap="round"/></svg>;
-const PVisuais=()=><svg width="70" height="90" viewBox="0 0 90 115" style={{animation:"flutuar 2.5s ease-in-out infinite"}}><defs><linearGradient id="rb" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stopColor="#ef4444"/><stop offset="50%" stopColor="#34d399"/><stop offset="100%" stopColor="#3b82f6"/></linearGradient></defs><ellipse cx="45" cy="78" rx="18" ry="21" fill="#f9a8d4"/><circle cx="45" cy="40" r="20" fill="#fde68a"/><circle cx="38" cy="38" r="5" fill="#fff" stroke="#1f2937" strokeWidth="1.5"/><circle cx="52" cy="38" r="5" fill="#fff" stroke="#1f2937" strokeWidth="1.5"/><circle cx="38" cy="38" r="2.5" fill="#1f2937"/><circle cx="52" cy="38" r="2.5" fill="#1f2937"/><path d="M37,50 Q45,57 53,50" stroke="#ec4899" strokeWidth="2" fill="none" strokeLinecap="round"/><path d="M10,40 Q20,15 45,15 Q70,15 80,40" stroke="url(#rb)" strokeWidth="3" fill="none" opacity=".8"/><line x1="27" y1="67" x2="15" y2="58" stroke="#f9a8d4" strokeWidth="6" strokeLinecap="round"/><line x1="38" y1="98" x2="33" y2="112" stroke="#f9a8d4" strokeWidth="6" strokeLinecap="round"/><line x1="52" y1="98" x2="57" y2="112" stroke="#f9a8d4" strokeWidth="6" strokeLinecap="round"/></svg>;
-
-const PERSONAGENS={ansiedade:PAnsiedade,tristeza:PTristeza,raiva:PRaiva,estresse:PEstresse,autoestima:PAutoestima,sono:PSono,estrategias:PEstrategias,reforcadores:PReforcadores,visuais:PVisuais};
-
-const BARALHOS=[
-  {id:"ansiedade",nome:"Ansiedade",emoji:"😰",color:"#8b5cf6",bg:"#ede9fe",cartas:[{titulo:"Respiração 4-7-8",descricao:"Inspire por 4s, segure 7s, expire 8s. Ativa o parassimpático e reduz ansiedade."},{titulo:"Grounding 5-4-3-2-1",descricao:"Nomeie 5 que vê, 4 que toca, 3 que ouve, 2 que cheira, 1 que saboreia."},{titulo:"Questionando a catastrofização",descricao:"Qual a probabilidade real? Qual o pior cenário? Eu conseguiria lidar?"},{titulo:"Exposição gradual",descricao:"Liste situações ansiosas do menos ao mais intenso. Enfrente a mais leve primeiro."},{titulo:"Relaxamento muscular",descricao:"Tensione e relaxe cada grupo muscular por 5s, dos pés à cabeça."},{titulo:"Programar a preocupação",descricao:"Reserve 15 min/dia para se preocupar. Fora desse horário, adie os pensamentos."}]},
-  {id:"tristeza",nome:"Tristeza",emoji:"😢",color:"#3b82f6",bg:"#dbeafe",cartas:[{titulo:"Ativação comportamental",descricao:"Escolha uma atividade prazerosa agora, mesmo sem vontade. Comece por 5 min."},{titulo:"Registro de conquistas",descricao:"Liste 3 coisas que fez hoje. Levantar da cama conta."},{titulo:"Conexão social",descricao:"Mande uma mensagem para alguém de confiança agora."},{titulo:"Reatribuição cognitiva",descricao:"Estou vendo apenas o lado negativo? Há evidências que contradizem isso?"},{titulo:"Autocuidado básico",descricao:"Você comeu, bebeu água, dormiu e se moveu hoje?"},{titulo:"Carta para si mesmo",descricao:"Escreva como se fosse um amigo próximo te consolando."}]},
-  {id:"raiva",nome:"Raiva",emoji:"😡",color:"#ef4444",bg:"#fee2e2",cartas:[{titulo:"Pausa estratégica",descricao:"Afaste-se por 10 min. A raiva atinge pico em 90s — esperar evita arrependimentos."},{titulo:"Respiração quadrada",descricao:"Inspire 4s → segure 4s → expire 4s → segure 4s. Repita 4 vezes."},{titulo:"Identificando necessidades",descricao:"O que eu precisava que não aconteceu? Respeito? Reconhecimento?"},{titulo:"Reestruturação",descricao:"Descreva a situação como câmera — só fatos. Separe o que aconteceu do que concluiu."},{titulo:"Liberação física",descricao:"Exercício intenso por 10 min. Queima cortisol e adrenalina."},{titulo:"Comunicação não-violenta",descricao:"'Quando X acontece, eu me sinto Y, porque preciso de Z. Você poderia W?'"}]},
-  {id:"estresse",nome:"Estresse",emoji:"🤯",color:"#f97316",bg:"#ffedd5",cartas:[{titulo:"Matriz de prioridades",descricao:"Divida: Urgente+Importante, Importante+Não urgente, Urgente+Não importante, Nenhum."},{titulo:"Técnica Pomodoro",descricao:"25 min foco, 5 min pausa. A cada 4 ciclos, pausa de 20 min."},{titulo:"Dizer não",descricao:"'Entendo a importância, mas não tenho disponibilidade agora.'"},{titulo:"Mindfulness 3 min",descricao:"1 min: observe o que sente. 1 min: foque na respiração. 1 min: expanda para o corpo."},{titulo:"Externalizar",descricao:"Escreva tudo que está na cabeça. A mente relaxa quando não precisa segurar tudo."},{titulo:"Reduzir perfeccionismo",descricao:"Feito é melhor que perfeito? Qual o custo real de 80% vs 100%?"}]},
-  {id:"autoestima",nome:"Autoestima",emoji:"💪",color:"#059669",bg:"#d1fae5",cartas:[{titulo:"Evidências positivas",descricao:"Liste 3 evidências de que você é capaz ou amável. Faça isso diariamente."},{titulo:"Desafiando o crítico",descricao:"Eu diria isso a um amigo? Qual a evidência real?"},{titulo:"Valores como bússola",descricao:"Liste 5 valores. Suas ações desta semana estiveram alinhadas?"},{titulo:"Celebrar vitórias",descricao:"Anote uma conquista por dia, por menor que pareça."},{titulo:"Postura expansiva",descricao:"Adote postura aberta e ereta por 2 min. Corpo e mente se comunicam."},{titulo:"Comparação justa",descricao:"Compare-se apenas com quem você era ontem."}]},
-  {id:"sono",nome:"Sono",emoji:"😴",color:"#0891b2",bg:"#cffafe",cartas:[{titulo:"Higiene do sono",descricao:"Horários fixos, sem telas 1h antes, quarto escuro e fresco."},{titulo:"Descompressão",descricao:"30 min antes: escreva tudo na cabeça e o que fará amanhã."},{titulo:"Restrição de sono",descricao:"Deite só quando com sono. Levante mesmo horário. Consolida o sono."},{titulo:"Imagem relaxante",descricao:"Visualize um lugar calmo com sons, cheiros e temperaturas."},{titulo:"Não lutar contra insônia",descricao:"Se não dormir em 20 min, levante. Faça algo calmo com luz baixa."},{titulo:"Pensamentos noturnos",descricao:"Anote e diga: 'Vou resolver isso amanhã.'"}]},
-  {id:"estrategias",nome:"Estratégias",emoji:"🛡️",color:"#7c3aed",bg:"#ede9fe",cartas:[{titulo:"5 passos",descricao:"1) Defina. 2) Liste soluções. 3) Avalie. 4) Escolha. 5) Execute e avalie."},{titulo:"Dessensibilização",descricao:"Hierarquia de medos + relaxamento + exposição gradual."},{titulo:"Assertividade",descricao:"Expressar necessidades de forma direta e respeitosa. Use 'eu sinto'."},{titulo:"Reversão de hábitos",descricao:"Identifique o gatilho. Desenvolva resposta incompatível e agradável."},{titulo:"Automonitoramento",descricao:"Registre frequência, intensidade e contexto. O registro já modifica o comportamento."},{titulo:"Controle de estímulos",descricao:"Reorganize o ambiente para facilitar comportamentos saudáveis."}]},
-  {id:"reforcadores",nome:"Reforçadores",emoji:"🏆",color:"#d97706",bg:"#fef3c7",cartas:[{titulo:"Reforço imediato",descricao:"Imediatamente após o comportamento desejado, ofereça algo agradável."},{titulo:"Contrato",descricao:"'Se eu fizer X, então me permitirei Y.' Coloque em lugar visível."},{titulo:"Reforço social",descricao:"Compartilhe metas com alguém que celebre suas conquistas."},{titulo:"Sistema de pontos",descricao:"Crie recompensas por nível. Acumule e troque."},{titulo:"Reforço intermitente",descricao:"Não se recompense sempre. Variar cria comportamentos mais resistentes."},{titulo:"Celebrar processo",descricao:"Reforce cada passo, não apenas o objetivo final."}]},
-  {id:"visuais",nome:"Estímulos Visuais",emoji:"🎨",color:"#ec4899",bg:"#fce7f3",cartas:[
-    {titulo:"Respiração com a chama",descricao:"Sincronize sua respiração com a chama.",visual:{tipo:"chama",instrucao:"Inspire quando crescer · Expire quando diminuir"}},
-    {titulo:"Círculo de calma",descricao:"Fixe o olhar no centro e deixe as ondas levarem a tensão.",visual:{tipo:"circulo",instrucao:"Fixe o olhar no centro e respire"}},
-    {titulo:"Gradiente de emoções",descricao:"Identifique qual cor representa o que sente.",visual:{tipo:"gradiente",instrucao:"Da cor que sente → para a que deseja"}},
-    {titulo:"Mandala de foco",descricao:"Observe por 60s. Se divagar, traga o olhar de volta ao centro.",visual:{tipo:"mandala",instrucao:"Mantenha o olhar no centro por 60s"}},
-    {titulo:"Horizonte",descricao:"Imagine olhar para esse horizonte após resolver o que te aflige.",visual:{tipo:"horizonte",instrucao:"Visualize o que há além"}},
-    {titulo:"Ponto de ancoragem",descricao:"Escolha forma e cor que representem segurança.",visual:{tipo:"ancora",instrucao:"Crie seu símbolo de segurança"}},
-  ]},
-];
-
-function VisualCard({tipo,color}){
-  if(tipo==="chama")return<div style={{display:"flex",justifyContent:"center",padding:"16px 0"}}><div style={{position:"relative",width:60,height:90}}><div style={{position:"absolute",bottom:0,left:"50%",transform:"translateX(-50%)",width:40,height:70,background:"linear-gradient(to top,#dc2626,#ef4444,#f97316)",borderRadius:"50% 50% 35% 35%",animation:"chama 2.2s ease-in-out infinite",opacity:.8}}/><div style={{position:"absolute",bottom:0,left:"50%",transform:"translateX(-50%)",width:30,height:50,background:"linear-gradient(to top,#ef4444,#f97316,#fbbf24)",borderRadius:"50% 50% 30% 30%",animation:"chama 1.8s ease-in-out infinite .2s"}}/><div style={{position:"absolute",bottom:0,left:"50%",transform:"translateX(-50%)",width:14,height:14,background:"#fef9c3",borderRadius:"50%",boxShadow:"0 0 12px #fbbf24"}}/></div></div>;
-  if(tipo==="circulo")return<div style={{display:"flex",justifyContent:"center",padding:"12px 0"}}><div style={{position:"relative",width:120,height:120}}>{[0,1,2,3,4].map(i=><div key={i} style={{position:"absolute",inset:i*12,borderRadius:"50%",border:`2px solid ${color}`,opacity:1-(i*.15),animation:`expandir ${2+i*.3}s ease-in-out infinite`,animationDelay:`${i*.25}s`}}/>)}<div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{width:20,height:20,borderRadius:"50%",background:color,animation:"pulso 2s ease-in-out infinite"}}/></div></div></div>;
-  if(tipo==="gradiente")return<div style={{borderRadius:14,overflow:"hidden",height:70,margin:"12px 0",background:"linear-gradient(135deg,#ef4444,#f97316,#fbbf24,#34d399,#3b82f6,#8b5cf6,#ec4899)"}}/>;
-  if(tipo==="mandala")return<div style={{display:"flex",justifyContent:"center",padding:"8px 0"}}><div style={{position:"relative",width:110,height:110}}>{[0,1,2,3,4,5,6,7].map(i=><div key={i} style={{position:"absolute",inset:0,display:"flex",justifyContent:"center"}}><div style={{width:4,height:50,background:`hsl(${i*45},70%,60%)`,borderRadius:4,transformOrigin:"bottom center",transform:`rotate(${i*45}deg) translateY(-5px)`,opacity:.7}}/></div>)}{[0,1,2].map(i=><div key={i} style={{position:"absolute",inset:i*16+8,borderRadius:"50%",border:`1.5px solid hsl(${i*60+200},60%,65%)`,animation:`girar ${6+i*2}s linear infinite ${i%2===0?"":" reverse"}`}}/>)}<div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{width:14,height:14,borderRadius:"50%",background:color,animation:"pulso 2s ease-in-out infinite"}}/></div></div></div>;
-  if(tipo==="horizonte")return<div style={{borderRadius:14,overflow:"hidden",height:70,margin:"12px 0",position:"relative"}}><div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom,#bfdbfe,#93c5fd,#dbeafe)"}}/><div style={{position:"absolute",bottom:0,left:0,right:0,height:28,background:"linear-gradient(to top,#86efac,#4ade80)",borderRadius:"40% 40% 0 0"}}/>{[1,2,3].map(i=><div key={i} style={{position:"absolute",top:12+i*6,left:`${15+i*25}%`,width:i*14+10,height:i*4+4,background:"rgba(255,255,255,.8)",borderRadius:"50%",filter:"blur(2px)"}}/>)}</div>;
-  if(tipo==="ancora")return<div style={{display:"flex",justifyContent:"center",padding:"8px 0",gap:16}}>{[{s:"circle",c:"#3b82f6"},{s:"rect",c:"#059669"},{s:"triangle",c:"#f59e0b"},{s:"star",c:"#ec4899"}].map((sh,i)=><div key={i} style={{width:42,height:42,display:"flex",alignItems:"center",justifyContent:"center",borderRadius:10,background:`${sh.c}20`,animation:`pulso ${2+i*.3}s ease-in-out infinite`,animationDelay:`${i*.3}s`}}><svg width="24" height="24">{sh.s==="circle"&&<circle cx="12" cy="12" r="10" fill={sh.c}/>}{sh.s==="rect"&&<rect x="2" y="2" width="20" height="20" rx="4" fill={sh.c}/>}{sh.s==="triangle"&&<polygon points="12,2 22,22 2,22" fill={sh.c}/>}{sh.s==="star"&&<polygon points="12,2 14.9,8.6 22,9.3 17,14 18.5,21 12,17.3 5.5,21 7,14 2,9.3 9.1,8.6" fill={sh.c}/>}</svg></div>)}</div>;
-  return null;
-}
-
-function CartaModal({carta,color,baralhoId,onClose,onNext}){
-  const P=PERSONAGENS[baralhoId];
-  return<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:20}} onClick={onClose}>
-    <div onClick={e=>e.stopPropagation()} style={{background:"#fff",borderRadius:24,padding:28,maxWidth:360,width:"100%",boxShadow:"0 24px 60px rgba(0,0,0,.25)",animation:"popIn .3s cubic-bezier(.34,1.56,.64,1)"}}>
-      <div style={{display:"flex",justifyContent:"center",marginBottom:8}}>{P&&<P/>}</div>
-      <div style={{width:48,height:6,background:color,borderRadius:4,margin:"0 auto 16px"}}/>
-      <h3 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:12}}>{carta.titulo}</h3>
-      {carta.visual&&<><VisualCard tipo={carta.visual.tipo} color={color}/><p style={{fontSize:12,fontWeight:700,color,textAlign:"center",marginBottom:10}}>{carta.visual.instrucao}</p></>}
-      <p style={{fontSize:14,color:"#4b5563",lineHeight:1.7}}>{carta.descricao}</p>
-      <div style={{display:"flex",gap:10,marginTop:24}}>
-        <button onClick={onClose} style={{flex:1,padding:"11px 0",borderRadius:12,border:"1.5px solid #e5e7eb",background:"#fff",color:"#6b7280",fontWeight:700,cursor:"pointer",fontSize:14}}>Fechar</button>
-        <button onClick={onNext} style={{flex:2,padding:"11px 0",borderRadius:12,border:"none",background:`linear-gradient(135deg,${color},${color}cc)`,color:"#fff",fontWeight:700,cursor:"pointer",fontSize:14}}>Próxima →</button>
+<!-- ══ MODAL: NOVO CANDIDATO ══ -->
+<div id="modal-new" class="overlay" onclick="if(event.target===this)closeModal('modal-new')">
+  <div class="modal modal-sm">
+    <div class="mhdr">
+      <h3>Novo Candidato</h3>
+      <button class="mclose" onclick="closeModal('modal-new')">✕</button>
+    </div>
+    <div class="mbody">
+      <p style="font-size:13px;color:var(--gray-mid);margin-bottom:6px">Preencha o nome e cargo. O sistema gera o link automaticamente.</p>
+      <label class="mlabel">Nome completo *</label>
+      <input id="new-nome"  class="minput" type="text" placeholder="Nome do candidato"/>
+      <label class="mlabel">Cargo *</label>
+      <select id="new-cargo" class="minput">
+        <option value="">Selecione</option>
+        <option>Atendente de Farmácia</option>
+        <option>Farmacêutico(a)</option>
+        <option>Caixa</option>
+        <option>Estoquista</option>
+        <option>Gerente de Loja</option>
+        <option>Auxiliar Administrativo</option>
+        <option>Outro</option>
+      </select>
+      <div id="link-preview" style="display:none">
+        <div class="link-box">
+          <span class="link-url" id="link-url-text"></span>
+          <button class="link-copy" onclick="copyGeneratedLink()">📋 Copiar</button>
+        </div>
+        <p style="font-size:11px;color:var(--gray-mid);margin-top:8px">Envie este link pelo WhatsApp para o candidato.</p>
+      </div>
+      <div class="mbtn-row">
+        <button class="btn btn-outline" onclick="closeModal('modal-new')">Fechar</button>
+        <button class="btn btn-primary" onclick="createCandidate()">✅ Criar e copiar link</button>
       </div>
     </div>
-  </div>;
-}
+  </div>
+</div>
 
-function BaralhosTab(){
-  const [sel,setSel]=useState(null);const [idx,setIdx]=useState(0);
-  function open(b){setSel({...b,cartas:[...b.cartas].sort(()=>Math.random()-.5)});setIdx(0);}
-  return<div>
-    {sel&&<CartaModal carta={sel.cartas[idx]} color={sel.color} baralhoId={sel.id} onClose={()=>setSel(null)} onNext={()=>setIdx(i=>(i+1)%sel.cartas.length)}/>}
-    <div style={{background:"linear-gradient(135deg,#6d28d9,#4f46e5,#0ea5e9)",borderRadius:18,padding:18,marginBottom:20,color:"#fff",position:"relative",overflow:"hidden"}}>
-      <div style={{position:"absolute",right:-16,top:-16,fontSize:70,opacity:.15}}>🃏</div>
-      <div style={{fontSize:11,fontWeight:700,opacity:.8,marginBottom:4}}>✨ TÉCNICA DO DIA</div>
-      <div style={{fontSize:15,fontWeight:800,marginBottom:6}}>Respiração 4-7-8</div>
-      <div style={{fontSize:12,opacity:.85,lineHeight:1.5,marginBottom:14}}>Inspire 4s, segure 7s, expire 8s.</div>
-      <button onClick={()=>open(BARALHOS[Math.floor(Math.random()*BARALHOS.length)])} style={{background:"rgba(255,255,255,.2)",border:"1px solid rgba(255,255,255,.3)",color:"#fff",borderRadius:10,padding:"7px 14px",cursor:"pointer",fontWeight:700,fontSize:12}}>🎲 Carta aleatória</button>
+<!-- ══ MODAL: DETALHE ══ -->
+<div id="modal-detail" class="overlay" onclick="if(event.target===this)closeModal('modal-detail')">
+  <div class="modal">
+    <div class="mhdr">
+      <h3 id="detail-title">Candidato</h3>
+      <button class="mclose" onclick="closeModal('modal-detail')">✕</button>
     </div>
-    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-      {BARALHOS.map(b=>{const P=PERSONAGENS[b.id];return<div key={b.id} onClick={()=>open(b)} style={{background:"#fff",borderRadius:16,padding:14,cursor:"pointer",boxShadow:"0 4px 12px rgba(0,0,0,.07)",display:"flex",flexDirection:"column",alignItems:"center",gap:4,textAlign:"center",transition:"transform .2s"}} onMouseEnter={e=>e.currentTarget.style.transform="translateY(-3px)"} onMouseLeave={e=>e.currentTarget.style.transform="translateY(0)"}><div style={{width:64,height:74,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"}}>{P?<P/>:<span style={{fontSize:32}}>{b.emoji}</span>}</div><div style={{fontWeight:800,color:"#1f2937",fontSize:12}}>{b.nome}</div><div style={{fontSize:11,color:"#9ca3af"}}>{b.cartas.length} técnicas</div><div style={{width:"100%",height:3,borderRadius:4,background:`linear-gradient(90deg,${b.color},${b.color}55)`,marginTop:4}}/></div>;})}
-    </div>
-  </div>;
-}
+    <div class="mbody" id="detail-body"></div>
+  </div>
+</div>
 
-function Header({title,subtitle,onBack,backLabel="Sair"}){
-  return<div style={{background:"linear-gradient(135deg,#6d28d9,#4f46e5,#0ea5e9)",padding:"18px 20px",display:"flex",justifyContent:"space-between",alignItems:"center",boxShadow:"0 4px 20px rgba(109,40,217,.3)"}}>
-    <div><div style={{color:"#fff",fontWeight:800,fontSize:18,letterSpacing:"-.3px"}}>{title}</div>{subtitle&&<div style={{color:"rgba(255,255,255,.75)",fontSize:12,marginTop:2}}>{subtitle}</div>}</div>
-    {onBack&&<button onClick={onBack} style={{background:"rgba(255,255,255,.18)",border:"1px solid rgba(255,255,255,.25)",color:"#fff",padding:"7px 14px",borderRadius:10,cursor:"pointer",fontSize:12,fontWeight:600}}>{backLabel}</button>}
-  </div>;
-}
-function TabBar({tabs,active,onChange}){
-  return<div style={tb}>{tabs.map(([id,label])=><button key={id} onClick={()=>onChange(id)} style={tBtn(active===id)}>{label}</button>)}</div>;
-}
-function EmptyState({icon,text}){return<div style={{textAlign:"center",padding:"40px 20px",color:"#aaa"}}><div style={{fontSize:40,marginBottom:8}}>{icon}</div><p style={{fontSize:14}}>{text}</p></div>;}
-function Spinner(){return<div style={{textAlign:"center",padding:40,color:"#6d28d9"}}>⏳ Carregando...</div>;}
-function ConfirmModal({msg,onConfirm,onCancel}){
-  return<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,padding:20}}>
-    <div style={{background:"#fff",borderRadius:16,padding:24,maxWidth:300,width:"100%"}}>
-      <p style={{fontSize:15,color:"#1f2937",marginBottom:20,textAlign:"center"}}>{msg}</p>
-      <div style={{display:"flex",gap:8}}><button onClick={onCancel} style={{...btn("#e5e7eb"),flex:1}}>Cancelar</button><button onClick={onConfirm} style={{...btn("#fee2e2"),flex:1}}>🗑 Apagar</button></div>
-    </div>
-  </div>;
-}
-function PatientModal({patient,onClose,onSave}){
-  const isEdit=!!patient;
-  const [name,setName]=useState(patient?.name||"");const [pass,setPass]=useState("");
-  return<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.45)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:200}}>
-    <div className="fade-in" style={{background:"#fff",borderRadius:"24px 24px 0 0",padding:28,width:"100%",maxWidth:480,boxShadow:"0 -8px 40px rgba(0,0,0,.15)"}}>
-      <div style={{width:40,height:4,background:"#e5e7eb",borderRadius:4,margin:"0 auto 20px"}}/>
-      <h2 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:20}}>{isEdit?"✏️ Editar Paciente":"➕ Novo Paciente"}</h2>
-      <label style={lbl}>Nome completo</label>
-      <input className="inp" value={name} onChange={e=>setName(e.target.value)} placeholder="Nome do paciente"/>
-      <label style={lbl}>{isEdit?"Nova senha (vazio = manter)":"Senha de acesso"}</label>
-      <input className="inp" type="password" value={pass} onChange={e=>setPass(e.target.value)} placeholder="••••••••"/>
-      <div style={{display:"flex",gap:10,marginTop:4}}>
-        <button onClick={onClose} style={{...btn("#e5e7eb"),flex:1,padding:"12px 0"}}>Cancelar</button>
-        <button onClick={()=>onSave(name,pass)} style={{flex:2,padding:"12px 0",borderRadius:10,border:"none",background:"linear-gradient(135deg,#6d28d9,#7c3aed)",color:"#fff",fontWeight:700,cursor:"pointer",fontSize:14}}>{isEdit?"Salvar":"Cadastrar"}</button>
-      </div>
-    </div>
-  </div>;
-}
-
-// ── Grupos ──
-function GruposTab({patients}){
-  const [grupos,setGrupos]=useState([]);
-  const [loaded,setLoaded]=useState(false);
-  const [view,setView]=useState(null);
-  const [dispMsg,setDispMsg]=useState("");
-  const [confirmApagar,setConfirmApagar]=useState(null); // grupo a apagar tarefas
-  const [apagando,setApagando]=useState(false);
-
-  useEffect(()=>{const u=fbListen("grupos",d=>{setGrupos(d?Object.values(d):[]);setLoaded(true);});return()=>u();},[]);
-
-  async function deleteGrupo(id){await fbSet(`grupos/${id}`,null);}
-
-  async function disparar(g){
-    const tasks=g.tasks?Object.values(g.tasks):[];
-    const membros=g.membros||[];
-    if(!tasks.length){alert("Adicione tarefas ao grupo primeiro.");return;}
-    if(!membros.length){alert("Adicione pacientes ao grupo primeiro.");return;}
-    for(const pid of membros){
-      for(const task of tasks){
-        const id="t"+Date.now()+Math.random().toString(36).slice(2,5);
-        await fbSet(`patients/${pid}/tasks/${id}`,{id,type:task.type,title:task.title,note:task.note||"",response:null,createdAt:new Date().toLocaleDateString("pt-BR"),fromGroup:g.nome});
-      }
+<script>
+// ══ DADOS SIMULADOS ════════════════════════════════════════════════
+let candidates = [
+  {
+    id: 'tok001', nome: 'Ana Paula Ferreira', cargo: 'Atendente de Farmácia',
+    cpf: '321.654.987-00', rg: '12.345.678-9', nascimento: '1998-05-14',
+    whatsapp: '(16) 99234-5678', email: 'ana.ferreira@gmail.com',
+    endereco: 'Rua das Flores, 142 — Jardim Paulista, Franca SP',
+    escolaridade: 'Ensino médio completo', banco: '260 — Nubank',
+    agencia: '0001', conta: '12345-6', tipoConta: 'Corrente', pix: '321.654.987-00',
+    status: 'submitted',
+    submittedAt: new Date('2025-06-05T14:22:00'),
+    arquivos: {
+      rg_cnh:               [{nome:'rg_ana_frente.jpg', tamanho:420000},{nome:'rg_ana_verso.jpg', tamanho:380000}],
+      cpf:                  [{nome:'cpf_ana.pdf', tamanho:95000}],
+      ctps:                 [{nome:'ctps_capa.jpg', tamanho:510000}],
+      residencia:           [{nome:'comprovante_energia.pdf', tamanho:120000}],
+      foto_3x4:             [{nome:'foto_3x4_ana.jpg', tamanho:230000}],
+      titulo_eleitor:       [{nome:'titulo_eleitor.jpg', tamanho:310000}],
+      comprovante_bancario: [{nome:'print_nubank.jpg', tamanho:180000}],
     }
-    setDispMsg(`✅ Tarefas disparadas para ${membros.length} paciente(s)!`);
-    setTimeout(()=>setDispMsg(""),3000);
-  }
-
-  async function apagarTarefasGrupo(g){
-    setApagando(true);
-    const membros=g.membros||[];
-    let total=0;
-    for(const pid of membros){
-      const pData=await fbGet(`patients/${pid}`);
-      const tasks=pData?.tasks?Object.values(pData.tasks):[];
-      for(const task of tasks){
-        if(task.fromGroup===g.nome){
-          await fbSet(`patients/${pid}/tasks/${task.id}`,null);
-          total++;
-        }
-      }
+  },
+  {
+    id: 'tok002', nome: 'Carlos Eduardo Souza', cargo: 'Estoquista',
+    cpf: '456.789.123-11', rg: '23.456.789-0', nascimento: '1995-11-30',
+    whatsapp: '(16) 98765-4321', email: '',
+    endereco: 'Av. Brasil, 890 — Centro, Franca SP',
+    escolaridade: 'Ensino médio completo', banco: '001 — Banco do Brasil',
+    agencia: '1234', conta: '56789-0', tipoConta: 'Corrente', pix: '',
+    status: 'approved',
+    submittedAt: new Date('2025-06-03T09:15:00'),
+    arquivos: {
+      rg_cnh:               [{nome:'rg_carlos.jpg', tamanho:390000}],
+      cpf:                  [{nome:'cpf_carlos.jpg', tamanho:88000}],
+      ctps:                 [{nome:'ctps_carlos_frente.jpg', tamanho:475000},{nome:'ctps_carlos_dados.jpg', tamanho:420000}],
+      residencia:           [{nome:'conta_agua.pdf', tamanho:105000}],
+      foto_3x4:             [{nome:'foto_carlos.jpg', tamanho:215000}],
+      titulo_eleitor:       [{nome:'titulo_carlos.pdf', tamanho:290000}],
+      reservista:           [{nome:'reservista_carlos.jpg', tamanho:340000}],
+      comprovante_bancario: [{nome:'cartao_bb.jpg', tamanho:165000}],
     }
-    setApagando(false);
-    setConfirmApagar(null);
-    setDispMsg(`🗑 ${total} tarefa(s) do grupo "${g.nome}" apagadas!`);
-    setTimeout(()=>setDispMsg(""),3500);
-  }
+  },
+  {
+    id: 'tok003', nome: 'Fernanda Lima Costa', cargo: 'Farmacêutica',
+    cpf: '789.123.456-22', rg: '34.567.890-1', nascimento: '1993-03-22',
+    whatsapp: '(16) 97654-3210', email: 'fernanda.lima@email.com',
+    endereco: 'Rua Tiradentes, 55 — Vila Nova, Franca SP',
+    escolaridade: 'Ensino superior completo', banco: '341 — Itaú',
+    agencia: '4567', conta: '98765-4', tipoConta: 'Corrente', pix: 'fernanda.lima@email.com',
+    status: 'rejected',
+    submittedAt: new Date('2025-06-02T16:40:00'),
+    arquivos: {
+      rg_cnh:               [{nome:'cnh_fernanda.jpg', tamanho:445000}],
+      cpf:                  [{nome:'cpf_fernanda.pdf', tamanho:92000}],
+      ctps:                 [{nome:'ctps_fernanda.jpg', tamanho:490000}],
+      residencia:           [{nome:'comprovante_gas.pdf', tamanho:115000}],
+      foto_3x4:             [{nome:'foto_fernanda.png', tamanho:260000}],
+      titulo_eleitor:       [{nome:'titulo_fernanda.jpg', tamanho:305000}],
+      comprovante_bancario: [{nome:'extrato_itau.pdf', tamanho:198000}],
+    }
+  },
+  {
+    id: 'tok004', nome: 'Ricardo Alves Martins', cargo: 'Caixa',
+    cpf: '111.222.333-44', rg: '45.678.901-2', nascimento: '2000-08-10',
+    whatsapp: '(16) 96543-2109', email: 'ricardo.martins@hotmail.com',
+    endereco: 'Rua XV de Novembro, 320 — Bairro Alto, Franca SP',
+    escolaridade: 'Ensino médio completo', banco: '', agencia: '', conta: '', tipoConta: '', pix: '',
+    status: 'pending',
+    submittedAt: null,
+    arquivos: {}
+  },
+  {
+    id: 'tok005', nome: 'Juliana Santos Oliveira', cargo: 'Auxiliar Administrativo',
+    cpf: '222.333.444-55', rg: '56.789.012-3', nascimento: '1997-12-05',
+    whatsapp: '(16) 95432-1098', email: 'juliana.santos@gmail.com',
+    endereco: 'Rua das Acácias, 78 — Jardim América, Franca SP',
+    escolaridade: 'Ensino superior incompleto', banco: '077 — Inter',
+    agencia: '0001', conta: '55667-7', tipoConta: 'Corrente', pix: '222.333.444-55',
+    status: 'submitted',
+    submittedAt: new Date('2025-06-06T11:05:00'),
+    arquivos: {
+      rg_cnh:               [{nome:'rg_juliana_frente.jpg', tamanho:400000},{nome:'rg_juliana_verso.jpg', tamanho:365000}],
+      cpf:                  [{nome:'cpf_juliana.jpg', tamanho:80000}],
+      ctps:                 [{nome:'ctps_juliana.pdf', tamanho:500000}],
+      residencia:           [{nome:'fatura_internet.pdf', tamanho:98000}],
+      foto_3x4:             [{nome:'foto_juliana.jpg', tamanho:244000}],
+      titulo_eleitor:       [{nome:'titulo_juliana.jpg', tamanho:315000}],
+      comprovante_bancario: [{nome:'print_inter.png', tamanho:172000}],
+    }
+  },
+];
 
-  if(view){return<GrupoForm grupo={view==="new"?null:view} patients={patients} onClose={()=>setView(null)}/>;}
+let currentFilter = 'all';
+let generatedLink = '';
 
-  return<div>
-    {/* Modal de confirmação de apagar tarefas */}
-    {confirmApagar&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,padding:20}}>
-      <div style={{background:"#fff",borderRadius:16,padding:24,maxWidth:320,width:"100%"}}>
-        <div style={{fontSize:36,textAlign:"center",marginBottom:12}}>⚠️</div>
-        <p style={{fontSize:15,color:"#1f2937",marginBottom:6,textAlign:"center",fontWeight:800}}>Apagar tarefas do grupo?</p>
-        <p style={{fontSize:13,color:"#6b7280",marginBottom:20,textAlign:"center",lineHeight:1.5}}>Isso irá apagar todas as tarefas com origem <strong>"{confirmApagar.nome}"</strong> de todos os pacientes membros.</p>
-        <div style={{display:"flex",gap:8}}>
-          <button onClick={()=>setConfirmApagar(null)} style={{...btn("#e5e7eb"),flex:1}} disabled={apagando}>Cancelar</button>
-          <button onClick={()=>apagarTarefasGrupo(confirmApagar)} style={{...btn("#fee2e2"),flex:1,color:"#e11d48"}} disabled={apagando}>{apagando?"Apagando...":"🗑 Apagar"}</button>
-        </div>
-      </div>
-    </div>}
+// ══ RENDER ═════════════════════════════════════════════════════════
+function renderList() {
+  const search = document.getElementById('search-input').value.toLowerCase();
+  const list   = document.getElementById('list');
 
-    {dispMsg&&<div style={{background:dispMsg.startsWith("🗑")?"#fee2e2":"#d1fae5",borderRadius:12,padding:14,marginBottom:16,color:dispMsg.startsWith("🗑")?"#991b1b":"#065f46",fontWeight:700,fontSize:14,textAlign:"center"}}>{dispMsg}</div>}
-    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-      <h2 style={h2s}>Grupos</h2>
-      <button onClick={()=>setView("new")} style={{...btn(),padding:"9px 16px",borderRadius:10}}>+ Novo</button>
-    </div>
-    {!loaded&&<Spinner/>}
-    {loaded&&grupos.length===0&&<EmptyState icon="👥" text="Nenhum grupo criado ainda."/>}
-    {grupos.map(g=>{
-      const membros=g.membros||[];
-      const tasks=g.tasks?Object.values(g.tasks):[];
-      return<div key={g.id} style={{background:"#fff",borderRadius:16,padding:18,marginBottom:12,boxShadow:"0 2px 10px rgba(0,0,0,.06)"}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
-          <div style={{display:"flex",alignItems:"center",gap:10}}>
-            <div style={{width:40,height:40,borderRadius:12,background:"#ede9fe",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>{g.emoji||"👥"}</div>
-            <div>
-              <div style={{fontWeight:800,color:"#1f2937",fontSize:16}}>{g.nome}</div>
-              <div style={{display:"flex",gap:6,marginTop:4}}>
-                <span style={{fontSize:11,background:"#ede9fe",color:"#6d28d9",padding:"2px 8px",borderRadius:20,fontWeight:700}}>{membros.length} paciente(s)</span>
-                <span style={{fontSize:11,background:"#d1fae5",color:"#065f46",padding:"2px 8px",borderRadius:20,fontWeight:700}}>{tasks.length} tarefa(s)</span>
-              </div>
-            </div>
-          </div>
-          <div style={{display:"flex",gap:6}}>
-            <button onClick={()=>setView(g)} style={{...btn("#ede9fe"),color:"#6d28d9",padding:"6px 10px"}}>✏️</button>
-            <button onClick={()=>deleteGrupo(g.id)} style={{...btn("#fee2e2"),padding:"6px 10px"}}>🗑</button>
-          </div>
-        </div>
-        {membros.length>0&&<div style={{marginBottom:10}}>
-          <div style={{fontSize:11,fontWeight:700,color:"#9ca3af",marginBottom:6,textTransform:"uppercase",letterSpacing:".5px"}}>Pacientes</div>
-          <div style={{display:"flex",flexWrap:"wrap",gap:6}}>{membros.map(pid=>{const p=patients.find(p=>p.id===pid);return p?<span key={pid} style={{fontSize:12,background:"#f3f4f6",color:"#374151",padding:"4px 10px",borderRadius:20,fontWeight:600}}>{p.name}</span>:null;})}</div>
-        </div>}
-        {tasks.length>0&&<div style={{marginBottom:12}}>
-          <div style={{fontSize:11,fontWeight:700,color:"#9ca3af",marginBottom:6,textTransform:"uppercase",letterSpacing:".5px"}}>Tarefas padrão</div>
-          <div style={{display:"flex",flexDirection:"column",gap:4}}>{tasks.map((t,i)=>{const ti=getTypeInfo(t.type);return<div key={i} style={{display:"flex",alignItems:"center",gap:8,fontSize:12}}><span style={{width:8,height:8,borderRadius:"50%",background:ti.color||"#888",display:"inline-block",flexShrink:0}}/><span style={{fontWeight:700,color:ti.color||"#888"}}>{ti.label||t.type}</span><span style={{color:"#9ca3af"}}>—</span><span style={{color:"#374151"}}>{t.title}</span></div>;})}</div>
-        </div>}
-        <div style={{display:"flex",gap:8}}>
-          <button onClick={()=>disparar(g)} style={{...btn(),flex:2,padding:"11px 0",boxShadow:"0 4px 12px rgba(109,40,217,.3)"}}>🚀 Disparar para todos</button>
-          <button onClick={()=>setConfirmApagar(g)} style={{...btn("#fee2e2"),flex:1,padding:"11px 0",color:"#e11d48"}}>🗑 Apagar tarefas</button>
-        </div>
-      </div>;
-    })}
-  </div>;
-}
-
-function GrupoForm({grupo,patients,onClose}){
-  const isEdit=!!grupo;
-  const [nome,setNome]=useState(grupo?.nome||"");
-  const [emoji,setEmoji]=useState(grupo?.emoji||"👥");
-  const [membros,setMembros]=useState(grupo?.membros||[]);
-  const [tasks,setTasks]=useState(grupo?.tasks?Object.values(grupo.tasks):[]);
-  const [showTF,setShowTF]=useState(false);
-  const [tt,setTt]=useState("");const [ttitle,setTtitle]=useState("");const [tnote,setTnote]=useState("");
-  const [saving,setSaving]=useState(false);
-  const EMOJIS=["👥","🏋️","🧠","🎯","💪","🌱","⭐","🔥","🏆","🌟","💡","🎨"];
-  function toggleMembro(pid){setMembros(m=>m.includes(pid)?m.filter(i=>i!==pid):[...m,pid]);}
-  function addTask(){if(!tt||!ttitle)return;setTasks(t=>[...t,{type:tt,title:ttitle,note:tnote}]);setTt("");setTtitle("");setTnote("");setShowTF(false);}
-  function removeTask(i){setTasks(t=>t.filter((_,idx)=>idx!==i));}
-  async function save(){
-    if(!nome.trim()){alert("Digite um nome.");return;}
-    setSaving(true);
-    const id=grupo?.id||"g"+Date.now();
-    const tasksObj={};tasks.forEach((t,i)=>{tasksObj[`task_${i}`]=t;});
-    await fbSet(`grupos/${id}`,{id,nome,emoji,membros,tasks:tasksObj});
-    setSaving(false);onClose();
-  }
-  return<div style={aw}>
-    <Header title={isEdit?"Editar Grupo":"Novo Grupo"} subtitle={nome||"Sem nome"} onBack={onClose} backLabel="← Voltar"/>
-    <div style={ct}>
-      <div style={{...crd,marginBottom:14}}>
-        <label style={lbl}>Nome do grupo</label>
-        <input className="inp" value={nome} onChange={e=>setNome(e.target.value)} placeholder="ex: Grupo Ansiedade, Turma TCC..."/>
-        <label style={lbl}>Ícone</label>
-        <div style={{display:"flex",flexWrap:"wrap",gap:8}}>{EMOJIS.map(e=><button key={e} onClick={()=>setEmoji(e)} style={{width:40,height:40,borderRadius:10,border:`2px solid ${emoji===e?"#6d28d9":"#e5e7eb"}`,background:emoji===e?"#ede9fe":"#fff",fontSize:20,cursor:"pointer"}}>{e}</button>)}</div>
-      </div>
-      <div style={{...crd,marginBottom:14}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-          <h3 style={{fontSize:15,fontWeight:800,color:"#1f2937"}}>👤 Pacientes</h3>
-          <span style={{fontSize:12,color:"#6d28d9",fontWeight:700}}>{membros.length} selecionado(s)</span>
-        </div>
-        {patients.length===0&&<p style={{fontSize:13,color:"#9ca3af"}}>Nenhum paciente cadastrado.</p>}
-        <div style={{display:"flex",flexDirection:"column",gap:8}}>
-          {patients.map(p=>{const sel=membros.includes(p.id);return<div key={p.id} onClick={()=>toggleMembro(p.id)} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 14px",borderRadius:12,border:`1.5px solid ${sel?"#6d28d9":"#e5e7eb"}`,background:sel?"#ede9fe":"#fff",cursor:"pointer",transition:"all .15s"}}>
-            <div style={{width:32,height:32,borderRadius:10,background:sel?"#6d28d9":"#f3f4f6",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,color:sel?"#fff":"#9ca3af",fontWeight:800}}>{sel?"✓":"+"}</div>
-            <div style={{fontWeight:700,color:sel?"#6d28d9":"#1f2937"}}>{p.name}</div>
-          </div>;})}
-        </div>
-      </div>
-      <div style={{...crd,marginBottom:14}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-          <h3 style={{fontSize:15,fontWeight:800,color:"#1f2937"}}>📋 Tarefas Padrão</h3>
-          <button onClick={()=>setShowTF(true)} style={{...btn(),padding:"7px 12px",fontSize:12}}>+ Adicionar</button>
-        </div>
-        {showTF&&<div style={{background:"#f9fafb",borderRadius:12,padding:14,marginBottom:12}}>
-          <select value={tt} onChange={e=>setTt(e.target.value)} className="inp"><option value="">Tipo...</option>{TASK_TYPES.map(t=><option key={t.id} value={t.id}>{t.label}</option>)}</select>
-          <input className="inp" placeholder="Título" value={ttitle} onChange={e=>setTtitle(e.target.value)}/>
-          <textarea className="inp" placeholder="Instruções (opcional)" value={tnote} onChange={e=>setTnote(e.target.value)} style={{minHeight:50,resize:"vertical"}}/>
-          <div style={{display:"flex",gap:8}}><button onClick={addTask} style={btn()}>Confirmar</button><button onClick={()=>setShowTF(false)} style={btn("#e5e7eb")}>Cancelar</button></div>
-        </div>}
-        {tasks.length===0&&<p style={{fontSize:13,color:"#9ca3af"}}>Nenhuma tarefa configurada.</p>}
-        {tasks.map((t,i)=>{const ti=getTypeInfo(t.type);return<div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",background:"#f9fafb",borderRadius:10,marginBottom:6}}>
-          <span style={{width:10,height:10,borderRadius:"50%",background:ti.color||"#888",flexShrink:0}}/>
-          <div style={{flex:1}}><div style={{fontSize:12,fontWeight:700,color:ti.color||"#888"}}>{ti.label||t.type}</div><div style={{fontSize:13,color:"#374151",fontWeight:600}}>{t.title}</div></div>
-          <button onClick={()=>removeTask(i)} style={{background:"none",border:"none",cursor:"pointer",color:"#e11d48",fontSize:16}}>🗑</button>
-        </div>;})}
-      </div>
-      <button className="btn-main" onClick={save} disabled={saving}>{saving?"Salvando...":isEdit?"Salvar":"Criar Grupo"}</button>
-    </div>
-  </div>;
-}
-
-// ── CSV Export Utils ──
-function toCSV(rows){return rows.map(r=>r.map(c=>`"${String(c??'').replace(/"/g,'""')}"`).join(",")).join("\n");}
-function downloadCSV(nome,conteudo){const b=new Blob(["\uFEFF"+conteudo],{type:"text/csv;charset=utf-8;"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=nome;a.click();URL.revokeObjectURL(a.href);}
-
-// ── Badge helper ──
-function Badge({children,color}){return<span style={{fontSize:11,fontWeight:700,background:`${color}15`,color,padding:"3px 10px",borderRadius:20}}>{children}</span>;}
-
-// ── CSV por paciente (adaptado para Firebase: extrai dados das tasks) ──
-function csvPaciente(p){
-  const tasks=p.tasks?Object.values(p.tasks):[];
-  const diarios=p.diarios?Object.values(p.diarios):[];
-  const escResp=tasks.filter(t=>t.type==="escala"&&t.response).slice(-1)[0]?.response||null;
-  const csaiResp=tasks.filter(t=>t.type==="csai2r"&&t.response?.totais).slice(-1)[0]?.response?.totais||null;
-  const sasResp=tasks.filter(t=>t.type==="sas"&&t.response?.totais).slice(-1)[0]?.response?.totais||null;
-  const acsiResp=tasks.filter(t=>t.type==="acsi28"&&t.response?.totais).slice(-1)[0]?.response?.totais||null;
-  let csv="";
-  csv+="RESUMO\n"+toCSV([["Campo","Valor"],["Paciente",p.name],["Grupo",p._grupo||"—"],["Data",new Date().toLocaleDateString("pt-BR")],["Registros no diário",diarios.length],["Total de tarefas",tasks.length],["Tarefas respondidas",tasks.filter(t=>t.response).length]])+"\n\n";
-  if(escResp){csv+="ESCALA DE BEM-ESTAR\n"+toCSV([["Dimensão","Valor (%)"],["Humor",escResp.humor],["Ansiedade",escResp.ansiedade],["Sono",escResp.sono],["Estresse",escResp.estresse],["Tristeza",escResp.tristeza]])+"\n\n";}
-  if(csaiResp){csv+="CSAI-2R\n"+toCSV([["Subescala","Pontuação","Máximo","%"],["Ans. Cognitiva",csaiResp.cognitiva,32,Math.round((csaiResp.cognitiva/32)*100)],["Ans. Somática",csaiResp.somatica,28,Math.round((csaiResp.somatica/28)*100)],["Autoconfiança",csaiResp.autoconfianca,20,Math.round((csaiResp.autoconfianca/20)*100)]])+"\n\n";}
-  if(sasResp){csv+="SAS\n"+toCSV([["Subescala","Pontuação","Máximo","%"],["Somática",sasResp.somatica,28,Math.round((sasResp.somatica/28)*100)],["Preocupação",sasResp.preocupacao,28,Math.round((sasResp.preocupacao/28)*100)],["Concentração",sasResp.concentracao,28,Math.round((sasResp.concentracao/28)*100)]])+"\n\n";}
-  if(acsiResp){csv+="ACSI-28\n"+toCSV([["Subescala","Pontuação","Máximo","%"],["Adversidade",acsiResp.adversidade,16,Math.round((acsiResp.adversidade/16)*100)],["Pressão",acsiResp.pressao,16,Math.round((acsiResp.pressao/16)*100)],["Metas",acsiResp.metas,16,Math.round((acsiResp.metas/16)*100)],["Concentração",acsiResp.concentracao,16,Math.round((acsiResp.concentracao/16)*100)],["Preocupação",acsiResp.preocupacao,16,Math.round((acsiResp.preocupacao/16)*100)],["Confiança",acsiResp.confianca,16,Math.round((acsiResp.confianca/16)*100)],["Treinabilidade",acsiResp.treinabilidade,16,Math.round((acsiResp.treinabilidade/16)*100)]])+"\n\n";}
-  if(diarios.length){csv+="DIÁRIO\n"+toCSV([["Emoção","Intensidade","Data","Hora","Contexto"],...diarios.map(d=>[d.emocao,d.intensidade,d.data||"—",d.hora||"—",d.contexto||"—"])]);}
-  return csv;
-}
-
-function exportarSelecionados(ps){
-  if(ps.length===1){downloadCSV(`MeuPsi_${ps[0].name.replace(/\s+/g,"_")}.csv`,csvPaciente(ps[0]));return;}
-  let csv="";
-  ps.forEach((p,i)=>{csv+=`${"=".repeat(40)}\nPACIENTE: ${p.name.toUpperCase()} | GRUPO: ${p._grupo||"—"}\n${"=".repeat(40)}\n\n`;csv+=csvPaciente(p);if(i<ps.length-1)csv+="\n\n";});
-  downloadCSV(`MeuPsi_Exportacao_${new Date().toLocaleDateString("pt-BR").replace(/\//g,"-")}.csv`,csv);
-}
-
-function exportarGrupoNome(grupoNome,patients){
-  const ps=patients.filter(p=>p._grupo===grupoNome);
-  let csv=`GRUPO: ${grupoNome.toUpperCase()}\nData: ${new Date().toLocaleDateString("pt-BR")}\nTotal de pacientes: ${ps.length}\n\n`;
-  const getTasks=(p)=>p.tasks?Object.values(p.tasks):[];
-  const getEscResp=(p)=>getTasks(p).filter(t=>t.type==="escala"&&t.response).slice(-1)[0]?.response||null;
-  const psComEsc=ps.filter(p=>getEscResp(p));
-  if(psComEsc.length>0){
-    const mediaEsc=(campo)=>Math.round(psComEsc.reduce((acc,p)=>{const r=getEscResp(p);return acc+(r?.[campo]||0);},0)/psComEsc.length);
-    csv+="MÉDIAS DO GRUPO — ESCALA DE BEM-ESTAR\n"+toCSV([["Dimensão","Média (%)","Classificação"],...["humor","ansiedade","sono","estresse","tristeza"].map(k=>{const m=mediaEsc(k);return[k.charAt(0).toUpperCase()+k.slice(1),m,m>=70?"Alto":m>=50?"Moderado":"Baixo"];})])+"\n\n";
-  }
-  const getCsaiResp=(p)=>getTasks(p).filter(t=>t.type==="csai2r"&&t.response?.totais).slice(-1)[0]?.response?.totais||null;
-  const psComCsai=ps.filter(p=>getCsaiResp(p));
-  if(psComCsai.length>0){
-    const mediaCsai=(k)=>Math.round(psComCsai.reduce((acc,p)=>{const r=getCsaiResp(p);return acc+(r?.[k]||0);},0)/psComCsai.length);
-    csv+="MÉDIAS DO GRUPO — CSAI-2R\n"+toCSV([["Subescala","Média","Máximo","%"],["Ans. Cognitiva",mediaCsai("cognitiva"),32,Math.round((mediaCsai("cognitiva")/32)*100)],["Ans. Somática",mediaCsai("somatica"),28,Math.round((mediaCsai("somatica")/28)*100)],["Autoconfiança",mediaCsai("autoconfianca"),20,Math.round((mediaCsai("autoconfianca")/20)*100)]])+"\n\n";
-  }
-  csv+="DADOS INDIVIDUAIS\n";
-  ps.forEach(p=>{csv+=`\n--- ${p.name} ---\n`;csv+=csvPaciente(p)+"\n";});
-  downloadCSV(`MeuPsi_Grupo_${grupoNome.replace(/\s+/g,"_")}_${new Date().toLocaleDateString("pt-BR").replace(/\//g,"-")}.csv`,csv);
-}
-
-// ── Exportar Screen — idêntico ao componente enviado, com dados Firebase ──
-function ExportarScreen({patients,grupos,onClose}){
-  // Descobre quais grupos existem a partir dos grupos do Firebase
-  // e enriquece cada paciente com o nome do grupo ao qual pertence (_grupo)
-  const gruposNomes=[...new Set(grupos.map(g=>g.nome))];
-  const patientsComGrupo=patients.map(p=>{
-    const g=grupos.find(g=>(g.membros||[]).includes(p.id));
-    return{...p,_grupo:g?.nome||"—"};
+  const filtered = candidates.filter(c => {
+    const matchFilter = currentFilter === 'all' || c.status === currentFilter;
+    const matchSearch = !search ||
+      c.nome.toLowerCase().includes(search) ||
+      c.cargo.toLowerCase().includes(search);
+    return matchFilter && matchSearch;
   });
 
-  const [modo,setModo]=useState("pacientes");
-  const [selecionados,setSelecionados]=useState([]);
-  const [grupoSel,setGrupoSel]=useState(gruposNomes[0]||"");
-  const [exportando,setExportando]=useState(false);
-  const [sucesso,setSucesso]=useState("");
+  updateCounters();
 
-  function togglePaciente(id){setSelecionados(s=>s.includes(id)?s.filter(x=>x!==id):[...s,id]);}
-  function selecionarTodos(){setSelecionados(patientsComGrupo.map(p=>p.id));}
-  function limparSelecao(){setSelecionados([]);}
-
-  function handleExport(){
-    setExportando(true);
-    if(modo==="pacientes"){
-      const ps=patientsComGrupo.filter(p=>selecionados.includes(p.id));
-      exportarSelecionados(ps);
-      setTimeout(()=>{setExportando(false);setSucesso(`✅ ${ps.length} paciente(s) exportados!`);setTimeout(()=>setSucesso(""),3000);},800);
-    }else{
-      exportarGrupoNome(grupoSel,patientsComGrupo);
-      setTimeout(()=>{setExportando(false);setSucesso(`✅ Grupo "${grupoSel}" exportado!`);setTimeout(()=>setSucesso(""),3000);},800);
-    }
+  if (filtered.length === 0) {
+    list.innerHTML = `<div class="empty">
+      <div class="empty-icon">📭</div>
+      <div class="empty-title">Nenhum candidato aqui</div>
+      <div class="empty-sub">Crie um novo candidato para gerar o link de envio.</div>
+    </div>`;
+    return;
   }
 
-  const podeExportar=modo==="pacientes"?selecionados.length>0:!!grupoSel;
-  const grupoPatients=patientsComGrupo.filter(p=>p._grupo===grupoSel);
-
-  return(
-    <div style={{background:"#f5f5f7",minHeight:"100vh",maxWidth:480,margin:"0 auto",fontFamily:"-apple-system,sans-serif",display:"flex",flexDirection:"column"}}>
-      <div style={{background:"linear-gradient(135deg,#6d28d9,#4f46e5,#0ea5e9)",padding:"18px 20px",boxShadow:"0 4px 20px rgba(109,40,217,.3)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-        <div>
-          <div style={{color:"#fff",fontWeight:800,fontSize:18}}>📊 Exportar Dados</div>
-          <div style={{color:"rgba(255,255,255,.75)",fontSize:12,marginTop:2}}>Selecione pacientes ou grupo</div>
-        </div>
-        <button onClick={onClose} style={{background:"rgba(255,255,255,.18)",border:"1px solid rgba(255,255,255,.25)",color:"#fff",padding:"7px 14px",borderRadius:10,cursor:"pointer",fontSize:12,fontWeight:600}}>← Voltar</button>
+  list.innerHTML = filtered.map(c => {
+    const si  = statusInfo(c.status);
+    const dt  = c.submittedAt ? c.submittedAt.toLocaleDateString('pt-BR') : null;
+    const nArq = Object.values(c.arquivos).flat().length;
+    return `
+    <div class="candidate-card" onclick="openDetail('${c.id}')">
+      <div class="cc-avatar">${initials(c.nome)}</div>
+      <div class="cc-info">
+        <div class="cc-name">${c.nome}</div>
+        <div class="cc-meta">${c.cargo} &nbsp;·&nbsp; ${c.whatsapp}</div>
+        ${nArq > 0 || dt ? `<div class="cc-meta" style="margin-top:3px">
+          ${nArq > 0 ? `📎 ${nArq} arquivo${nArq>1?'s':''} enviado${nArq>1?'s':''}` : ''}
+          ${dt ? `&nbsp;·&nbsp; Enviado em ${dt}` : ''}
+        </div>` : ''}
       </div>
-
-      <div style={{padding:"16px 16px 40px",flex:1,overflowY:"auto"}}>
-        {sucesso&&<div style={{background:"#d1fae5",borderRadius:12,padding:14,marginBottom:14,color:"#065f46",fontWeight:700,fontSize:14,textAlign:"center"}}>{sucesso}</div>}
-
-        <div style={{display:"flex",background:"#fff",borderRadius:14,padding:4,gap:4,marginBottom:16,boxShadow:"0 2px 8px rgba(0,0,0,.05)"}}>
-          {[["pacientes","👤 Por paciente"],["grupo","👥 Por grupo"]].map(([id,label])=>(
-            <button key={id} onClick={()=>{setModo(id);setSelecionados([]);}}
-              style={{flex:1,padding:"10px 4px",border:"none",cursor:"pointer",fontWeight:700,fontSize:13,borderRadius:10,background:modo===id?"#6d28d9":"transparent",color:modo===id?"#fff":"#9ca3af",transition:"all .2s"}}>
-              {label}
-            </button>
-          ))}
+      <div class="cc-right">
+        <span class="spill ${si.cls}">${si.label}</span>
+        <div class="cc-actions" onclick="event.stopPropagation()">
+          ${c.status === 'pending' ? `<button class="btn-icon" title="Copiar link" onclick="copyLink('${c.id}')">🔗</button>` : ''}
+          <button class="btn-icon danger" title="Apagar" onclick="deleteCandidate('${c.id}', event)">🗑</button>
         </div>
+      </div>
+    </div>`;
+  }).join('');
+}
 
-        {modo==="pacientes"&&<>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-            <div style={{fontSize:13,fontWeight:700,color:"#374151"}}>{selecionados.length} selecionado(s)</div>
-            <div style={{display:"flex",gap:8}}>
-              <button onClick={selecionarTodos} style={{fontSize:12,fontWeight:700,color:"#6d28d9",background:"#ede9fe",border:"none",borderRadius:8,padding:"5px 12px",cursor:"pointer"}}>Todos</button>
-              {selecionados.length>0&&<button onClick={limparSelecao} style={{fontSize:12,fontWeight:700,color:"#9ca3af",background:"#f3f4f6",border:"none",borderRadius:8,padding:"5px 12px",cursor:"pointer"}}>Limpar</button>}
-            </div>
-          </div>
+function updateCounters() {
+  document.getElementById('cnt-all').textContent     = candidates.length;
+  document.getElementById('cnt-pending').textContent = candidates.filter(c=>c.status==='pending').length;
+  document.getElementById('cnt-sub').textContent     = candidates.filter(c=>c.status==='submitted').length;
+  document.getElementById('cnt-app').textContent     = candidates.filter(c=>c.status==='approved').length;
+  document.getElementById('cnt-rej').textContent     = candidates.filter(c=>c.status==='rejected').length;
+}
 
-          <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
-            {patientsComGrupo.map(p=>{
-              const sel=selecionados.includes(p.id);
-              const tasks=p.tasks?Object.values(p.tasks):[];
-              const escResp=tasks.filter(t=>t.type==="escala"&&t.response).slice(-1)[0]?.response||null;
-              const humor=escResp?.humor||0;
-              const hColor=humor>=60?"#059669":humor>=40?"#d97706":"#e11d48";
-              return(
-                <div key={p.id} onClick={()=>togglePaciente(p.id)}
-                  style={{background:"#fff",borderRadius:14,padding:"14px 16px",cursor:"pointer",boxShadow:"0 2px 8px rgba(0,0,0,.06)",border:`1.5px solid ${sel?"#6d28d9":"#f0f0f0"}`,display:"flex",alignItems:"center",gap:12,transition:"all .15s"}}>
-                  <div style={{width:36,height:36,borderRadius:10,background:sel?"#6d28d9":"#f3f4f6",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:sel?18:16,color:sel?"#fff":"#9ca3af",fontWeight:800,transition:"all .2s"}}>
-                    {sel?"✓":"○"}
-                  </div>
-                  <div style={{flex:1}}>
-                    <div style={{fontWeight:700,color:sel?"#6d28d9":"#1f2937",fontSize:14}}>{p.name}</div>
-                    <div style={{display:"flex",gap:6,marginTop:4,flexWrap:"wrap"}}>
-                      {p._grupo!=="—"&&<Badge color="#6d28d9">{p._grupo}</Badge>}
-                      <Badge color={hColor}>Humor: {humor}%</Badge>
-                      <Badge color="#9ca3af">{Object.values(p.diarios||{}).length} diários</Badge>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+// ══ FILTRO ═══════════════════════════════════════════════════════════
+function setFilter(f) {
+  currentFilter = f;
+  document.querySelectorAll('.fbtn').forEach(b => b.classList.remove('active'));
+  document.getElementById('fbtn-' + f)?.classList.add('active');
+  renderList();
+}
 
-          {selecionados.length>0&&(
-            <div style={{background:"#ede9fe",borderRadius:14,padding:16,marginBottom:14}}>
-              <div style={{fontSize:13,fontWeight:800,color:"#6d28d9",marginBottom:8}}>📋 O que será exportado:</div>
-              <div style={{display:"flex",flexDirection:"column",gap:4}}>
-                {selecionados.map(id=>{const p=patientsComGrupo.find(x=>x.id===id);return p?<div key={id} style={{fontSize:12,color:"#4c1d95",fontWeight:600}}>• {p.name} — Bem-Estar, CSAI-2R, SAS, ACSI-28, Diário</div>:null;})}
-              </div>
-              {selecionados.length>1&&<div style={{fontSize:11,color:"#7c3aed",marginTop:8,fontStyle:"italic"}}>Arquivo único com todos os pacientes selecionados</div>}
-            </div>
-          )}
-        </>}
+// ══ DETALHE ══════════════════════════════════════════════════════════
+const arcLabels = {
+  rg_cnh:'RG / CNH', cpf:'CPF', ctps:'CTPS',
+  residencia:'Comprovante de residência', foto_3x4:'Foto 3x4',
+  titulo_eleitor:'Título de eleitor', reservista:'Certidão de reservista',
+  comprovante_bancario:'Comprovante bancário',
+};
 
-        {modo==="grupo"&&<>
-          {gruposNomes.length===0&&<EmptyState icon="👥" text="Nenhum grupo criado ainda. Crie grupos na aba Grupos."/>}
-          <div style={{fontSize:12,fontWeight:700,color:"#9ca3af",marginBottom:8,textTransform:"uppercase",letterSpacing:".5px"}}>Selecione o grupo</div>
-          <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
-            {gruposNomes.map(g=>{
-              const ps=patientsComGrupo.filter(p=>p._grupo===g);
-              const sel=grupoSel===g;
-              return(
-                <div key={g} onClick={()=>setGrupoSel(g)}
-                  style={{background:"#fff",borderRadius:14,padding:16,cursor:"pointer",boxShadow:"0 2px 8px rgba(0,0,0,.06)",border:`1.5px solid ${sel?"#6d28d9":"#f0f0f0"}`,transition:"all .15s"}}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                    <div style={{fontWeight:800,color:sel?"#6d28d9":"#1f2937",fontSize:15}}>{sel?"✓ ":""}{g}</div>
-                    <Badge color="#6d28d9">{ps.length} paciente(s)</Badge>
-                  </div>
-                  <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
-                    {ps.map(p=><span key={p.id} style={{fontSize:11,background:"#f3f4f6",color:"#374151",padding:"3px 8px",borderRadius:20,fontWeight:600}}>{p.name}</span>)}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+function openDetail(id) {
+  const c = candidates.find(x=>x.id===id);
+  if (!c) return;
 
-          {grupoSel&&(
-            <div style={{background:"#d1fae5",borderRadius:14,padding:16,marginBottom:14}}>
-              <div style={{fontSize:13,fontWeight:800,color:"#065f46",marginBottom:8}}>📋 O que será exportado:</div>
-              <div style={{display:"flex",flexDirection:"column",gap:4}}>
-                {["Médias do grupo — Escala de Bem-Estar","Médias do grupo — CSAI-2R","Dados individuais de cada paciente","Diários de emoções de cada paciente"].map(t=>(
-                  <div key={t} style={{fontSize:12,color:"#065f46",fontWeight:600}}>• {t}</div>
-                ))}
-              </div>
-              <div style={{fontSize:11,color:"#059669",marginTop:8,fontStyle:"italic"}}>Arquivo: MeuPsi_Grupo_{grupoSel.replace(/\s+/g,"_")}.csv</div>
-            </div>
-          )}
-        </>}
+  const si   = statusInfo(c.status);
+  const nArq = Object.values(c.arquivos).flat().length;
 
-        <button onClick={handleExport} disabled={!podeExportar||exportando}
-          style={{width:"100%",padding:"14px 0",borderRadius:12,border:"none",background:podeExportar?"linear-gradient(135deg,#059669,#34d399)":"#e5e7eb",color:podeExportar?"#fff":"#9ca3af",fontWeight:700,fontSize:15,cursor:podeExportar?"pointer":"default",boxShadow:podeExportar?"0 4px 12px rgba(5,150,105,.3)":"none",transition:"all .2s"}}>
-          {exportando?"⏳ Gerando arquivo...":modo==="pacientes"?selecionados.length===0?"Selecione ao menos 1 paciente":`📥 Exportar ${selecionados.length} paciente(s)`:`📥 Exportar grupo "${grupoSel}"`}
-        </button>
+  const campos = [
+    ['Nome',c.nome],['CPF',c.cpf],['RG',c.rg],
+    ['WhatsApp',c.whatsapp],['E-mail',c.email||'—'],
+    ['Endereço',c.endereco],['Escolaridade',c.escolaridade],['Cargo',c.cargo],
+    ['Banco',c.banco||'—'],['Agência',c.agencia||'—'],
+    ['Conta',c.conta ? c.conta+' ('+(c.tipoConta||'')+')'  : '—'],
+    ['PIX',c.pix||'—'],
+  ];
+
+  document.getElementById('detail-title').textContent = c.nome;
+
+  document.getElementById('detail-body').innerHTML = `
+    <!-- Barra de status -->
+    <div class="detail-bar">
+      <span class="spill ${si.cls}" style="font-size:13px;padding:6px 16px">${si.label}</span>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${c.status==='pending' ? `<button class="btn btn-outline" onclick="copyLink('${c.id}')">🔗 Copiar link</button>` : ''}
+        ${nArq > 0 ? `<button class="btn-zip" onclick="downloadZipDemo('${c.id}')">⬇ Baixar tudo (ZIP)</button>` : ''}
       </div>
     </div>
+
+    <!-- Dados -->
+    <div class="sec-title">Dados do candidato</div>
+    <div class="detail-grid">
+      ${campos.map(([k,v])=>`<div class="dfield"><span>${k}</span><strong>${v}</strong></div>`).join('')}
+    </div>
+
+    <!-- Documentos -->
+    <div class="sec-title" style="margin-top:22px">Documentos enviados</div>
+    ${nArq === 0
+      ? `<p style="font-size:13px;color:var(--gray-mid);padding:12px 0">Nenhum arquivo enviado ainda.</p>`
+      : Object.entries(arcLabels).map(([key,lbl]) => {
+          const files = c.arquivos[key];
+          if (!files || files.length===0) return '';
+          return `<div class="doc-group">
+            <div class="doc-group-lbl">${lbl}</div>
+            ${files.map(f=>`
+              <div class="file-row" onclick="previewFile('${f.nome}')">
+                <span class="fr-icon">${fileIcon(f.nome)}</span>
+                <span class="fr-name">${f.nome}</span>
+                <span class="fr-size">${(f.tamanho/1024).toFixed(0)} KB</span>
+                <span class="fr-open">↗</span>
+              </div>`).join('')}
+          </div>`;
+        }).join('')
+    }
+
+    <!-- Decisão -->
+    <div class="decision-bar">
+      ${c.status !== 'approved'
+        ? `<button class="btn-approve" onclick="setStatus('${c.id}','approved')">✅ Aprovar candidato</button>` : ''}
+      ${c.status !== 'rejected'
+        ? `<button class="btn-reject"  onclick="setStatus('${c.id}','rejected')">❌ Reprovar candidato</button>` : ''}
+      ${c.status !== 'pending' && c.status !== 'submitted'
+        ? `<button class="btn-undo"   onclick="setStatus('${c.id}','submitted')">↩ Desfazer decisão</button>` : ''}
+    </div>`;
+
+  openModal('modal-detail');
+}
+
+// ══ AÇÕES ═════════════════════════════════════════════════════════
+function setStatus(id, status) {
+  const c = candidates.find(x=>x.id===id);
+  if (!c) return;
+  c.status = status;
+  renderList();
+  openDetail(id); // atualizar modal
+  showToast(
+    status==='approved' ? '✅ Candidato aprovado!' :
+    status==='rejected' ? '❌ Candidato reprovado.' :
+    '↩ Decisão desfeita.',
+    status==='approved' ? 'success' : status==='rejected' ? 'error' : 'info'
   );
 }
 
-// ── Login ──
-function LoginScreen({onLogin}){
-  const [role,setRole]=useState("therapist");const [pid,setPid]=useState("");const [pass,setPass]=useState("");const [err,setErr]=useState("");const [loading,setLoading]=useState(false);
-  async function handle(){
-    setErr("");setLoading(true);
-    try{
-      if(role==="therapist"){const d=await fbGet("therapist");if(pass===(d?.password||"1234"))onLogin("therapist",null);else setErr("Senha incorreta.");}
-      else{const all=await fbGet("patients");if(!all){setErr("Nenhum paciente cadastrado.");setLoading(false);return;}
-        const found=Object.values(all).find(p=>p.name.trim().toLowerCase()===pid.trim().toLowerCase());
-        if(!found){setErr("Paciente não encontrado.");setLoading(false);return;}
-        if(found.password&&found.password!==pass){setErr("Senha incorreta.");setLoading(false);return;}
-        onLogin("patient",found.id);}
-    }catch(e){setErr("Erro de conexão.");}
-    setLoading(false);
+function copyLink(id) {
+  const url = `https://seudominio.com.br/formulario_candidato.html?token=${id}`;
+  navigator.clipboard.writeText(url).then(() => showToast('🔗 Link copiado! Envie pelo WhatsApp.'));
+}
+
+function deleteCandidate(id, e) {
+  if (e) e.stopPropagation();
+  if (!confirm('Apagar este candidato? (demonstração — apenas remove da lista)')) return;
+  candidates = candidates.filter(c=>c.id!==id);
+  renderList();
+  closeModal('modal-detail');
+  showToast('🗑 Candidato removido.');
+}
+
+function downloadZipDemo(id) {
+  showToast('⬇ Na versão real, um ZIP com todos os arquivos seria baixado!', 'info');
+}
+
+function previewFile(nome) {
+  showToast(`📂 Na versão real, o arquivo "${nome}" abriria aqui.`, 'info');
+}
+
+// ══ CRIAR CANDIDATO ═══════════════════════════════════════════════
+function createCandidate() {
+  const nome  = document.getElementById('new-nome').value.trim();
+  const cargo = document.getElementById('new-cargo').value;
+  if (!nome || !cargo) { showToast('Preencha nome e cargo.','error'); return; }
+
+  const id  = 'tok' + Math.random().toString(36).substr(2,6).toUpperCase();
+  const url = `https://seudominio.com.br/formulario_candidato.html?token=${id}`;
+
+  candidates.unshift({ id, nome, cargo, cpf:'', rg:'', nascimento:'', whatsapp:'',
+    email:'', endereco:'', escolaridade:'', banco:'', agencia:'', conta:'',
+    tipoConta:'', pix:'', status:'pending', submittedAt:null, arquivos:{} });
+
+  generatedLink = url;
+  document.getElementById('link-url-text').textContent = url;
+  document.getElementById('link-preview').style.display = 'block';
+  navigator.clipboard.writeText(url).then(() => {});
+  renderList();
+  showToast(`✅ Candidato criado! Link gerado e copiado.`);
+}
+
+function copyGeneratedLink() {
+  navigator.clipboard.writeText(generatedLink).then(() => showToast('🔗 Link copiado!'));
+}
+
+// ══ MODAL ════════════════════════════════════════════════════════
+function openModal(id) {
+  if (id==='modal-new') {
+    document.getElementById('new-nome').value = '';
+    document.getElementById('new-cargo').value = '';
+    document.getElementById('link-preview').style.display = 'none';
   }
-  return<div style={{minHeight:"100vh",background:"linear-gradient(160deg,#1e1b4b,#4c1d95,#0c4a6e)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-    <div className="fade-in" style={{width:"100%",maxWidth:360}}>
-      <div style={{textAlign:"center",marginBottom:32}}>
-        <div style={{width:72,height:72,borderRadius:22,background:"linear-gradient(135deg,#7c3aed,#0ea5e9)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px",boxShadow:"0 8px 32px rgba(124,58,237,.5)",fontSize:36}}>🧠</div>
-        <h1 style={{color:"#fff",fontSize:28,fontWeight:900,letterSpacing:"-1px",marginBottom:4}}>MeuPsi</h1>
-        <p style={{color:"rgba(255,255,255,.6)",fontSize:12,lineHeight:1.6}}>João Rosa · Psicólogo TCC<br/>CRP 06/227336</p>
-      </div>
-      <div style={{background:"rgba(255,255,255,.95)",borderRadius:24,padding:28,boxShadow:"0 24px 60px rgba(0,0,0,.3)"}}>
-        <div style={{display:"flex",marginBottom:22,borderRadius:12,overflow:"hidden",background:"#f3f4f6",padding:4,gap:4}}>
-          {["therapist","patient"].map(r=><button key={r} onClick={()=>{setRole(r);setErr("");}} style={{flex:1,padding:"9px 0",background:role===r?"#fff":"transparent",color:role===r?"#6d28d9":"#9ca3af",border:"none",cursor:"pointer",fontWeight:700,fontSize:13,borderRadius:9,boxShadow:role===r?"0 2px 8px rgba(0,0,0,.1)":"none",transition:"all .2s"}}>{r==="therapist"?"Terapeuta":"Paciente"}</button>)}
-        </div>
-        {role==="patient"&&<input className="inp" placeholder="Seu nome completo" value={pid} onChange={e=>setPid(e.target.value)}/>}
-        <input type="password" className="inp" placeholder="Senha" value={pass} onChange={e=>setPass(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handle()} style={{marginBottom:16}}/>
-        {err&&<p style={{color:"#e11d48",fontSize:12,marginBottom:10}}>{err}</p>}
-        <button className="btn-main" onClick={handle} disabled={loading}>{loading?"Entrando...":"Entrar"}</button>
-      </div>
-    </div>
-  </div>;
+  document.getElementById(id).classList.add('open');
+}
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// ══ UTILS ════════════════════════════════════════════════════════
+function statusInfo(s) {
+  return {
+    pending:  {label:'Aguardando envio', cls:'st-pending'},
+    submitted:{label:'Docs enviados',    cls:'st-submitted'},
+    approved: {label:'Aprovado',         cls:'st-approved'},
+    rejected: {label:'Reprovado',        cls:'st-rejected'},
+  }[s] || {label:s, cls:''};
 }
 
-// ── Therapist ──
-function TherapistApp({onLogout}){
-  const [tab,setTab]=useState("patients");
-  const [patients,setPatients]=useState(null);
-  const [grupos,setGrupos]=useState([]);
-  const [sel,setSel]=useState(null);
-  const [modal,setModal]=useState(null);
-  const [confirmDel,setConfirmDel]=useState(null);
-  const [showExport,setShowExport]=useState(false);
-
-  useEffect(()=>{const u=fbListen("patients",d=>setPatients(d?Object.values(d):[]));return()=>u();},[]);
-  useEffect(()=>{const u=fbListen("grupos",d=>setGrupos(d?Object.values(d):[]));return()=>u();},[]);
-
-  async function savePatient(name,pass){
-    if(!name.trim())return;
-    const all=await fbGet("patients");const list=all?Object.values(all):[];
-    if(!modal?.id&&list.find(p=>p.name.trim().toLowerCase()===name.trim().toLowerCase())){alert(`Já existe um paciente com o nome "${name}".`);return;}
-    if(modal?.id){
-      const updates={name};if(pass)updates.password=pass;
-      await fbUpdate(`patients/${modal.id}`,updates);
-    }else{
-      const id="p"+Date.now();
-      await fbSet(`patients/${id}`,{id,name,password:pass||"1234",tasks:{},prontuario:{identificacao:{},demanda:{},evolucao_reg:{},encerramento:{},historia:{},evolucao:{}}});
-    }
-    setModal(null);
-  }
-
-  async function deletePatient(id){await fbSet(`patients/${id}`,null);setConfirmDel(null);}
-
-  if(patients===null)return<div style={aw}><Header title="MeuPsi" subtitle="Painel do Terapeuta" onBack={onLogout}/><Spinner/></div>;
-  if(showExport)return<ExportarScreen patients={patients} grupos={grupos} onClose={()=>setShowExport(false)}/>;
-  if(sel){const p=patients.find(p=>p.id===sel);if(p)return<PatientDetail patient={p} onBack={()=>setSel(null)}/>;}
-
-  return<div style={aw}>
-    {confirmDel&&<ConfirmModal msg={`Apagar "${confirmDel.name}"?`} onConfirm={()=>deletePatient(confirmDel.id)} onCancel={()=>setConfirmDel(null)}/>}
-    {modal&&<PatientModal patient={modal==="new"?null:modal} onClose={()=>setModal(null)} onSave={savePatient}/>}
-    <Header title="MeuPsi" subtitle="Painel do Terapeuta" onBack={onLogout}/>
-    <TabBar tabs={[["patients","👥 Pacientes"],["groups","🗂 Grupos"],["dashboard","📊 Dashboard"],["overview","📈 Visão Geral"],["config","⚙️ Config"]]} active={tab} onChange={setTab}/>
-    <div className="fade-in" style={ct}>
-      {tab==="patients"&&<>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-          <h2 style={h2s}>Meus Pacientes</h2>
-          <button onClick={()=>setModal("new")} style={{...btn(),padding:"9px 16px",borderRadius:10}}>+ Novo</button>
-        </div>
-        {patients.length===0&&<EmptyState icon="👤" text="Nenhum paciente ainda."/>}
-        <div style={{display:"flex",flexDirection:"column",gap:10}}>
-          {patients.map(p=><div key={p.id} className="card-hover" style={{background:"#fff",borderRadius:16,padding:"14px 18px",boxShadow:"0 2px 10px rgba(0,0,0,.06)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <div onClick={()=>setSel(p.id)} style={{flex:1,display:"flex",alignItems:"center",gap:12}}>
-              <div style={{width:42,height:42,borderRadius:14,background:"linear-gradient(135deg,#ede9fe,#dbeafe)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>👤</div>
-              <div><div style={{fontWeight:700,color:"#1f2937",fontSize:15}}>{p.name}</div><div style={{fontSize:12,color:"#9ca3af",marginTop:2}}>{p.tasks?Object.keys(p.tasks).length:0} tarefa(s)</div></div>
-            </div>
-            <div style={{display:"flex",gap:8,alignItems:"center"}}>
-              <button onClick={()=>setModal(p)} style={{...btn("#ede9fe"),color:"#6d28d9",padding:"6px 10px"}}>✏️</button>
-              <button onClick={()=>setConfirmDel(p)} style={{...btn("#fee2e2"),padding:"6px 10px"}}>🗑</button>
-              <div onClick={()=>setSel(p.id)} style={{width:32,height:32,borderRadius:10,background:"#f3f4f6",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,color:"#6d28d9",cursor:"pointer"}}>›</div>
-            </div>
-          </div>)}
-        </div>
-      </>}
-      {tab==="groups"&&<GruposTab patients={patients}/>}
-      {tab==="dashboard"&&<DashboardTab patients={patients} onExport={()=>setShowExport(true)}/>}
-      {tab==="overview"&&<>
-        <h2 style={h2s}>Visão Geral</h2>
-        {patients.length===0&&<EmptyState icon="📊" text="Nenhum dado ainda."/>}
-        {patients.map(p=>{const tasks=p.tasks?Object.values(p.tasks):[];const done=tasks.filter(t=>t.response).length;
-          return<div key={p.id} style={{background:"#fff",borderRadius:16,padding:18,marginBottom:10,boxShadow:"0 2px 10px rgba(0,0,0,.06)"}}>
-            <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}><div style={{fontWeight:700,color:"#1f2937"}}>{p.name}</div><div style={{fontSize:13,fontWeight:700,color:"#6d28d9"}}>{tasks.length?Math.round((done/tasks.length)*100):0}%</div></div>
-            <div style={{background:"#f3f4f6",borderRadius:20,height:8,overflow:"hidden"}}><div style={{width:tasks.length?`${(done/tasks.length)*100}%`:"0%",background:"linear-gradient(90deg,#6d28d9,#0ea5e9)",height:"100%",borderRadius:20}}/></div>
-            <div style={{fontSize:12,color:"#9ca3af",marginTop:6}}>{done} de {tasks.length} tarefas concluídas</div>
-          </div>;
-        })}
-      </>}
-      {tab==="config"&&<ConfigTab role="therapist" onLogout={onLogout}/>}
-    </div>
-  </div>;
+function initials(name) {
+  return (name||'?').split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
 }
 
-// ── Patient Detail ──
-function PatientDetail({patient,onBack}){
-  const [tab,setTab]=useState("tasks");const [lp,setLp]=useState(patient);
-  const [showAdd,setShowAdd]=useState(false);const [tt,setTt]=useState("");const [ttitle,setTtitle]=useState("");const [tnote,setTnote]=useState("");
-  const [confirmDel,setConfirmDel]=useState(null);const [viewTask,setViewTask]=useState(null);
-  useEffect(()=>{const u=fbListen(`patients/${patient.id}`,d=>{if(d)setLp(d);});return()=>u();},[patient.id]);
-  async function addTask(){
-    if(!tt)return;
-    const id="t"+Date.now();
-    const ti=getTypeInfo(tt);
-    await fbSet(`patients/${patient.id}/tasks/${id}`,{id,type:tt,title:ti.label||tt,note:tnote,response:null,createdAt:new Date().toLocaleDateString("pt-BR")});
-    setTt("");setTnote("");setShowAdd(false);
-  }
-  async function deleteTask(tid){await fbSet(`patients/${patient.id}/tasks/${tid}`,null);setConfirmDel(null);setViewTask(null);}
-  const tasks=lp.tasks?Object.values(lp.tasks):[];
-  const diarios=lp.diarios?Object.values(lp.diarios).reverse():[];
-
-  if(viewTask){const ti=getTypeInfo(viewTask.type);return<div style={aw}>
-    {confirmDel&&<ConfirmModal msg={`Apagar "${confirmDel.title}"?`} onConfirm={()=>deleteTask(confirmDel.id)} onCancel={()=>setConfirmDel(null)}/>}
-    <Header title="Detalhes" subtitle={viewTask.title} onBack={()=>setViewTask(null)} backLabel="← Voltar"/>
-    <div style={ct}><div style={crd}>
-      <span style={{fontSize:11,fontWeight:700,color:ti.color,background:`${ti.color}15`,padding:"3px 10px",borderRadius:20}}>{ti.label}</span>
-      <h2 style={{fontSize:17,fontWeight:800,color:"#1f2937",margin:"12px 0 4px"}}>{viewTask.title}</h2>
-      {viewTask.note&&<div style={{background:"#f3f4f6",borderRadius:10,padding:12,marginBottom:12}}><p style={{fontSize:13,color:"#555"}}><strong>Instruções:</strong> {viewTask.note}</p></div>}
-      <span style={{fontSize:13,padding:"4px 10px",borderRadius:20,background:viewTask.response?"#d1fae5":"#fef3c7",color:viewTask.response?"#065f46":"#92400e",fontWeight:600}}>{viewTask.response?"✅ Respondida":"⏳ Pendente"}</span>
-      {viewTask.response&&<div style={{marginTop:16}}><h3 style={{fontSize:14,fontWeight:700,color:"#374151",marginBottom:10}}>Resposta:</h3><ResponseView response={viewTask.response} type={viewTask.type}/></div>}
-      <div style={{marginTop:20}}><button onClick={()=>setConfirmDel(viewTask)} style={{...btn("#fee2e2"),width:"100%"}}>🗑 Apagar</button></div>
-    </div></div>
-  </div>;}
-
-  return<div style={aw}>
-    {confirmDel&&<ConfirmModal msg={`Apagar "${confirmDel.title}"?`} onConfirm={()=>deleteTask(confirmDel.id)} onCancel={()=>setConfirmDel(null)}/>}
-    <Header title={`👤 ${patient.name}`} subtitle="Detalhes" onBack={onBack} backLabel="← Voltar"/>
-    <TabBar tabs={[["tasks","📋 Tarefas"],["responses","✅ Respostas"],["diario","📔 Diário"],["prontuario","📁 Prontuário"]]} active={tab} onChange={setTab}/>
-    <div className="fade-in" style={ct}>
-      {tab==="tasks"&&<>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-          <h2 style={h2s}>Tarefas ({tasks.length})</h2>
-          <button onClick={()=>setShowAdd(true)} style={{...btn(),padding:"9px 16px",borderRadius:10}}>+ Nova</button>
-        </div>
-        {showAdd&&<div style={{...crd,marginBottom:16}}>
-          <select value={tt} onChange={e=>setTt(e.target.value)} className="inp"><option value="">Tipo de tarefa...</option>{TASK_TYPES.map(t=><option key={t.id} value={t.id}>{t.label}</option>)}</select>
-          <textarea className="inp" placeholder="Instruções (opcional)" value={tnote} onChange={e=>setTnote(e.target.value)} style={{minHeight:60,resize:"vertical"}}/>
-          <div style={{display:"flex",gap:8}}><button onClick={addTask} style={btn()}>Adicionar</button><button onClick={()=>setShowAdd(false)} style={btn("#e5e7eb")}>Cancelar</button></div>
-        </div>}
-        {tasks.length===0&&<EmptyState icon="📋" text="Nenhuma tarefa ainda."/>}
-        {tasks.map(task=>{const ti=getTypeInfo(task.type);return<div key={task.id} className="card-hover" onClick={()=>setViewTask(task)} style={{background:"#fff",borderRadius:16,padding:16,marginBottom:10,boxShadow:"0 2px 10px rgba(0,0,0,.05)",borderLeft:`4px solid ${ti.color||"#888"}`}}>
-          <div style={{display:"flex",justifyContent:"space-between"}}>
-            <div style={{flex:1}}>
-              <span style={{fontSize:11,fontWeight:700,color:ti.color,background:`${ti.color}15`,padding:"3px 10px",borderRadius:20}}>{ti.label||task.type}</span>
-              <div style={{fontWeight:700,marginTop:8,color:"#1f2937",fontSize:14}}>{task.title}</div>
-              {task.note&&<div style={{fontSize:12,color:"#9ca3af",marginTop:3}}>{task.note}</div>}
-              {task.fromGroup&&<div style={{fontSize:11,color:"#6d28d9",marginTop:4}}>📦 Grupo: {task.fromGroup}</div>}
-            </div>
-            <span style={{fontSize:11,padding:"3px 10px",borderRadius:20,background:task.response?"#d1fae5":"#fef3c7",color:task.response?"#065f46":"#92400e",fontWeight:700,marginLeft:8,height:"fit-content"}}>{task.response?"✅":"⏳"}</span>
-          </div>
-        </div>;})}
-      </>}
-      {tab==="responses"&&<>
-        <h2 style={h2s}>Respostas</h2>
-        {tasks.filter(t=>t.response).length===0&&<EmptyState icon="✅" text="Nenhuma resposta ainda."/>}
-        {tasks.filter(t=>t.response).map(task=>{const ti=getTypeInfo(task.type);return<div key={task.id} style={{background:"#fff",borderRadius:16,padding:16,marginBottom:12,boxShadow:"0 2px 10px rgba(0,0,0,.05)"}}>
-          <span style={{fontSize:11,fontWeight:700,color:ti.color}}>{ti.label||task.type}</span>
-          <div style={{fontWeight:700,marginBottom:10,color:"#1f2937"}}>{task.title}</div>
-          <ResponseView response={task.response} type={task.type}/>
-          {task.answeredAt&&<div style={{fontSize:11,color:"#9ca3af",marginTop:8}}>Respondida em {task.answeredAt}</div>}
-        </div>;})}
-      </>}
-      {tab==="diario"&&<>
-        <h2 style={h2s}>📔 Diário ({diarios.length})</h2>
-        {diarios.length===0&&<EmptyState icon="📔" text="Nenhum registro ainda."/>}
-        {diarios.map((d,i)=>{const em=EMOCOES.find(e=>e.nome===d.emocao)||{emoji:"😐",color:"#888"};return<div key={i} style={{background:"#fff",borderRadius:16,padding:16,marginBottom:10,boxShadow:"0 2px 10px rgba(0,0,0,.05)",borderLeft:`4px solid ${em.color}`}}>
-          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
-            <div style={{width:40,height:40,borderRadius:12,background:`${em.color}15`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>{em.emoji}</div>
-            <div><div style={{fontWeight:700,color:em.color,fontSize:14}}>{d.emocao}</div><div style={{fontSize:11,color:"#9ca3af"}}>{d.data} {d.hora}</div></div>
-            <div style={{marginLeft:"auto",background:`${em.color}15`,color:em.color,fontSize:12,fontWeight:700,padding:"4px 10px",borderRadius:20}}>Int. {d.intensidade}/10</div>
-          </div>
-          {d.contexto&&<div style={{fontSize:13,color:"#6b7280",background:"#f9fafb",borderRadius:10,padding:"8px 12px"}}>{d.contexto}</div>}
-        </div>;})}
-      </>}
-      {tab==="prontuario"&&<ProntuarioTab patientId={patient.id} prontuario={lp.prontuario||{}}/>}
-    </div>
-  </div>;
+function fileIcon(name) {
+  const ext = (name||'').split('.').pop().toLowerCase();
+  if (['jpg','jpeg','png'].includes(ext)) return '🖼';
+  if (ext==='pdf') return '📑';
+  return '📄';
 }
 
-// ── Prontuário ──
-function ProntuarioTab({patientId,prontuario}){
-  const [ptab,setPtab]=useState("identificacao");
-  const [data,setData]=useState(prontuario);
-  const [saved,setSaved]=useState(false);
-  const [evo,setEvo]=useState("");
-  const sections=[["identificacao","🪪 Ident."],["demanda","🎯 Demanda"],["evolucao_reg","📋 Evolução"],["encerramento","🔚 Encerr."],["anexos","📎 Anexos"]];
-  const fields={
-    identificacao:[["nome","Nome completo",""],["nasc","Data de nascimento",""],["instituicao","Instituição",""],["contato","Contato",""],["responsavel","Responsável",""]],
-    demanda:[["queixa","Queixa principal","Descreva a demanda..."],["objetivos","Objetivos","Defina os objetivos..."],["cid","CID / Hipótese",""],["medicacoes","Medicações",""]],
-    evolucao_reg:[["procedimentos","Procedimentos técnico-científicos adotados","Técnicas e abordagens..."],["instrumentos","Instrumentos de avaliação",""],["observacoes","Observações clínicas",""]],
-    encerramento:[["encaminhamento","Encaminhamento",""],["motivo","Motivo do encerramento",""],["data_enc","Data de encerramento",""],["consideracoes","Considerações finais",""]],
-  };
-  async function save(){await fbSet(`patients/${patientId}/prontuario`,data);setSaved(true);setTimeout(()=>setSaved(false),2000);}
-  async function addEvo(){if(!evo.trim())return;const id="e"+Date.now();await fbSet(`patients/${patientId}/prontuario/evolucao/${id}`,{date:new Date().toLocaleDateString("pt-BR"),text:evo});setEvo("");}
-  const evolucao=data.evolucao?Object.values(data.evolucao).reverse():[];
-  return<div>
-    <h2 style={h2s}>📁 Prontuário</h2>
-    <div style={{display:"flex",gap:8,marginBottom:16,overflowX:"auto",paddingBottom:4}}>
-      {sections.map(([id,label])=><button key={id} onClick={()=>setPtab(id)} style={{whiteSpace:"nowrap",padding:"8px 14px",borderRadius:20,border:"none",cursor:"pointer",fontWeight:700,fontSize:12,background:ptab===id?"#6d28d9":"#fff",color:ptab===id?"#fff":"#6b7280",boxShadow:ptab===id?"0 4px 12px rgba(109,40,217,.3)":"0 1px 4px rgba(0,0,0,.08)"}}>{label}</button>)}
-    </div>
-    {ptab!=="anexos"&&fields[ptab]&&<div className="fade-in" style={{...crd,marginBottom:14}}>
-      {fields[ptab].map(([f,l,ph])=><div key={f} style={{marginBottom:14}}>
-        <div style={{fontSize:11,fontWeight:700,color:"#9ca3af",marginBottom:6,textTransform:"uppercase",letterSpacing:".5px"}}>{l}</div>
-        {ph?<textarea className="inp" placeholder={ph} value={(data[ptab]||{})[f]||""} onChange={e=>setData({...data,[ptab]:{...(data[ptab]||{}),[f]:e.target.value}})} style={{minHeight:70,resize:"vertical",marginBottom:0}}/>
-          :<input className="inp" placeholder="Digite..." value={(data[ptab]||{})[f]||""} onChange={e=>setData({...data,[ptab]:{...(data[ptab]||{}),[f]:e.target.value}})} style={{marginBottom:0}}/>}
-      </div>)}
-      <button className="btn-main" onClick={save} style={{marginTop:4}}>{saved?"✅ Salvo!":"Salvar"}</button>
-    </div>}
-    {ptab==="anexos"&&<div className="fade-in" style={{...crd,marginBottom:14}}>
-      <h3 style={{fontSize:15,fontWeight:800,color:"#1f2937",marginBottom:4}}>📎 Anexar Documento</h3>
-      <p style={{fontSize:12,color:"#9ca3af",marginBottom:14}}>PDF, PNG, JPG</p>
-      <div style={{border:"2px dashed #e5e7eb",borderRadius:14,padding:28,textAlign:"center",cursor:"pointer"}}><div style={{fontSize:36,marginBottom:8}}>📄</div><div style={{fontWeight:700,color:"#374151",fontSize:14}}>Clique para selecionar</div></div>
-      <select className="inp" style={{marginTop:12}}><option>Tipo: Teste psicológico</option><option>Tipo: Atividade TCC</option><option>Tipo: Relatório</option><option>Tipo: Outro</option></select>
-      <button className="btn-main">Anexar</button>
-    </div>}
-    <div style={{...crd,marginBottom:14}}>
-      <h3 style={{fontSize:15,fontWeight:800,color:"#1f2937",marginBottom:4}}>🗂 História Clínica</h3>
-      {[["familiar","História familiar","Dinâmica familiar..."],["social","História social","Escolaridade, trabalho..."],["saude","Histórico de saúde","Doenças, tratamentos..."],["psico","Histórico psicológico","Tratamentos anteriores..."]].map(([f,l,ph])=><div key={f} style={{marginBottom:14}}>
-        <div style={{fontSize:11,fontWeight:700,color:"#9ca3af",marginBottom:6,textTransform:"uppercase",letterSpacing:".5px"}}>{l}</div>
-        <textarea className="inp" placeholder={ph} value={(data.historia||{})[f]||""} onChange={e=>setData({...data,historia:{...(data.historia||{}),[f]:e.target.value}})} style={{minHeight:60,resize:"vertical",marginBottom:0}}/>
-      </div>)}
-      <button className="btn-main" onClick={save}>{saved?"✅ Salvo!":"Salvar História Clínica"}</button>
-    </div>
-    <div style={crd}>
-      <h3 style={{fontSize:15,fontWeight:800,color:"#1f2937",marginBottom:4}}>📝 Evolução de Sessão</h3>
-      <textarea className="inp" value={evo} onChange={e=>setEvo(e.target.value)} placeholder={`Registro — ${new Date().toLocaleDateString("pt-BR")}`} style={{minHeight:80,resize:"vertical",marginTop:12}}/>
-      <button className="btn-main" onClick={addEvo} style={{marginBottom:14}}>+ Adicionar</button>
-      {evolucao.length===0&&<p style={{color:"#aaa",fontSize:13}}>Nenhum registro ainda.</p>}
-      {evolucao.map((ev,i)=><div key={i} style={{background:"#f9fafb",borderRadius:12,padding:14,marginBottom:8,borderLeft:"3px solid #6d28d9"}}><div style={{fontSize:11,color:"#9ca3af",marginBottom:4}}>{ev.date}</div><div style={{fontSize:13,color:"#374151",whiteSpace:"pre-wrap"}}>{ev.text}</div></div>)}
-    </div>
-  </div>;
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast show ${type}`;
+  setTimeout(()=>t.classList.remove('show'), 3000);
 }
 
-// ── Escalas Psicológicas ──
-function EscalaPsiForm({tipo,color,onSubmit}){
-  const ed=getEscalaData(tipo);
-  const [respostas,setRespostas]=useState({});
-  const [enviado,setEnviado]=useState(false);
-  if(!ed)return null;
-  const respondidos=Object.keys(respostas).length;
-  const total=ed.itens.length;
-  const pct=Math.round((respondidos/total)*100);
-  if(enviado){
-    const {totais}=calcEscala(ed,respostas);
-    return<div style={crd}><div style={{textAlign:"center",padding:"20px 0"}}><div style={{fontSize:52,marginBottom:12}}>✅</div><h3 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:8}}>Respostas enviadas!</h3><p style={{fontSize:14,color:"#6b7280"}}>Seu terapeuta irá analisar em breve.</p></div><button className="btn-main" style={{background:color,marginTop:8}} onClick={()=>onSubmit({respostas,totais,escala:ed.nome})}>Concluir</button></div>;
-  }
-  return<div style={crd}>
-    <h3 style={{fontSize:15,fontWeight:800,color,marginBottom:4}}>{ed.nome}</h3>
-    <p style={{fontSize:12,color:"#9ca3af",marginBottom:12}}>{ed.itens.length} itens · {Object.keys(ed.subescalas).length} subescalas</p>
-    <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}><span style={{fontSize:12,color:"#9ca3af"}}>{respondidos}/{total}</span><span style={{fontSize:12,fontWeight:700,color}}>{pct}%</span></div>
-    <div style={{background:"#f3f4f6",borderRadius:20,height:8,overflow:"hidden",marginBottom:16}}><div style={{width:`${pct}%`,background:color,height:"100%",borderRadius:20,transition:"width .3s"}}/></div>
-    {ed.itens.map(item=><div key={item.id} style={{background:"#f9fafb",borderRadius:12,padding:14,marginBottom:10}}>
-      <p style={{fontSize:13,color:"#1f2937",fontWeight:600,marginBottom:10,lineHeight:1.5}}><span style={{color,fontWeight:800,marginRight:6}}>{item.id}.</span>{item.texto}</p>
-      <div style={{display:"flex",flexDirection:"column",gap:6}}>
-        {ed.escala.map((op,i)=><button key={i} onClick={()=>setRespostas(r=>({...r,[item.id]:i+1}))} style={{border:`1.5px solid ${respostas[item.id]===i+1?color:"#e5e7eb"}`,borderRadius:10,padding:"9px 14px",cursor:"pointer",fontWeight:600,fontSize:13,textAlign:"left",background:respostas[item.id]===i+1?`${color}15`:"#fff",color:respostas[item.id]===i+1?color:"#374151",transition:"all .15s"}}><span style={{fontWeight:800,marginRight:8}}>{i+1}.</span>{op}</button>)}
-      </div>
-    </div>)}
-    <button className="btn-main" style={{background:respondidos<total?"#e5e7eb":color,color:respondidos<total?"#9ca3af":"#fff"}} onClick={()=>{if(respondidos>=total)setEnviado(true);else alert(`Faltam ${total-respondidos} item(s).`);}}>{respondidos<total?`Faltam ${total-respondidos}`:"Ver Resultado"}</button>
-  </div>;
-}
-
-// ── Patient App ──
-function PatientApp({patientId,onLogout}){
-  const [patient,setPatient]=useState(null);const [tab,setTab]=useState("tasks");const [sel,setSel]=useState(null);const [viewTask,setViewTask]=useState(null);
-  useEffect(()=>{const u=fbListen(`patients/${patientId}`,d=>setPatient(d));return()=>u();},[patientId]);
-  async function submitResponse(taskId,response){await fbUpdate(`patients/${patientId}/tasks/${taskId}`,{response,answeredAt:new Date().toLocaleDateString("pt-BR")});setSel(null);}
-  if(!patient)return<div style={aw}><Spinner/></div>;
-  const tasks=patient.tasks?Object.values(patient.tasks):[];
-  const pending=tasks.filter(t=>!t.response);const done=tasks.filter(t=>t.response);
-  if(sel){const task=tasks.find(t=>t.id===sel);if(task)return<TaskForm task={task} onSubmit={r=>submitResponse(task.id,r)} onBack={()=>setSel(null)}/>;}
-  if(viewTask){return<div style={aw}>
-    <Header title="Concluída" subtitle={viewTask.title} onBack={()=>setViewTask(null)} backLabel="← Voltar"/>
-    <div style={ct}><div style={crd}>
-      <div style={{textAlign:"center",padding:"20px 0"}}>
-        <div style={{fontSize:52,marginBottom:12}}>✅</div>
-        <h3 style={{fontSize:17,fontWeight:800,color:"#1f2937",marginBottom:8}}>{viewTask.title}</h3>
-        <p style={{fontSize:14,color:"#6b7280",lineHeight:1.6}}>Tarefa concluída!<br/>Seu terapeuta irá analisar suas respostas.</p>
-        <div style={{fontSize:12,color:"#9ca3af",marginTop:12}}>Respondida em {viewTask.answeredAt}</div>
-      </div>
-    </div></div>
-  </div>;}
-  return<div style={aw}>
-    <Header title={`Olá, ${patient.name}! 👋`} subtitle="MeuPsi · João Rosa" onBack={onLogout}/>
-    <TabBar tabs={[["tasks","📋 Tarefas"],["diario","📔 Diário"],["baralhos","🃏 Baralhos"],["config","⚙️"]]} active={tab} onChange={setTab}/>
-    <div className="fade-in" style={ct}>
-      {tab==="tasks"&&<>
-        {tasks.length===0&&<EmptyState icon="🎉" text="Nenhuma tarefa ainda."/>}
-        {pending.length>0&&<><h2 style={h2s}>⏳ Pendentes ({pending.length})</h2>
-          {pending.map(task=>{const ti=getTypeInfo(task.type);return<div key={task.id} onClick={()=>setSel(task.id)} className="card-hover" style={{background:"#fff",borderRadius:16,padding:18,marginBottom:10,boxShadow:"0 4px 14px rgba(0,0,0,.07)",borderLeft:`4px solid ${ti.color||"#888"}`}}>
-            <span style={{fontSize:11,fontWeight:700,color:ti.color,background:`${ti.color}15`,padding:"3px 10px",borderRadius:20}}>{ti.label||task.type}</span>
-            <div style={{fontWeight:700,color:"#1f2937",marginTop:8,fontSize:15}}>{task.title}</div>
-            {task.note&&<div style={{fontSize:12,color:"#9ca3af",marginTop:3}}>{task.note}</div>}
-            <div style={{marginTop:12,display:"flex",alignItems:"center",gap:6}}><div style={{flex:1,height:3,background:`${ti.color}20`,borderRadius:4}}/><span style={{fontSize:12,color:ti.color,fontWeight:700}}>Responder →</span></div>
-          </div>;})}
-        </>}
-        {done.length>0&&<><h2 style={{...h2s,marginTop:20}}>✅ Concluídas ({done.length})</h2>
-          {done.map(task=>{const ti=getTypeInfo(task.type);return<div key={task.id} onClick={()=>setViewTask(task)} style={{background:"#fff",borderRadius:16,padding:14,marginBottom:8,boxShadow:"0 2px 8px rgba(0,0,0,.05)",borderLeft:`4px solid ${ti.color||"#888"}`,opacity:.85,cursor:"pointer"}}>
-            <span style={{fontSize:11,color:ti.color,fontWeight:700}}>{ti.label||task.type}</span>
-            <div style={{fontWeight:600,color:"#374151",marginTop:4}}>{task.title}</div>
-            <div style={{fontSize:11,color:"#9ca3af",marginTop:4}}>Respondida em {task.answeredAt}</div>
-          </div>;})}
-        </>}
-      </>}
-      {tab==="diario"&&<DiarioTab patientId={patientId}/>}
-      {tab==="baralhos"&&<BaralhosTab/>}
-      {tab==="config"&&<ConfigTab role="patient" patientId={patientId} onLogout={onLogout}/>}
-    </div>
-  </div>;
-}
-
-function DiarioTab({patientId}){
-  const [diarios,setDiarios]=useState([]);
-  const [emocaoSel,setEmocaoSel]=useState(null);const [intensidade,setIntensidade]=useState(5);const [contexto,setContexto]=useState("");const [pensamento,setPensamento]=useState("");const [enviado,setEnviado]=useState(false);
-  useEffect(()=>{const u=fbListen(`patients/${patientId}/diarios`,d=>setDiarios(d?Object.values(d).reverse():[]));return()=>u();},[patientId]);
-  const intDesc=v=>["","Muito leve","Muito leve","Leve","Leve","Moderada","Moderada","Intensa","Intensa","Muito intensa","Muito intensa"][v];
-  async function enviar(){
-    if(!emocaoSel)return;
-    const id="d"+Date.now();
-    await fbSet(`patients/${patientId}/diarios/${id}`,{emocao:emocaoSel.nome,emoji:emocaoSel.emoji,intensidade,contexto,pensamento,data:new Date().toLocaleDateString("pt-BR"),hora:new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})});
-    setEmocaoSel(null);setIntensidade(5);setContexto("");setPensamento("");setEnviado(true);setTimeout(()=>setEnviado(false),2500);
-  }
-  return<div>
-    <div style={crd}>
-      <h3 style={{fontSize:15,fontWeight:800,color:"#6d28d9",marginBottom:4}}>📔 Como você está?</h3>
-      <p style={{fontSize:12,color:"#9ca3af",marginBottom:14}}>Toque em uma emoção para registrar</p>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:12}}>
-        {EMOCOES.map(em=>{const sel=emocaoSel?.nome===em.nome;return<button key={em.nome} onClick={()=>setEmocaoSel(sel?null:em)} className={`emocao-btn${sel?" sel":""}`} style={{border:`2px solid ${sel?em.color:"#e5e7eb"}`,background:sel?em.bg:"#fff"}}>
-          <span style={{fontSize:sel?30:24,transition:"font-size .25s cubic-bezier(.34,1.56,.64,1)"}}>{em.emoji}</span>
-          <span style={{fontSize:10,fontWeight:700,color:sel?em.color:"#9ca3af"}}>{em.nome}</span>
-        </button>;})}
-      </div>
-      <div className={`diario-fields ${emocaoSel?"show":"hide"}`}>
-        {emocaoSel&&<>
-          <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}><span style={{fontSize:13,fontWeight:700,color:"#374151"}}>Intensidade</span><span style={{fontSize:15,fontWeight:800,color:emocaoSel.color}}>{intensidade}/10 — {intDesc(intensidade)}</span></div>
-          <div style={{background:"#f3f4f6",borderRadius:20,height:10,overflow:"hidden",marginBottom:6}}><div style={{width:`${(intensidade/10)*100}%`,background:emocaoSel.color,height:"100%",borderRadius:20,transition:"width .15s"}}/></div>
-          <input type="range" min={1} max={10} value={intensidade} onChange={e=>setIntensidade(+e.target.value)} style={{width:"100%",marginBottom:14,accentColor:emocaoSel.color}}/>
-          <label style={lbl}>O que estava acontecendo?</label>
-          <textarea className="inp" value={contexto} onChange={e=>setContexto(e.target.value)} placeholder="Contexto..." style={{minHeight:60,resize:"vertical"}}/>
-          <label style={lbl}>O que passou pela sua cabeça?</label>
-          <textarea className="inp" value={pensamento} onChange={e=>setPensamento(e.target.value)} placeholder="Pensamentos..." style={{minHeight:60,resize:"vertical"}}/>
-          <button className="btn-main" onClick={enviar} style={{background:`linear-gradient(135deg,${emocaoSel.color},${emocaoSel.color}bb)`}}>{enviado?"✅ Registrado!":"Registrar"}</button>
-        </>}
-      </div>
-      {!emocaoSel&&<p style={{textAlign:"center",color:"#aaa",fontSize:13,padding:"8px 0"}}>Selecione uma emoção acima</p>}
-    </div>
-    {diarios.length>0&&<div style={{marginTop:16}}>
-      <h3 style={{fontSize:15,fontWeight:800,color:"#1f2937",marginBottom:12}}>Meus registros ({diarios.length})</h3>
-      {diarios.map((d,i)=>{const em=EMOCOES.find(e=>e.nome===d.emocao)||{emoji:"😐",color:"#888"};return<div key={i} style={{background:"#fff",borderRadius:14,padding:14,marginBottom:8,boxShadow:"0 2px 8px rgba(0,0,0,.05)",display:"flex",gap:12,alignItems:"center"}}>
-        <div style={{width:44,height:44,borderRadius:14,background:`${em.color}15`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,flexShrink:0}}>{em.emoji}</div>
-        <div style={{flex:1}}>
-          <div style={{display:"flex",justifyContent:"space-between"}}><span style={{fontWeight:700,color:em.color,fontSize:14}}>{d.emocao}</span><span style={{fontSize:11,color:"#9ca3af"}}>{d.data} {d.hora}</span></div>
-          {d.contexto&&<div style={{fontSize:12,color:"#6b7280",marginTop:3}}>{d.contexto}</div>}
-          <div style={{background:"#f3f4f6",borderRadius:20,height:5,marginTop:6,overflow:"hidden"}}><div style={{width:`${(d.intensidade/10)*100}%`,background:em.color,height:"100%",borderRadius:20}}/></div>
-        </div>
-      </div>;})}
-    </div>}
-  </div>;
-}
-
-// ── Testes Cognitivos (mantidos integralmente) ──
-const CORES_STROOP=["vermelho","verde","azul","amarelo"];
-const CORES_CSS={vermelho:"#ef4444",verde:"#16a34a",azul:"#2563eb",amarelo:"#ca8a04"};
-const LETRAS_NBACK="BCDFGHJKLMNPQRSTVWXZ".split("");
-const FLANKER_SETS=[{alvo:"→",dist:"←←",tipo:"incongruente"},{alvo:"←",dist:"→→",tipo:"incongruente"},{alvo:"→",dist:"→→",tipo:"congruente"},{alvo:"←",dist:"←←",tipo:"congruente"}];
-function classPct(p){return p>=80?{nivel:"Excelente",cor:"#059669"}:p>=65?{nivel:"Bom",cor:"#0891b2"}:p>=50?{nivel:"Moderado",cor:"#d97706"}:{nivel:"Baixo",cor:"#e11d48"};}
-function MiniScoreBar({label,value,max,color}){const p=max>0?Math.round((value/max)*100):0;return<div style={{marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}><span style={{fontSize:11,fontWeight:700,color:"#374151"}}>{label}</span><span style={{fontSize:11,fontWeight:800,color}}>{value}/{max}</span></div><div style={{background:"#f3f4f6",borderRadius:20,height:7,overflow:"hidden"}}><div style={{width:`${p}%`,background:color,height:"100%",borderRadius:20}}/></div></div>;}
-
-function TRForm({color,onSubmit}){const TOTAL=20;const [fase,setFase]=useState("intro");const [trial,setTrial]=useState(0);const [tempos,setTempos]=useState([]);const [falsosPos,setFalsosPos]=useState(0);const [omissoes,setOmissoes]=useState(0);const [alvoVis,setAlvoVis]=useState(false);const [feedback,setFeedback]=useState(null);const [tempoIni,setTempoIni]=useState(null);const [ultimoTR,setUltimoTR]=useState(null);const tRef=useRef(null),aRef=useRef(null);function comecar(){setFase("espera");setAlvoVis(false);setFeedback(null);const e=1000+Math.random()*3000;tRef.current=setTimeout(()=>{setAlvoVis(true);setTempoIni(Date.now());setFase("alvo");aRef.current=setTimeout(()=>{setAlvoVis(false);setOmissoes(o=>o+1);setFeedback("omissao");setFase("feedback");setTimeout(()=>prox(),1200);},1500);},e);}function prox(){const n=trial+1;if(n>=TOTAL)setFase("resultado");else{setTrial(n);comecar();}}function click(){if(fase==="espera"){clearTimeout(tRef.current);setFalsosPos(f=>f+1);setFeedback("falso");setFase("feedback");setTimeout(()=>prox(),1200);}else if(fase==="alvo"){clearTimeout(aRef.current);const tr=Date.now()-tempoIni;setUltimoTR(tr);setTempos(t=>[...t,tr]);setAlvoVis(false);setFeedback("certo");setFase("feedback");setTimeout(()=>prox(),800);}}useEffect(()=>()=>{clearTimeout(tRef.current);clearTimeout(aRef.current);},[]);if(fase==="intro")return<div style={{...crd,textAlign:"center"}}><div style={{fontSize:52,marginBottom:12}}>⚡</div><h3 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:8}}>Tempo de Reação</h3><p style={{fontSize:13,color:"#6b7280",marginBottom:20,lineHeight:1.6}}>Toque quando aparecer o círculo verde. <strong>Não toque antes!</strong></p><button className="btn-main" style={{background:color}} onClick={()=>{setTrial(0);setTempos([]);setFalsosPos(0);setOmissoes(0);comecar();}}>Começar</button></div>;if(fase==="resultado"){const media=tempos.length?Math.round(tempos.reduce((a,b)=>a+b,0)/tempos.length):0;const desvio=tempos.length>1?Math.round(Math.sqrt(tempos.reduce((a,b)=>a+(b-media)**2,0)/tempos.length)):0;const score=Math.max(0,100-Math.round((media-200)/5)-falsosPos*5-omissoes*3);return<div style={crd}><div style={{textAlign:"center",marginBottom:16}}><div style={{fontSize:48,marginBottom:8}}>{score>=75?"🏆":score>=50?"🎯":"💪"}</div><h3 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>{score>=75?"Excelente!":score>=50?"Muito bem!":"Continue!"}</h3></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>{[[media+"ms","TR Médio",color],[desvio+"ms","Desvio",color],[tempos.length,"Acertos","#059669"],[falsosPos,"Falsos","#e11d48"]].map(([v,l,c])=><div key={l} style={{background:"#f9fafb",borderRadius:12,padding:10,textAlign:"center"}}><div style={{fontSize:18,fontWeight:900,color:c}}>{v}</div><div style={{fontSize:10,color:"#9ca3af"}}>{l}</div></div>)}</div><button className="btn-main" style={{background:color}} onClick={()=>onSubmit({media,desvio,acertos:tempos.length,falsosPos,omissoes,score,tipo:"tr"})}>Salvar resultado</button></div>;}const bg=feedback==="certo"?"#d1fae5":feedback==="falso"?"#fee2e2":feedback==="omissao"?"#fef3c7":alvoVis?"#d1fae5":"#f9fafb";const pct=Math.round((trial/TOTAL)*100);return<div onClick={click}><div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}><span style={{fontSize:12,fontWeight:700,color:"#374151"}}>{trial+1}/{TOTAL}</span><span style={{fontSize:12,fontWeight:700,color}}>{pct}%</span></div><div style={{background:"#f3f4f6",borderRadius:20,height:8,overflow:"hidden",marginBottom:14}}><div style={{width:`${pct}%`,background:color,height:"100%",borderRadius:20}}/></div><div style={{background:bg,borderRadius:16,padding:40,textAlign:"center",minHeight:150,display:"flex",alignItems:"center",justifyContent:"center",transition:"background .15s",marginBottom:12}}>{alvoVis&&<div style={{width:100,height:100,borderRadius:"50%",background:"linear-gradient(135deg,#059669,#34d399)",boxShadow:"0 0 40px rgba(5,150,105,.6)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:32}}>👆</div>}{!alvoVis&&!feedback&&<div style={{textAlign:"center"}}><div style={{fontSize:48,marginBottom:8}}>⏳</div><p style={{fontSize:14,color:"#9ca3af",fontWeight:700}}>Aguarde...</p></div>}{feedback==="certo"&&<div style={{textAlign:"center"}}><div style={{fontSize:52}}>✅</div><div style={{fontSize:22,fontWeight:900,color:"#059669"}}>{ultimoTR}ms</div></div>}{feedback==="falso"&&<div style={{textAlign:"center"}}><div style={{fontSize:52}}>⚠️</div><div style={{fontSize:16,fontWeight:800,color:"#e11d48"}}>Muito cedo!</div></div>}{feedback==="omissao"&&<div style={{textAlign:"center"}}><div style={{fontSize:52}}>😴</div><div style={{fontSize:16,fontWeight:800,color:"#d97706"}}>Perdeu!</div></div>}</div></div>;}
-function StroopForm({color,onSubmit}){const TOTAL=24;const [fase,setFase]=useState("intro");const [trial,setTrial]=useState(0);const [item,setItem]=useState(null);const [acertos,setAcertos]=useState(0);const [erros,setErros]=useState(0);const [tempos,setTempos]=useState([]);const [feedback,setFeedback]=useState(null);const tRef=useRef(null);function gerar(){const p=CORES_STROOP[Math.floor(Math.random()*4)];const c=CORES_STROOP[Math.floor(Math.random()*4)];return{palavra:p,cor:c,inicio:Date.now()};}function prox(t,a,e,ts){if(t>=TOTAL){onSubmit({acertos:a,erros:e,media:ts.length?Math.round(ts.reduce((x,y)=>x+y,0)/ts.length):0,total:TOTAL,tipo:"stroop"});setFase("fim");return;}setFeedback(null);setTrial(t);setItem(gerar());}function responder(c){const tr=Date.now()-item.inicio;if(c===item.cor){setAcertos(a=>{const nt=[...tempos,tr];setTempos(nt);setFeedback("certo");setTimeout(()=>prox(trial+1,a+1,erros,nt),500);return a+1;});}else{setErros(e=>{setFeedback("errado");setTimeout(()=>prox(trial+1,acertos,e+1,tempos),500);return e+1;});}}if(fase==="fim")return<div style={{...crd,textAlign:"center"}}><div style={{fontSize:48,marginBottom:8}}>✅</div><p style={{fontSize:15,fontWeight:700,color:"#6b7280"}}>Respostas enviadas ao terapeuta.</p></div>;if(fase==="intro")return<div style={{...crd,textAlign:"center"}}><div style={{fontSize:52,marginBottom:12}}>🎨</div><h3 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:8}}>Teste de Stroop</h3><p style={{fontSize:13,color:"#6b7280",marginBottom:16,lineHeight:1.6}}>Selecione a <strong>COR DA TINTA</strong>, ignorando o significado da palavra.</p><div style={{background:"#ede9fe",borderRadius:12,padding:14,marginBottom:20}}><p style={{fontSize:28,fontWeight:900,color:"#ef4444",marginBottom:6}}>AZUL</p><p style={{fontSize:13,color:"#6d28d9"}}>Resposta: <strong>Vermelho</strong></p></div><button className="btn-main" style={{background:color}} onClick={()=>prox(0,0,0,[])}>Começar</button></div>;const pct=Math.round((trial/TOTAL)*100);const bg=feedback==="certo"?"#d1fae5":feedback==="errado"?"#fee2e2":"#f9fafb";return<div><div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}><span style={{fontSize:12,fontWeight:700,color:"#374151"}}>{trial+1}/{TOTAL}</span><span style={{fontSize:12,fontWeight:700,color}}>{pct}%</span></div><div style={{background:"#f3f4f6",borderRadius:20,height:8,overflow:"hidden",marginBottom:14}}><div style={{width:`${pct}%`,background:color,height:"100%",borderRadius:20}}/></div><div style={{background:bg,borderRadius:16,padding:32,textAlign:"center",marginBottom:14,minHeight:100,display:"flex",alignItems:"center",justifyContent:"center",transition:"background .15s"}}>{item&&<div style={{fontSize:42,fontWeight:900,color:CORES_CSS[item.cor]}}>{item.palavra.toUpperCase()}</div>}</div><p style={{textAlign:"center",fontSize:13,fontWeight:700,color:"#9ca3af",marginBottom:10}}>Cor da tinta:</p><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>{CORES_STROOP.map(c=><button key={c} onClick={()=>responder(c)} style={{padding:"12px 0",borderRadius:10,border:`2px solid ${CORES_CSS[c]}`,background:`${CORES_CSS[c]}15`,color:CORES_CSS[c],fontWeight:800,fontSize:14,cursor:"pointer"}}>{c.charAt(0).toUpperCase()+c.slice(1)}</button>)}</div><div style={{display:"flex",justifyContent:"space-around",marginTop:10}}><span style={{fontSize:12,color:"#059669",fontWeight:700}}>✓ {acertos}</span><span style={{fontSize:12,color:"#e11d48",fontWeight:700}}>✗ {erros}</span></div></div>;}
-function TMTForm({color,onSubmit}){const [parte,setParte]=useState("A");const [fase,setFase]=useState("intro");const [proximo,setProximo]=useState(0);const [erros,setErros]=useState(0);const [inicio,setInicio]=useState(null);const [tempoA,setTempoA]=useState(null);const [posicoes,setPosicoes]=useState([]);const [linhas,setLinhas]=useState([]);const N=10;function gerarPos(){const pos=[];for(let i=0;i<N;i++){let x,y,ok;do{x=8+Math.random()*80;y=8+Math.random()*80;ok=pos.every(p=>Math.hypot(p.x-x,p.y-y)>14);}while(!ok);pos.push({x,y});}return pos;}function iniciarParte(p){const pos=gerarPos();const labels=p==="A"?Array.from({length:N},(_,i)=>`${i+1}`):Array.from({length:N},(_,i)=>i%2===0?`${Math.floor(i/2)+1}`:"ABCDEFGHIJ"[Math.floor(i/2)]);setPosicoes(pos.map((p,i)=>({...p,label:labels[i]})));setProximo(0);setErros(0);setLinhas([]);setInicio(Date.now());setFase("jogo");}function tocar(idx){if(idx!==proximo){setErros(e=>e+1);return;}if(proximo>0)setLinhas(l=>[...l,{from:proximo-1,to:proximo}]);if(proximo+1>=N){const t=Math.round((Date.now()-inicio)/1000);if(parte==="A"){setTempoA(t);setParte("B");setFase("entre");}else{onSubmit({tempoA,tempoB:t,erros,tipo:"tmt"});setFase("fim");}}else setProximo(p=>p+1);}if(fase==="fim")return<div style={{...crd,textAlign:"center"}}><div style={{fontSize:48,marginBottom:8}}>✅</div><p style={{fontSize:15,fontWeight:700,color:"#6b7280"}}>Respostas enviadas ao terapeuta.</p></div>;if(fase==="intro")return<div style={{...crd,textAlign:"center"}}><div style={{fontSize:52,marginBottom:12}}>🔢</div><h3 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:8}}>Trail Making Test</h3><div style={{background:"#e0f2fe",borderRadius:10,padding:12,marginBottom:8,textAlign:"left"}}><p style={{fontSize:13,fontWeight:700,color:"#0369a1"}}>Parte A: conecte 1→2→3→...→10</p></div><div style={{background:"#fef3c7",borderRadius:10,padding:12,marginBottom:16,textAlign:"left"}}><p style={{fontSize:13,fontWeight:700,color:"#92400e"}}>Parte B: alterne 1→A→2→B→...</p></div><button className="btn-main" style={{background:color}} onClick={()=>iniciarParte("A")}>Começar Parte A</button></div>;if(fase==="entre")return<div style={{...crd,textAlign:"center"}}><div style={{fontSize:48,marginBottom:8}}>✅</div><h3 style={{fontSize:16,fontWeight:800,color:"#1f2937",marginBottom:4}}>Parte A: {tempoA}s</h3><p style={{fontSize:13,color:"#6b7280",marginBottom:16}}>Agora alterne números e letras</p><button className="btn-main" style={{background:color}} onClick={()=>iniciarParte("B")}>Parte B</button></div>;return<div><div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}><span style={{fontSize:13,fontWeight:800,color}}>{parte==="A"?"Parte A — números":"Parte B — alterne"}</span><span style={{fontSize:13,fontWeight:700,color:"#374151"}}>Próximo: <strong style={{color}}>{posicoes[proximo]?.label}</strong></span><span style={{fontSize:12,color:"#e11d48",fontWeight:700}}>✗{erros}</span></div><div style={{position:"relative",width:"100%",paddingBottom:"100%",background:"#f9fafb",borderRadius:16,overflow:"hidden",border:"1px solid #e5e7eb"}}><svg style={{position:"absolute",inset:0,width:"100%",height:"100%"}}>{linhas.map((l,i)=>{const f=posicoes[l.from],t=posicoes[l.to];return<line key={i} x1={`${f.x}%`} y1={`${f.y}%`} x2={`${t.x}%`} y2={`${t.y}%`} stroke={color} strokeWidth="2.5" strokeLinecap="round"/>;})}{posicoes.map((p,i)=>{const done=i<proximo,next=i===proximo;return<g key={i}><circle cx={`${p.x}%`} cy={`${p.y}%`} r="5.5%" fill={done?color:next?`${color}20`:"#fff"} stroke={next?color:"#d1d5db"} strokeWidth={next?"2.5":"1.5"} style={{cursor:"pointer"}} onClick={()=>tocar(i)}/><text x={`${p.x}%`} y={`${p.y}%`} textAnchor="middle" dominantBaseline="middle" fontSize="3.5%" fontWeight="800" fill={done?"#fff":next?color:"#374151"} style={{pointerEvents:"none"}}>{p.label}</text></g>;})}</svg></div></div>;}
-function NBackForm({color,onSubmit}){const N=2,TOTAL=25;const [fase,setFase]=useState("intro");const [seq,setSeq]=useState([]);const [pos,setPos]=useState(0);const [mostrando,setMostrando]=useState(false);const [acertos,setAcertos]=useState(0);const [erros,setErros]=useState(0);const [omissoes,setOmissoes]=useState(0);const tRef=useRef(null);const stateRef=useRef({pos:0,acertos:0,erros:0,omissoes:0,seq:[]});function gerar(){const s=Array.from({length:TOTAL},()=>LETRAS_NBACK[Math.floor(Math.random()*LETRAS_NBACK.length)]);for(let i=N;i<TOTAL;i++)if(Math.random()<.3)s[i]=s[i-N];return s;}function rodar(s,i,a,e,om){if(i>=TOTAL){onSubmit({acertos:a,erros:e,omissoes:om,total:TOTAL,tipo:"nback"});setFase("fim");return;}stateRef.current={pos:i,acertos:a,erros:e,omissoes:om,seq:s};setPos(i);setMostrando(true);setFase("jogo");tRef.current=setTimeout(()=>{setMostrando(false);if(i>=N&&s[i]===s[i-N]){const no=om+1;stateRef.current.omissoes=no;setOmissoes(no);setTimeout(()=>rodar(s,i+1,a,e,no),500);}else setTimeout(()=>rodar(s,i+1,a,e,om),500);},1500);}function responder(){const{pos:i,acertos:a,erros:e,omissoes:om,seq:s}=stateRef.current;if(!mostrando||i<N)return;clearTimeout(tRef.current);setMostrando(false);if(s[i]===s[i-N]){const na=a+1;stateRef.current.acertos=na;setAcertos(na);setTimeout(()=>rodar(s,i+1,na,e,om),400);}else{const ne=e+1;stateRef.current.erros=ne;setErros(ne);setTimeout(()=>rodar(s,i+1,a,ne,om),400);}}function iniciar(){const s=gerar();setSeq(s);setAcertos(0);setErros(0);setOmissoes(0);rodar(s,0,0,0,0);}useEffect(()=>()=>clearTimeout(tRef.current),[]);if(fase==="fim")return<div style={{...crd,textAlign:"center"}}><div style={{fontSize:48,marginBottom:8}}>✅</div><p style={{fontSize:15,fontWeight:700,color:"#6b7280"}}>Respostas enviadas ao terapeuta.</p></div>;if(fase==="intro")return<div style={{...crd,textAlign:"center"}}><div style={{fontSize:52,marginBottom:12}}>🧩</div><h3 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:8}}>N-Back (2-Back)</h3><p style={{fontSize:13,color:"#6b7280",lineHeight:1.6,marginBottom:16}}>Pressione quando a letra atual for <strong>igual à de 2 posições atrás</strong>.</p><div style={{background:"#fef3c7",borderRadius:12,padding:14,marginBottom:16}}><div style={{display:"flex",gap:6,justifyContent:"center"}}>{["B","K","B","L","B"].map((l,i)=><div key={i} style={{width:34,height:34,borderRadius:8,background:i===4?"#d97706":"#fff",border:"2px solid #f59e0b",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:14,color:i===4?"#fff":"#374151"}}>{l}</div>)}</div><p style={{fontSize:12,color:"#92400e",marginTop:6}}>5ª letra = 3ª → pressione!</p></div><button className="btn-main" style={{background:color}} onClick={iniciar}>Começar</button></div>;const pct=Math.round((pos/TOTAL)*100);return<div><div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}><span style={{fontSize:12,fontWeight:700,color:"#374151"}}>{pos+1}/{TOTAL}</span><span style={{fontSize:12,fontWeight:700,color}}>{pct}%</span></div><div style={{background:"#f3f4f6",borderRadius:20,height:8,overflow:"hidden",marginBottom:14}}><div style={{width:`${pct}%`,background:color,height:"100%",borderRadius:20}}/></div><div style={{background:"#fff",borderRadius:16,padding:32,textAlign:"center",marginBottom:14,boxShadow:"0 2px 10px rgba(0,0,0,.06)",minHeight:120,display:"flex",alignItems:"center",justifyContent:"center"}}>{mostrando?<div style={{fontSize:64,fontWeight:900,color}}>{seq[pos]}</div>:<div style={{fontSize:32,color:"#d1d5db"}}>?</div>}</div><button onClick={responder} disabled={!mostrando||pos<N} style={{width:"100%",padding:14,borderRadius:12,border:"none",background:mostrando&&pos>=N?`linear-gradient(135deg,${color},${color}cc)`:"#e5e7eb",color:mostrando&&pos>=N?"#fff":"#9ca3af",fontWeight:700,fontSize:15,cursor:mostrando&&pos>=N?"pointer":"default"}}>✓ É igual ao de 2 atrás!</button><div style={{display:"flex",justifyContent:"space-around",marginTop:10}}><span style={{fontSize:12,color:"#059669",fontWeight:700}}>✓{acertos}</span><span style={{fontSize:12,color:"#e11d48",fontWeight:700}}>✗{erros}</span><span style={{fontSize:12,color:"#d97706",fontWeight:700}}>○{omissoes}</span></div></div>;}
-function GoNoGoForm({color,onSubmit}){const TOTAL=30;const [fase,setFase]=useState("intro");const [trial,setTrial]=useState(0);const [stim,setStim]=useState(null);const [acertos,setAcertos]=useState(0);const [falsosGo,setFalsosGo]=useState(0);const [omissoes,setOmissoes]=useState(0);const [tempos,setTempos]=useState([]);const [feedback,setFeedback]=useState(null);const tRef=useRef(null);const iniRef=useRef(null);const stateRef=useRef({trial:0,acertos:0,falsosGo:0,omissoes:0,tempos:[]});function prox(t,a,fg,om,ts){if(t>=TOTAL){onSubmit({acertos:a,falsosGo:fg,omissoes:om,mediaTempos:ts.length?Math.round(ts.reduce((x,y)=>x+y,0)/ts.length):0,total:TOTAL,tipo:"gonogo"});setFase("fim");return;}setFeedback(null);const isGo=Math.random()<.7;setStim(isGo?"🟢":"🔴");iniRef.current=Date.now();setTrial(t);stateRef.current={trial:t,acertos:a,falsosGo:fg,omissoes:om,tempos:ts,isGo};tRef.current=setTimeout(()=>{if(isGo){const no=om+1;stateRef.current.omissoes=no;setOmissoes(no);setFeedback("omissao");setTimeout(()=>prox(t+1,a,fg,no,ts),600);}else{setFeedback("correto_nogo");setTimeout(()=>prox(t+1,a,fg,om,ts),600);}},1000);}function responder(){clearTimeout(tRef.current);const{trial:t,acertos:a,falsosGo:fg,omissoes:om,tempos:ts,isGo}=stateRef.current;const tr=Date.now()-iniRef.current;if(isGo){const na=a+1,nt=[...ts,tr];stateRef.current.acertos=na;setAcertos(na);setTempos(nt);setFeedback("certo");setTimeout(()=>prox(t+1,na,fg,om,nt),600);}else{const nf=fg+1;stateRef.current.falsosGo=nf;setFalsosGo(nf);setFeedback("falso");setTimeout(()=>prox(t+1,a,nf,om,ts),600);}}useEffect(()=>()=>clearTimeout(tRef.current),[]);if(fase==="fim")return<div style={{...crd,textAlign:"center"}}><div style={{fontSize:48,marginBottom:8}}>✅</div><p style={{fontSize:15,fontWeight:700,color:"#6b7280"}}>Respostas enviadas ao terapeuta.</p></div>;if(fase==="intro")return<div style={{...crd,textAlign:"center"}}><div style={{fontSize:52,marginBottom:12}}>🚦</div><h3 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:8}}>Go / No-Go</h3><div style={{display:"flex",gap:10,marginBottom:20}}><div style={{flex:1,background:"#d1fae5",borderRadius:12,padding:14}}><div style={{fontSize:28}}>🟢</div><div style={{fontSize:13,fontWeight:700,color:"#065f46",marginTop:4}}>GO — Toque!</div></div><div style={{flex:1,background:"#fee2e2",borderRadius:12,padding:14}}><div style={{fontSize:28}}>🔴</div><div style={{fontSize:13,fontWeight:700,color:"#991b1b",marginTop:4}}>NO-GO — Aguarde!</div></div></div><button className="btn-main" style={{background:color}} onClick={()=>prox(0,0,0,0,[])}>Começar</button></div>;const pct=Math.round((trial/TOTAL)*100);const bg=feedback==="certo"?"#d1fae5":feedback==="falso"?"#fee2e2":feedback==="omissao"?"#fef3c7":feedback==="correto_nogo"?"#d1fae5":"#f9fafb";return<div onClick={responder}><div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}><span style={{fontSize:12,fontWeight:700,color:"#374151"}}>{trial+1}/{TOTAL}</span><span style={{fontSize:12,fontWeight:700,color}}>{pct}%</span></div><div style={{background:"#f3f4f6",borderRadius:20,height:8,overflow:"hidden",marginBottom:14}}><div style={{width:`${pct}%`,background:color,height:"100%",borderRadius:20}}/></div><div style={{background:bg,borderRadius:16,padding:40,textAlign:"center",minHeight:150,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",transition:"background .15s",marginBottom:10}}>{stim&&!feedback?<div style={{fontSize:80}}>{stim}</div>:feedback==="certo"?<div><div style={{fontSize:48}}>✅</div><div style={{fontWeight:800,color:"#059669"}}>Ótimo!</div></div>:feedback==="falso"?<div><div style={{fontSize:48}}>⚠️</div><div style={{fontWeight:800,color:"#e11d48"}}>Não era pra tocar!</div></div>:feedback==="omissao"?<div><div style={{fontSize:48}}>😴</div><div style={{fontWeight:800,color:"#d97706"}}>Perdeu!</div></div>:feedback==="correto_nogo"?<div><div style={{fontSize:48}}>🛑</div><div style={{fontWeight:800,color:"#059669"}}>Correto!</div></div>:<div style={{fontSize:32,color:"#d1d5db"}}>⏳</div>}</div><div style={{display:"flex",justifyContent:"space-around"}}><span style={{fontSize:12,color:"#059669",fontWeight:700}}>✓{acertos}</span><span style={{fontSize:12,color:"#e11d48",fontWeight:700}}>✗{falsosGo}</span><span style={{fontSize:12,color:"#d97706",fontWeight:700}}>○{omissoes}</span></div></div>;}
-function FlankerForm({color,onSubmit}){const TOTAL=24;const [fase,setFase]=useState("intro");const [trial,setTrial]=useState(0);const [item,setItem]=useState(null);const [acertos,setAcertos]=useState(0);const [erros,setErros]=useState(0);const [tempos,setTempos]=useState({congruente:[],incongruente:[]});const [feedback,setFeedback]=useState(null);function gerar(){return{...FLANKER_SETS[Math.floor(Math.random()*4)],inicio:Date.now()};}function prox(t,a,e,ts){if(t>=TOTAL){onSubmit({acertos:a,erros:e,tempos:ts,total:TOTAL,tipo:"flanker"});setFase("fim");return;}setFeedback(null);setTrial(t);setItem(gerar());}function responder(dir){const tr=Date.now()-item.inicio;const certo=dir===item.alvo;if(certo){setAcertos(a=>{const nt={...tempos,[item.tipo]:[...tempos[item.tipo],tr]};setTempos(nt);setFeedback("certo");setTimeout(()=>prox(trial+1,a+1,erros,nt),500);return a+1;});}else{setErros(e=>{setFeedback("errado");setTimeout(()=>prox(trial+1,acertos,e+1,tempos),500);return e+1;});}}if(fase==="fim")return<div style={{...crd,textAlign:"center"}}><div style={{fontSize:48,marginBottom:8}}>✅</div><p style={{fontSize:15,fontWeight:700,color:"#6b7280"}}>Respostas enviadas ao terapeuta.</p></div>;if(fase==="intro")return<div style={{...crd,textAlign:"center"}}><div style={{fontSize:52,marginBottom:12}}>➡️</div><h3 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:8}}>Teste de Flanker</h3><p style={{fontSize:13,color:"#6b7280",lineHeight:1.6,marginBottom:16}}>Indique a direção da seta <strong>central</strong>.</p><div style={{display:"flex",gap:10,marginBottom:20}}><div style={{flex:1,background:"#d1fae5",borderRadius:12,padding:14,textAlign:"center"}}><div style={{fontSize:22,letterSpacing:4}}>→→→→→</div><div style={{fontSize:11,color:"#065f46",fontWeight:700,marginTop:4}}>Congruente</div></div><div style={{flex:1,background:"#fee2e2",borderRadius:12,padding:14,textAlign:"center"}}><div style={{fontSize:22,letterSpacing:4}}>←←→←←</div><div style={{fontSize:11,color:"#991b1b",fontWeight:700,marginTop:4}}>Incongruente</div></div></div><button className="btn-main" style={{background:color}} onClick={()=>prox(0,0,0,{congruente:[],incongruente:[]})}>Começar</button></div>;const pct=Math.round((trial/TOTAL)*100);const display=item?`${item.dist[0]} ${item.dist[1]} ${item.alvo} ${item.dist[0]} ${item.dist[1]}`:"";const bg=feedback==="certo"?"#d1fae5":feedback==="errado"?"#fee2e2":"#f9fafb";return<div><div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}><span style={{fontSize:12,fontWeight:700,color:"#374151"}}>{trial+1}/{TOTAL}</span><span style={{fontSize:12,fontWeight:700,color}}>{pct}%</span></div><div style={{background:"#f3f4f6",borderRadius:20,height:8,overflow:"hidden",marginBottom:14}}><div style={{width:`${pct}%`,background:color,height:"100%",borderRadius:20}}/></div><div style={{background:bg,borderRadius:16,padding:32,textAlign:"center",minHeight:100,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:14,transition:"background .15s"}}>{item&&<div style={{fontSize:40,letterSpacing:12,fontWeight:900,color:"#374151"}}>{display}</div>}</div><p style={{textAlign:"center",fontSize:13,fontWeight:700,color:"#9ca3af",marginBottom:10}}>Direção da seta central:</p><div style={{display:"flex",gap:12}}>{["←","→"].map(d=><button key={d} onClick={()=>responder(d)} style={{flex:1,padding:16,borderRadius:12,border:`2px solid ${color}`,background:`${color}10`,color,fontWeight:900,fontSize:28,cursor:"pointer"}}>{d}</button>)}</div><div style={{display:"flex",justifyContent:"space-around",marginTop:10}}><span style={{fontSize:12,color:"#059669",fontWeight:700}}>✓{acertos}</span><span style={{fontSize:12,color:"#e11d48",fontWeight:700}}>✗{erros}</span></div></div>;}
-
-function TaskForm({task,onSubmit,onBack}){
-  const ti=getTypeInfo(task.type);
-  return<div style={aw}>
-    <Header title={ti.label||task.type} subtitle={task.title} onBack={onBack} backLabel="← Voltar"/>
-    <div style={ct}>
-      {task.note&&<div style={{background:`${ti.color}15`,borderRadius:10,padding:12,marginBottom:16,borderLeft:`3px solid ${ti.color}`}}><p style={{fontSize:13,color:"#374151"}}><strong>Orientação:</strong> {task.note}</p></div>}
-      {task.type==="pensamentos"&&<PensamentosForm color={ti.color} onSubmit={onSubmit}/>}
-      {task.type==="atencao"&&<AtencaoForm color={ti.color} onSubmit={onSubmit}/>}
-      {task.type==="experimento"&&<ExperimentoForm color={ti.color} onSubmit={onSubmit}/>}
-      {task.type==="escala"&&<EscalaForm color={ti.color} onSubmit={onSubmit}/>}
-      {["csai2r","sas","acsi28"].includes(task.type)&&<EscalaPsiForm tipo={task.type} color={ti.color} onSubmit={onSubmit}/>}
-      {task.type==="tr"&&<TRForm color={ti.color} onSubmit={onSubmit}/>}
-      {task.type==="stroop"&&<StroopForm color={ti.color} onSubmit={onSubmit}/>}
-      {task.type==="tmt"&&<TMTForm color={ti.color} onSubmit={onSubmit}/>}
-      {task.type==="nback"&&<NBackForm color={ti.color} onSubmit={onSubmit}/>}
-      {task.type==="gonogo"&&<GoNoGoForm color={ti.color} onSubmit={onSubmit}/>}
-      {task.type==="flanker"&&<FlankerForm color={ti.color} onSubmit={onSubmit}/>}
-    </div>
-  </div>;
-}
-
-function PensamentosForm({color,onSubmit}){const [s,setS]=useState("");const [p,setP]=useState("");const [e,setE]=useState("");const [i,setI]=useState(5);const [a,setA]=useState("");return<div style={crd}><h3 style={{color,fontSize:16,marginBottom:16}}>💭 Registro ABC</h3><label style={lbl}>A — Situação</label><textarea className="inp" value={s} onChange={x=>setS(x.target.value)} placeholder="O que aconteceu?" style={{minHeight:60,resize:"vertical"}}/><label style={lbl}>B — Pensamento automático</label><textarea className="inp" value={p} onChange={x=>setP(x.target.value)} placeholder="O que você pensou?" style={{minHeight:60,resize:"vertical"}}/><label style={lbl}>C — Emoção</label><input className="inp" value={e} onChange={x=>setE(x.target.value)} placeholder="ex: fiquei ansioso..."/><label style={lbl}>Intensidade: {i}/10</label><div style={{background:"#f3f4f6",borderRadius:20,height:10,overflow:"hidden",marginBottom:6}}><div style={{width:`${(i/10)*100}%`,background:color,height:"100%",borderRadius:20,transition:"width .1s"}}/></div><input type="range" min={1} max={10} value={i} onChange={x=>setI(+x.target.value)} style={{width:"100%",marginBottom:12,accentColor:color}}/><label style={lbl}>Pensamento alternativo</label><textarea className="inp" value={a} onChange={x=>setA(x.target.value)} placeholder="Outra forma de ver?" style={{minHeight:60,resize:"vertical"}}/><button className="btn-main" style={{background:color}} onClick={()=>{if(s&&p)onSubmit({situacao:s,pensamento:p,emocao:e,intensidade:i,pensamentoAlternativo:a});}}>Enviar</button></div>;}
-function EscalaForm({color,onSubmit}){const [vals,setVals]=useState({humor:50,ansiedade:50,sono:50,estresse:50,tristeza:50});const [obs,setObs]=useState("");const desc=v=>v<=20?"Muito baixo":v<=40?"Baixo":v<=60?"Moderado":v<=80?"Alto":"Muito alto";return<div style={crd}><h3 style={{color,fontSize:16,marginBottom:16}}>📊 Escala de Bem-Estar</h3>{ESCALAS_DEF.map(sc=><div key={sc.id} style={{marginBottom:18}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}><span style={{fontSize:13,fontWeight:700,color:"#374151"}}>{sc.emoji} {sc.nome}</span><span style={{fontSize:18,fontWeight:800,color:sc.color}}>{vals[sc.id]}%</span></div><div style={{background:"#f3f4f6",borderRadius:20,height:10,overflow:"hidden",marginBottom:4}}><div style={{width:`${vals[sc.id]}%`,background:sc.color,height:"100%",borderRadius:20,transition:"width .1s"}}/></div><div style={{fontSize:11,color:"#888",marginBottom:6}}>{desc(vals[sc.id])}</div><input type="range" min={0} max={100} value={vals[sc.id]} onChange={e=>setVals({...vals,[sc.id]:+e.target.value})} style={{width:"100%",accentColor:sc.color}}/></div>)}<label style={lbl}>Observações</label><textarea className="inp" value={obs} onChange={e=>setObs(e.target.value)} placeholder="Como você está hoje?" style={{minHeight:70,resize:"vertical"}}/><button className="btn-main" style={{background:color}} onClick={()=>onSubmit({...vals,obs})}>Enviar</button></div>;}
-function ExperimentoForm({color,onSubmit}){const [h,setH]=useState("");const [a,setA]=useState("");const [r,setR]=useState("");const [ap,setAp]=useState("");return<div style={crd}><h3 style={{color,fontSize:16,marginBottom:16}}>🔬 Experimento Comportamental</h3><label style={lbl}>Hipótese</label><textarea className="inp" value={h} onChange={e=>setH(e.target.value)} placeholder="O que você acha que vai acontecer?" style={{minHeight:70,resize:"vertical"}}/><label style={lbl}>Ação planejada</label><textarea className="inp" value={a} onChange={e=>setA(e.target.value)} placeholder="O que vai fazer?" style={{minHeight:60,resize:"vertical"}}/><label style={lbl}>O que aconteceu?</label><textarea className="inp" value={r} onChange={e=>setR(e.target.value)} placeholder="Resultado real..." style={{minHeight:70,resize:"vertical"}}/><label style={lbl}>Aprendizado</label><textarea className="inp" value={ap} onChange={e=>setAp(e.target.value)} placeholder="Reflexão..." style={{minHeight:60,resize:"vertical"}}/><button className="btn-main" style={{background:color}} onClick={()=>{if(h&&a)onSubmit({hipotese:h,acao:a,resultado:r,aprendizado:ap});}}>Enviar</button></div>;}
-
-function AtencaoForm({color,onSubmit}){const [fase,setFase]=useState("intro");const [timeLeft,setTimeLeft]=useState(40);const [totalScore,setTotalScore]=useState(0);const [totalMisses,setTotalMisses]=useState(0);const [currentPage,setCurrentPage]=useState(1);const [items,setItems]=useState([]);const [showTurn,setShowTurn]=useState(false);const [result,setResult]=useState(null);const timerRef=useRef(null);const scoreRef=useRef(0);const missesRef=useRef(0);const targetsRef=useRef(0);const timeRef=useRef(40);const pageRef=useRef(1);const pageClickedRef=useRef(new Set());const pageTargetsRef=useRef(0);const SHAPES=["quadrado","circulo","triangulo","losango","estrela"];const COLORS=["#6d28d9","#e11d48","#059669","#d97706","#0891b2","#7c3aed","#dc2626","#0284c7"];const TARGETS=["quadrado","triangulo"];function getDiff(p){if(p===1)return{cols:5,rows:6,ratio:.35,size:38};if(p===2)return{cols:6,rows:7,ratio:.30,size:33};if(p===3)return{cols:6,rows:8,ratio:.25,size:30};if(p===4)return{cols:7,rows:8,ratio:.22,size:27};return{cols:7,rows:9,ratio:.20,size:24};}function drawShape(type,color,size){const s=size;if(type==="quadrado")return`<rect x="2" y="2" width="${s-4}" height="${s-4}" rx="3" fill="${color}"/>`;if(type==="circulo")return`<circle cx="${s/2}" cy="${s/2}" r="${s/2-2}" fill="${color}"/>`;if(type==="triangulo")return`<polygon points="${s/2},2 ${s-2},${s-2} 2,${s-2}" fill="${color}"/>`;if(type==="losango")return`<polygon points="${s/2},2 ${s-2},${s/2} ${s/2},${s-2} 2,${s/2}" fill="${color}"/>`;const cx=s/2,cy=s/2,r1=s/2-2,r2=s/4;let pts="";for(let i=0;i<10;i++){const a=Math.PI/5*i-Math.PI/2,r=i%2===0?r1:r2;pts+=`${cx+r*Math.cos(a)},${cy+r*Math.sin(a)} `;}return`<polygon points="${pts}" fill="${color}"/>`;}function buildPage(page){pageClickedRef.current=new Set();const d=getDiff(page);const total=d.cols*d.rows;const nT=Math.max(4,Math.floor(total*d.ratio));const arr=[];for(let i=0;i<nT;i++)arr.push(TARGETS[i%2]);while(arr.length<total)arr.push(SHAPES.filter(s=>!TARGETS.includes(s))[Math.floor(Math.random()*3)]);arr.sort(()=>Math.random()-.5);pageTargetsRef.current=nT;targetsRef.current+=nT;setItems(arr.map((type,i)=>({type,i,color:COLORS[Math.floor(Math.random()*COLORS.length)],size:d.size+Math.floor(Math.random()*8)-4,cols:d.cols,state:"idle"})));setCurrentPage(page);window.scrollTo(0,0);}function startGame(){scoreRef.current=0;missesRef.current=0;targetsRef.current=0;timeRef.current=40;pageRef.current=1;setTotalScore(0);setTotalMisses(0);setTimeLeft(40);setCurrentPage(1);buildPage(1);setFase("game");timerRef.current=setInterval(()=>{timeRef.current--;setTimeLeft(timeRef.current);if(timeRef.current<=0)endGame();},1000);}function handleClick(idx,type){if(pageClickedRef.current.has(idx))return;pageClickedRef.current.add(idx);if(TARGETS.includes(type)){scoreRef.current++;setTotalScore(scoreRef.current);setItems(prev=>prev.map((it,i)=>i===idx?{...it,state:"correct"}:it));const pa=[...pageClickedRef.current].filter(i=>{const it=items[i];return it&&TARGETS.includes(it.type);}).length;if(pa+1>=pageTargetsRef.current)setTimeout(()=>doPageTurn(),300);}else{missesRef.current++;setTotalMisses(missesRef.current);setItems(prev=>prev.map((it,i)=>i===idx?{...it,state:"wrong"}:it));}}function doPageTurn(){if(timeRef.current<=0)return;setShowTurn(true);const next=pageRef.current+1;pageRef.current=next;setTimeout(()=>{buildPage(next);setTimeout(()=>setShowTurn(false),500);},400);}function endGame(){clearInterval(timerRef.current);const precisao=(scoreRef.current+missesRef.current)>0?Math.round(scoreRef.current/(scoreRef.current+missesRef.current)*100):0;setResult({paginas:pageRef.current,acertos:scoreRef.current,erros:missesRef.current,precisao});setFase("result");}const cols=items[0]?.cols||5;const urgent=timeLeft<=10;if(fase==="intro")return<div style={{...crd,textAlign:"center"}}><div style={{fontSize:52,marginBottom:12}}>🎯</div><h3 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:8}}>Teste de Atenção</h3><p style={{fontSize:13,color:"#6b7280",marginBottom:20,lineHeight:1.6}}>Toque em todos os <strong>quadrados</strong> e <strong>triângulos</strong>!</p><div style={{display:"flex",justifyContent:"center",gap:24,marginBottom:20}}><div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6}}><svg width="48" height="48"><rect x="4" y="4" width="40" height="40" rx="4" fill="#6d28d9"/></svg><span style={{fontSize:11,fontWeight:700}}>Quadrado ✅</span></div><div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6}}><svg width="48" height="48"><polygon points="24,4 46,44 2,44" fill="#0891b2"/></svg><span style={{fontSize:11,fontWeight:700}}>Triângulo ✅</span></div></div><div style={{background:"#fef3c7",borderRadius:10,padding:12,fontSize:13,color:"#92400e",fontWeight:600,marginBottom:20}}>⏱ <strong>40 segundos</strong></div><button className="btn-main" style={{background:color}} onClick={startGame}>Começar!</button></div>;if(fase==="result")return<div style={crd}><div style={{textAlign:"center",marginBottom:16}}><div style={{fontSize:48,marginBottom:8}}>{result.precisao>=80?"🏆":result.precisao>=60?"🎉":"💪"}</div><h3 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>{result.precisao>=80?"Excelente!":result.precisao>=60?"Muito bem!":"Continue!"}</h3></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>{[[result.paginas,"Páginas","#6d28d9"],[result.acertos,"Acertos","#059669"],[result.erros,"Erros","#e11d48"],[`${result.precisao}%`,"Precisão","#0891b2"]].map(([v,l,c])=><div key={l} style={{background:"#f9fafb",borderRadius:12,padding:12,textAlign:"center"}}><div style={{fontSize:24,fontWeight:900,color:c}}>{v}</div><div style={{fontSize:11,color:"#888"}}>{l}</div></div>)}</div><button className="btn-main" style={{background:color,marginBottom:8}} onClick={()=>onSubmit(result)}>Salvar</button><button style={{...btn("#e5e7eb"),width:"100%"}} onClick={startGame}>Tentar novamente</button></div>;return<div style={{position:"relative"}}>{showTurn&&<div style={{position:"fixed",inset:0,zIndex:100,pointerEvents:"none",overflow:"hidden"}}><div style={{position:"absolute",inset:0,background:"linear-gradient(to right,#fafafa,#fff)",animation:"slideOut .9s cubic-bezier(.77,0,.18,1) forwards"}}/><div style={{position:"absolute",inset:0,background:"#fff",transform:"translateX(100%)",animation:"slideIn .9s cubic-bezier(.77,0,.18,1) forwards"}}/></div>}<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 4px",marginBottom:8}}><div style={{textAlign:"center"}}><div style={{fontSize:26,fontWeight:900,color:urgent?"#e11d48":"#6d28d9"}}>{timeLeft}</div><div style={{fontSize:10,color:"#aaa"}}>seg</div></div><div style={{background:"#ede9fe",color:"#6d28d9",borderRadius:20,padding:"4px 12px",fontSize:12,fontWeight:800}}>Página {currentPage}</div><div style={{textAlign:"right"}}><div style={{fontSize:20,fontWeight:800,color:"#059669"}}>{totalScore}</div><div style={{fontSize:10,color:"#aaa"}}>acertos</div><div style={{fontSize:12,fontWeight:700,color:"#e11d48"}}>{totalMisses} erro(s)</div></div></div><div style={{background:"#ede9fe",borderRadius:10,padding:"7px 12px",marginBottom:10,fontSize:12,color:"#5b21b6",fontWeight:600,textAlign:"center"}}>Toque nos <strong>quadrados</strong> e <strong>triângulos</strong>!</div><div style={{display:"grid",gridTemplateColumns:`repeat(${cols},1fr)`,gap:6}}>{items.map((it,idx)=><button key={idx} onClick={()=>handleClick(idx,it.type)} style={{background:it.state==="correct"?"#d1fae5":it.state==="wrong"?"#fee2e2":"transparent",border:"none",cursor:"pointer",padding:2,borderRadius:8,aspectRatio:"1",opacity:it.state==="missed"?.35:1,transition:"background .2s"}}><svg width={it.size} height={it.size} dangerouslySetInnerHTML={{__html:drawShape(it.type,it.color,it.size)}}/></button>)}</div></div>;}
-
-function ResponseView({response,type}){
-  if(!response)return null;
-  const items=[];
-  if(type==="pensamentos")items.push(["Situação",response.situacao],["Pensamento",response.pensamento],["Emoção",response.emocao],["Intensidade",`${response.intensidade}/10`],["Alternativo",response.pensamentoAlternativo]);
-  if(type==="atencao")items.push(["Páginas",response.paginas],["Acertos",response.acertos],["Erros",response.erros],["Precisão",`${response.precisao}%`]);
-  if(type==="experimento")items.push(["Hipótese",response.hipotese],["Ação",response.acao],["Resultado",response.resultado],["Aprendizado",response.aprendizado]);
-  if(type==="escala"){ESCALAS_DEF.forEach(s=>items.push([s.nome,`${response[s.id]}%`]));if(response.obs)items.push(["Obs",response.obs]);}
-  if(["csai2r","sas","acsi28"].includes(type)&&response.totais){
-    const ed=getEscalaData(type);if(!ed)return null;
-    return<div style={{display:"flex",flexDirection:"column",gap:8}}>{Object.entries(ed.subescalas).map(([key,info])=>{const total=response.totais[key]||0;const contagem=ed.itens.filter(i=>i.sub===key).length;const max=contagem*ed.escala.length;const pct=max>0?Math.round((total/max)*100):0;return<div key={key} style={{background:"#f9fafb",borderRadius:10,padding:12}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}><span style={{fontSize:12,fontWeight:700,color:"#374151"}}>{info.nome}</span><span style={{fontSize:13,fontWeight:800,color:info.cor}}>{total}/{max}</span></div><div style={{background:"#e5e7eb",borderRadius:20,height:8,overflow:"hidden"}}><div style={{width:`${pct}%`,background:info.cor,height:"100%",borderRadius:20}}/></div><div style={{fontSize:11,color:"#9ca3af",marginTop:3}}>{pct}%</div></div>;})}</div>;
-  }
-  return<div style={{display:"flex",flexDirection:"column",gap:6}}>{items.filter(([,v])=>v!=null&&v!=="").map(([k,v])=><div key={k} style={{fontSize:13,padding:"8px 12px",background:"#f9fafb",borderRadius:10}}><strong style={{color:"#374151"}}>{k}:</strong> <span style={{color:"#555"}}>{v}</span></div>)}</div>;
-}
-
-function RadarChart({labels,values,colors,size=220}){const cx=size/2,cy=size/2+10,r=size/2-45,n=labels.length;const angle=i=>((2*Math.PI*i)/n)-Math.PI/2;const pt=(i,radius)=>({x:cx+radius*Math.cos(angle(i)),y:cy+radius*Math.sin(angle(i))});const norm=values.map(v=>Math.min(100,Math.max(0,v)));const polyPts=norm.map((v,i)=>{const p=pt(i,r*(v/100));return`${p.x},${p.y}`;}).join(" ");return(<svg width={size} height={size+10} style={{overflow:"visible",display:"block",margin:"0 auto"}}>{[20,40,60,80,100].map(g=><polygon key={g} points={Array.from({length:n},(_,i)=>{const p=pt(i,r*(g/100));return`${p.x},${p.y}`;}).join(" ")} fill="none" stroke="#e5e7eb" strokeWidth="1"/>)}{Array.from({length:n},(_,i)=>{const p=pt(i,r);return<line key={i} x1={cx} y1={cy} x2={p.x} y2={p.y} stroke="#e5e7eb" strokeWidth="1"/>;})}<polygon points={polyPts} fill={`${colors[0]}25`} stroke={colors[0]} strokeWidth="2.5" strokeLinejoin="round"/>{norm.map((v,i)=>{const p=pt(i,r*(v/100));return<circle key={i} cx={p.x} cy={p.y} r="4" fill={colors[i]||colors[0]} stroke="#fff" strokeWidth="2"/>;})}{labels.map((l,i)=>{const p=pt(i,r+22);const anchor=p.x<cx-5?"end":p.x>cx+5?"start":"middle";return<text key={i} x={p.x} y={p.y} textAnchor={anchor} fontSize="10" fontWeight="700" fill="#374151">{l}</text>;})}</svg>);}
-function MiniBar({label,value,max,color}){const pct=max>0?Math.round((value/max)*100):0;return<div style={{marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}><span style={{fontSize:11,fontWeight:700,color:"#374151"}}>{label}</span><span style={{fontSize:11,fontWeight:800,color}}>{value}/{max}</span></div><div style={{background:"#f3f4f6",borderRadius:20,height:7,overflow:"hidden"}}><div style={{width:`${pct}%`,background:color,height:"100%",borderRadius:20}}/></div></div>;}
-
-// ── Dashboard Tab — agora com botão que chama onExport ──
-function DashboardTab({patients,onExport}){
-  const [sel,setSel]=useState(0);const [subTab,setSubTab]=useState("radar");
-  const p=patients[sel];
-  const tasks=p?.tasks?Object.values(p.tasks):[];
-  const diarios=p?.diarios?Object.values(p.diarios):[];
-  const escResp=tasks.filter(t=>t.type==="escala"&&t.response).slice(-1)[0]?.response||null;
-  const csaiResp=tasks.filter(t=>t.type==="csai2r"&&t.response?.totais).slice(-1)[0]?.response?.totais||null;
-  const sasResp=tasks.filter(t=>t.type==="sas"&&t.response?.totais).slice(-1)[0]?.response?.totais||null;
-  const acsiResp=tasks.filter(t=>t.type==="acsi28"&&t.response?.totais).slice(-1)[0]?.response?.totais||null;
-  const beValues=escResp?[escResp.humor,escResp.ansiedade,escResp.sono,escResp.estresse,escResp.tristeza]:[0,0,0,0,0];
-  const beColors=["#f59e0b","#8b5cf6","#3b82f6","#ef4444","#60a5fa"];
-  const csaiValues=csaiResp?[Math.round((csaiResp.cognitiva/32)*100),Math.round((csaiResp.somatica/28)*100),Math.round((csaiResp.autoconfianca/20)*100)]:[0,0,0];
-  const sasValues=sasResp?[Math.round((sasResp.somatica/28)*100),Math.round((sasResp.preocupacao/28)*100),Math.round((sasResp.concentracao/28)*100)]:[0,0,0];
-  const acsiValues=acsiResp?[Math.round((acsiResp.adversidade/16)*100),Math.round((acsiResp.pressao/16)*100),Math.round((acsiResp.metas/16)*100),Math.round((acsiResp.concentracao/16)*100),Math.round((acsiResp.preocupacao/16)*100),Math.round((acsiResp.confianca/16)*100),Math.round((acsiResp.treinabilidade/16)*100)]:[0,0,0,0,0,0,0];
-  const ECORES={Alegria:"#f59e0b",Tristeza:"#3b82f6",Raiva:"#ef4444",Ansiedade:"#8b5cf6",Medo:"#6366f1",Nojo:"#10b981",Vergonha:"#f97316",Culpa:"#64748b",Cansaço:"#94a3b8",Amor:"#ec4899",Neutro:"#6b7280",Empolgação:"#fbbf24"};
-  const emoCounts={};diarios.forEach(d=>{emoCounts[d.emocao]=(emoCounts[d.emocao]||0)+1;});
-  const emoSorted=Object.entries(emoCounts).sort((a,b)=>b[1]-a[1]);
-  if(patients.length===0)return<EmptyState icon="📊" text="Nenhum paciente cadastrado ainda."/>;
-  return<div>
-    <div style={{marginBottom:14}}>
-      <div style={{fontSize:11,fontWeight:700,color:"#9ca3af",marginBottom:8,textTransform:"uppercase",letterSpacing:".5px"}}>Paciente</div>
-      <div style={{display:"flex",flexDirection:"column",gap:8}}>
-        {patients.map((pt,i)=>{const ptTasks=pt.tasks?Object.values(pt.tasks):[];const humor=ptTasks.filter(t=>t.type==="escala"&&t.response).slice(-1)[0]?.response?.humor||null;const color=humor>=60?"#059669":humor>=40?"#d97706":"#e11d48";return<div key={pt.id} onClick={()=>setSel(i)} style={{background:sel===i?"#ede9fe":"#fff",borderRadius:14,padding:"12px 14px",cursor:"pointer",boxShadow:"0 2px 8px rgba(0,0,0,.06)",border:`1.5px solid ${sel===i?"#6d28d9":"#f0f0f0"}`,display:"flex",alignItems:"center",gap:12,transition:"all .2s"}}><div style={{width:36,height:36,borderRadius:10,background:sel===i?"#6d28d9":"#f3f4f6",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>👤</div><div style={{flex:1}}><div style={{fontWeight:700,color:sel===i?"#6d28d9":"#1f2937",fontSize:14}}>{pt.name}</div><div style={{fontSize:11,color:"#9ca3af",marginTop:1}}>{humor!==null?<span>Humor: <span style={{color,fontWeight:700}}>{humor}%</span></span>:"Sem dados ainda"}</div></div><div style={{fontSize:18,color:sel===i?"#6d28d9":"#d1d5db"}}>›</div></div>;})}
-      </div>
-    </div>
-
-    {/* Botão exportar — agora abre tela completa */}
-    <button onClick={onExport} style={{width:"100%",marginBottom:14,padding:"11px 0",borderRadius:12,border:"none",background:"linear-gradient(135deg,#059669,#34d399)",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer",boxShadow:"0 4px 12px rgba(5,150,105,.3)"}}>
-      📥 Exportar dados
-    </button>
-
-    <div style={{display:"flex",background:"#fff",borderRadius:14,padding:4,gap:4,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.05)"}}>
-      {[["radar","📡 Radar"],["escalas","📋 Escalas"],["emocoes","😊 Emoções"]].map(([id,label])=>(
-        <button key={id} onClick={()=>setSubTab(id)} style={{flex:1,padding:"9px 4px",border:"none",cursor:"pointer",fontWeight:700,fontSize:12,borderRadius:10,background:subTab===id?"#6d28d9":"transparent",color:subTab===id?"#fff":"#9ca3af",transition:"all .2s"}}>{label}</button>
-      ))}
-    </div>
-
-    {subTab==="radar"&&<div>
-      <div style={{...crd,marginBottom:14}}><div style={{fontSize:14,fontWeight:800,color:"#1f2937",marginBottom:2}}>📊 Bem-Estar</div><div style={{fontSize:12,color:"#9ca3af",marginBottom:10}}>Humor, ansiedade, sono, estresse e tristeza</div>{escResp?<><RadarChart labels={["Humor","Ansiedade","Sono","Estresse","Tristeza"]} values={beValues} colors={beColors} size={220}/><div style={{display:"flex",flexWrap:"wrap",gap:6,marginTop:8,justifyContent:"center"}}>{["Humor","Ansiedade","Sono","Estresse","Tristeza"].map((l,i)=><div key={l} style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:8,height:8,borderRadius:"50%",background:beColors[i]}}/><span style={{fontSize:10,color:"#6b7280",fontWeight:600}}>{l}</span></div>)}</div></>:<EmptyState icon="📊" text="Nenhuma escala respondida ainda."/>}</div>
-      <div style={{...crd,marginBottom:14}}><div style={{fontSize:14,fontWeight:800,color:"#6d28d9",marginBottom:2}}>📋 CSAI-2R</div><div style={{fontSize:12,color:"#9ca3af",marginBottom:10}}>Ansiedade cognitiva, somática e autoconfiança</div>{csaiResp?<RadarChart labels={["Ans. Cognitiva","Ans. Somática","Autoconfiança"]} values={csaiValues} colors={["#6d28d9","#e11d48","#059669"]} size={200}/>:<EmptyState icon="📋" text="CSAI-2R não respondido ainda."/>}</div>
-      <div style={crd}><div style={{fontSize:14,fontWeight:800,color:"#059669",marginBottom:2}}>📋 ACSI-28</div><div style={{fontSize:12,color:"#9ca3af",marginBottom:10}}>7 subescalas de habilidades de coping</div>{acsiResp?<RadarChart labels={["Adversid.","Pressão","Metas","Concentr.","Preocup.","Confiança","Treinab."]} values={acsiValues} colors={["#ef4444","#f97316","#eab308","#22c55e","#06b6d4","#8b5cf6","#ec4899"]} size={240}/>:<EmptyState icon="📋" text="ACSI-28 não respondido ainda."/>}</div>
-    </div>}
-    {subTab==="escalas"&&<div>
-      <div style={{...crd,marginBottom:14}}><div style={{fontSize:14,fontWeight:800,color:"#6d28d9",marginBottom:12}}>📋 CSAI-2R</div>{csaiResp?<><MiniBar label="Ansiedade Cognitiva" value={csaiResp.cognitiva} max={32} color="#6d28d9"/><MiniBar label="Ansiedade Somática" value={csaiResp.somatica} max={28} color="#e11d48"/><MiniBar label="Autoconfiança" value={csaiResp.autoconfianca} max={20} color="#059669"/></>:<p style={{fontSize:13,color:"#9ca3af"}}>Nenhuma resposta ainda.</p>}</div>
-      <div style={{...crd,marginBottom:14}}><div style={{fontSize:14,fontWeight:800,color:"#0891b2",marginBottom:12}}>📋 SAS</div>{sasResp?<><MiniBar label="Ansiedade Somática" value={sasResp.somatica} max={28} color="#e11d48"/><MiniBar label="Preocupação" value={sasResp.preocupacao} max={28} color="#d97706"/><MiniBar label="Perturbação Concentração" value={sasResp.concentracao} max={28} color="#7c3aed"/></>:<p style={{fontSize:13,color:"#9ca3af"}}>Nenhuma resposta ainda.</p>}</div>
-      <div style={crd}><div style={{fontSize:14,fontWeight:800,color:"#059669",marginBottom:12}}>📋 ACSI-28</div>{acsiResp?[["adversidade","Coping Adversidade","#ef4444",16],["pressao","Pressão","#f97316",16],["metas","Metas","#eab308",16],["concentracao","Concentração","#22c55e",16],["preocupacao","Preocupação","#06b6d4",16],["confianca","Confiança","#8b5cf6",16],["treinabilidade","Treinabilidade","#ec4899",16]].map(([k,l,c,m])=><MiniBar key={k} label={l} value={acsiResp[k]||0} max={m} color={c}/>):<p style={{fontSize:13,color:"#9ca3af"}}>Nenhuma resposta ainda.</p>}</div>
-    </div>}
-    {subTab==="emocoes"&&<div>
-      <div style={{...crd,marginBottom:14}}><div style={{fontSize:14,fontWeight:800,color:"#1f2937",marginBottom:4}}>😊 Frequência das Emoções</div><div style={{fontSize:12,color:"#9ca3af",marginBottom:12}}>{diarios.length} registro(s) no diário</div>{diarios.length===0?<EmptyState icon="📔" text="Nenhum registro no diário ainda."/>:<div style={{display:"flex",flexWrap:"wrap",gap:6}}>{emoSorted.map(([nome,count])=><div key={nome} style={{display:"flex",alignItems:"center",gap:5,background:"#f9fafb",borderRadius:20,padding:"5px 10px"}}><div style={{width:8,height:8,borderRadius:"50%",background:ECORES[nome]||"#888",flexShrink:0}}/><span style={{fontSize:12,fontWeight:700,color:"#374151"}}>{nome}</span><span style={{fontSize:11,color:"#9ca3af"}}>{Math.round((count/diarios.length)*100)}%</span></div>)}</div>}</div>
-      {diarios.length>0&&<div style={{...crd,marginBottom:14}}><div style={{fontSize:14,fontWeight:800,color:"#1f2937",marginBottom:12}}>📈 Intensidade Média</div>{Object.entries(diarios.reduce((acc,d)=>{if(!acc[d.emocao])acc[d.emocao]={total:0,count:0};acc[d.emocao].total+=d.intensidade;acc[d.emocao].count++;return acc;},{})).map(([nome,{total,count}])=>(<MiniBar key={nome} label={nome} value={Math.round((total/count)*10)} max={100} color={ECORES[nome]||"#888"}/>))}</div>}
-      {escResp&&<div style={crd}><div style={{fontSize:14,fontWeight:800,color:"#1f2937",marginBottom:12}}>📊 Escala de Bem-Estar</div>{[["humor","Humor","#f59e0b"],["ansiedade","Ansiedade","#8b5cf6"],["sono","Sono","#3b82f6"],["estresse","Estresse","#ef4444"],["tristeza","Tristeza","#60a5fa"]].map(([k,l,c])=><MiniBar key={k} label={l} value={escResp[k]} max={100} color={c}/>)}</div>}
-    </div>}
-  </div>;
-}
-
-function ConfigTab({role,patientId,onLogout}){
-  const [oldPass,setOldPass]=useState("");const [newPass,setNewPass]=useState("");const [confirmPass,setConfirmPass]=useState("");const [msg,setMsg]=useState("");const [err,setErr]=useState("");const [loading,setLoading]=useState(false);
-  async function changePass(){setMsg("");setErr("");if(!oldPass||!newPass||!confirmPass){setErr("Preencha todos os campos.");return;}if(newPass!==confirmPass){setErr("A nova senha e a confirmação não coincidem.");return;}if(newPass.length<4){setErr("A nova senha deve ter pelo menos 4 caracteres.");return;}setLoading(true);try{if(role==="therapist"){const d=await fbGet("therapist");const stored=d?.password||"1234";if(oldPass!==stored){setErr("Senha atual incorreta.");setLoading(false);return;}await fbSet("therapist",{...d,password:newPass});setMsg("✅ Senha do terapeuta alterada com sucesso!");}else{const p=await fbGet(`patients/${patientId}`);if(!p){setErr("Paciente não encontrado.");setLoading(false);return;}if(oldPass!==(p.password||"1234")){setErr("Senha atual incorreta.");setLoading(false);return;}await fbUpdate(`patients/${patientId}`,{password:newPass});setMsg("✅ Sua senha foi alterada com sucesso!");}setOldPass("");setNewPass("");setConfirmPass("");}catch(e){setErr("Erro ao alterar senha. Tente novamente.");}setLoading(false);}
-  return<div>
-    <h2 style={h2s}>⚙️ Configurações</h2>
-    <div style={crd}><h3 style={{fontSize:15,fontWeight:800,color:"#1f2937",marginBottom:4}}>🔑 Alterar Senha</h3><p style={{fontSize:12,color:"#9ca3af",marginBottom:16}}>{role==="therapist"?"Altere a senha de acesso do terapeuta":"Altere sua senha de acesso"}</p><label style={lbl}>Senha atual</label><input type="password" className="inp" value={oldPass} onChange={e=>setOldPass(e.target.value)} placeholder="Digite a senha atual"/><label style={lbl}>Nova senha</label><input type="password" className="inp" value={newPass} onChange={e=>setNewPass(e.target.value)} placeholder="Digite a nova senha"/><label style={lbl}>Confirmar nova senha</label><input type="password" className="inp" value={confirmPass} onChange={e=>setConfirmPass(e.target.value)} onKeyDown={e=>e.key==="Enter"&&changePass()} placeholder="Repita a nova senha"/>{err&&<div style={{background:"#fee2e2",borderRadius:10,padding:"10px 14px",marginBottom:10,fontSize:13,color:"#e11d48",fontWeight:600}}>{err}</div>}{msg&&<div style={{background:"#d1fae5",borderRadius:10,padding:"10px 14px",marginBottom:10,fontSize:13,color:"#065f46",fontWeight:600}}>{msg}</div>}<button className="btn-main" onClick={changePass} disabled={loading}>{loading?"Salvando...":"Alterar Senha"}</button></div>
-    <div style={{...crd,marginTop:14}}><h3 style={{fontSize:15,fontWeight:800,color:"#1f2937",marginBottom:4}}>🚪 Sair</h3><p style={{fontSize:12,color:"#9ca3af",marginBottom:14}}>Encerrar sessão atual</p><button onClick={onLogout} style={{...btn("#fee2e2"),width:"100%",padding:"12px 0"}}>Sair do app</button></div>
-  </div>;
-}
-
-function App(){
-  const [ready,setReady]=useState(window._firebaseReady||false);
-  const [session,setSession]=useState({role:null,patientId:null});
-  useEffect(()=>{if(!ready){const h=()=>setReady(true);window.addEventListener("firebaseReady",h);return()=>window.removeEventListener("firebaseReady",h);}},[ready]);
-  if(!ready)return<div style={{minHeight:"100vh",background:"linear-gradient(160deg,#1e1b4b,#4c1d95,#0c4a6e)",display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{color:"#fff",textAlign:"center"}}><div style={{fontSize:40,marginBottom:12}}>🧠</div><div style={{fontSize:16,fontWeight:700}}>MeuPsi</div><div style={{fontSize:13,marginTop:8,opacity:.8}}>Conectando...</div></div></div>;
-  if(!session.role)return<LoginScreen onLogin={(role,pid)=>setSession({role,patientId:pid})}/>;
-  if(session.role==="therapist")return<TherapistApp onLogout={()=>setSession({role:null,patientId:null})}/>;
-  return<PatientApp patientId={session.patientId} onLogout={()=>setSession({role:null,patientId:null})}/>;
-}
-
-const root=ReactDOM.createRoot(document.getElementById("root"));
-root.render(<App/>);
+// ══ INIT ═════════════════════════════════════════════════════════
+renderList();
 </script>
 </body>
 </html>
