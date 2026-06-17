@@ -71,6 +71,10 @@ const TASK_TYPES=[
   {id:"csai2r",label:"📋 CSAI-2R",color:"#6d28d9"},
   {id:"sas",label:"📋 SAS",color:"#0891b2"},
   {id:"acsi28",label:"📋 ACSI-28",color:"#059669"},
+  {id:"teosq",label:"🎯 TEOSQ (Orientação de Meta)",color:"#d97706"},
+  {id:"siq",label:"🧘 SIQ (Imagem Mental)",color:"#0891b2"},
+  {id:"resiliencia",label:"🛡️ Resiliência Esportiva",color:"#7c3aed"},
+  {id:"suporte_social",label:"🤝 Suporte Social Percebido",color:"#ec4899"},
   {id:"tr",label:"⚡ Tempo de Reação",color:"#7c3aed"},
   {id:"stroop",label:"🎨 Teste de Stroop",color:"#6d28d9"},
   {id:"tmt",label:"🔢 Trail Making Test",color:"#0891b2"},
@@ -107,7 +111,67 @@ const CSAI2R_DATA={id:"csai2r",nome:"CSAI-2R",color:"#6d28d9",escala:["Nada","Um
 const SAS_DATA={id:"sas",nome:"SAS",color:"#0891b2",escala:["Nada","Um pouco","Bastante","Muito"],subescalas:{somatica:{nome:"Ansiedade Somática",cor:"#e11d48"},preocupacao:{nome:"Preocupação",cor:"#d97706"},concentracao:{nome:"Perturbação da Concentração",cor:"#7c3aed"}},itens:[{id:1,texto:"Meu corpo fica tenso.",sub:"somatica"},{id:2,texto:"Começo a me preocupar que não me sairei bem.",sub:"preocupacao"},{id:3,texto:"É difícil se concentrar no que tenho que fazer.",sub:"concentracao"},{id:4,texto:"Meu corpo fica rígido.",sub:"somatica"},{id:5,texto:"Começo a me preocupar sobre como o público reagirá ao meu desempenho.",sub:"preocupacao"},{id:6,texto:"Não consigo me concentrar.",sub:"concentracao"},{id:7,texto:"Meu estômago fica embrulhado.",sub:"somatica"},{id:8,texto:"Preocupo-me com possibilidade de um mau desempenho.",sub:"preocupacao"},{id:9,texto:"Minha atenção fica voltada para coisas que não têm nada a ver com o que estou fazendo.",sub:"concentracao"},{id:10,texto:"Meu coração acelera.",sub:"somatica"},{id:11,texto:"Preocupo-me com a possibilidade de não atingir meu objetivo.",sub:"preocupacao"},{id:12,texto:"Perco minha concentração na competição por causa da ansiedade.",sub:"concentracao"},{id:13,texto:"Meu corpo fica parado e contraído.",sub:"somatica"},{id:14,texto:"Preocupo-me com a possibilidade de decepcionar as pessoas.",sub:"preocupacao"},{id:15,texto:"Tenho dificuldade em me concentrar nos meus pensamentos.",sub:"concentracao"},{id:16,texto:"Sinto meu estômago pesado.",sub:"somatica"},{id:17,texto:"Preocupo-me em não me sair tão bem quanto poderia.",sub:"preocupacao"},{id:18,texto:"Minha atenção fica distraída.",sub:"concentracao"},{id:19,texto:"Meu coração acelera muito.",sub:"somatica"},{id:20,texto:"Preocupo-me com a possibilidade de ficar aquém das expectativas dos outros.",sub:"preocupacao"},{id:21,texto:"Tenho pensamentos intrusos que perturbam minha concentração.",sub:"concentracao"}]};
 const ACSI28_DATA={id:"acsi28",nome:"ACSI-28",color:"#059669",escala:["Quase nunca","Às vezes","Frequentemente","Quase sempre"],subescalas:{adversidade:{nome:"Coping com Adversidade",cor:"#ef4444"},pressao:{nome:"Rendimento sob Pressão",cor:"#f97316"},metas:{nome:"Metas e Preparação Mental",cor:"#eab308"},concentracao:{nome:"Concentração",cor:"#22c55e"},preocupacao:{nome:"Ausência de Preocupação",cor:"#06b6d4"},confianca:{nome:"Confiança e Motivação",cor:"#8b5cf6"},treinabilidade:{nome:"Treinabilidade",cor:"#ec4899"}},itens:[{id:1,texto:"Em situações difíceis, percebo que penso de forma negativa.",sub:"adversidade",inverso:true},{id:2,texto:"Tenho meu melhor desempenho quando estou sob pressão.",sub:"pressao"},{id:3,texto:"Estabeleço meus próprios objetivos para cada treino e competição.",sub:"metas"},{id:4,texto:"Quando o técnico me diz como corrigir um erro, fico na defensiva.",sub:"treinabilidade",inverso:true},{id:5,texto:"Fico preocupado com a possibilidade de cometer erros ou falhar.",sub:"preocupacao",inverso:true},{id:6,texto:"Antes de uma competição, imagino mentalmente como vou me sair bem.",sub:"metas"},{id:7,texto:"Quando começo a competir mal, é difícil recuperar a concentração.",sub:"adversidade",inverso:true},{id:8,texto:"Sinto-me confiante de que terei um bom desempenho.",sub:"confianca"},{id:9,texto:"Quando o técnico me critica, fico chateado ao invés de motivado.",sub:"treinabilidade",inverso:true},{id:10,texto:"Quando o desempenho melhora, é porque trabalho duro para isso.",sub:"confianca"},{id:11,texto:"Fico muito ansioso quando as coisas não correm bem na competição.",sub:"adversidade",inverso:true},{id:12,texto:"Quanto mais pressão existe numa competição, mais me envolvo.",sub:"pressao"},{id:13,texto:"Defino metas muito específicas para os treinos.",sub:"metas"},{id:14,texto:"Não preciso ser empurrado para treinar com intensidade.",sub:"confianca"},{id:15,texto:"Se errar uma jogada importante, é difícil colocar o erro de lado.",sub:"adversidade",inverso:true},{id:16,texto:"Os adversários não conseguem bloquear mentalmente minha concentração.",sub:"concentracao"},{id:17,texto:"Quando o técnico critica meu desempenho, escuto atentamente.",sub:"treinabilidade"},{id:18,texto:"Fico preocupado com a possibilidade de não me sair bem.",sub:"preocupacao",inverso:true},{id:19,texto:"Tenho um plano de ação mental para superar situações difíceis.",sub:"metas"},{id:20,texto:"Confio em mim mesmo nos momentos de grande pressão.",sub:"pressao"},{id:21,texto:"Quando me esforço ao máximo, geralmente tenho sucesso.",sub:"confianca"},{id:22,texto:"Quando começo a pensar negativamente, consigo rapidamente parar.",sub:"adversidade"},{id:23,texto:"Durante a competição, consigo manter o foco nos requisitos da tarefa.",sub:"concentracao"},{id:24,texto:"Quando o técnico me diz como melhorar, presto atenção e aprendo.",sub:"treinabilidade"},{id:25,texto:"Fico perturbado quando me preocupo com como me saio.",sub:"preocupacao",inverso:true},{id:26,texto:"Executo com técnica e eficiência em momentos importantes.",sub:"pressao"},{id:27,texto:"Quando algo atrapalha minha concentração, consigo rapidamente recentrá-la.",sub:"concentracao"},{id:28,texto:"Estar mentalmente pronto é fundamental para alcançar meu potencial.",sub:"metas"}]};
 
-function getEscalaData(id){return{csai2r:CSAI2R_DATA,sas:SAS_DATA,acsi28:ACSI28_DATA}[id]||null}
+const TEOSQ_DATA={id:"teosq",nome:"TEOSQ",color:"#d97706",escala:["Discordo totalmente","Discordo","Concordo","Concordo totalmente"],subescalas:{tarefa:{nome:"Orientação à Tarefa",cor:"#059669"},ego:{nome:"Orientação ao Ego",cor:"#e11d48"}},itens:[
+  {id:1,texto:"Eu sinto que tive sucesso no esporte quando aprendo algo novo que me motiva a continuar treinando.",sub:"tarefa"},
+  {id:2,texto:"Eu sinto que tive sucesso quando sou o melhor do time.",sub:"ego"},
+  {id:3,texto:"Eu sinto que tive sucesso quando consigo fazer algo que antes eu não conseguia fazer.",sub:"tarefa"},
+  {id:4,texto:"Eu sinto que tive sucesso quando jogo melhor que meus companheiros de equipe.",sub:"ego"},
+  {id:5,texto:"Eu sinto que tive sucesso quando me esforço ao máximo durante o treino ou jogo.",sub:"tarefa"},
+  {id:6,texto:"Eu sinto que tive sucesso quando os outros não conseguem fazer tão bem quanto eu.",sub:"ego"},
+  {id:7,texto:"Eu sinto que tive sucesso quando melhoro em relação ao meu próprio desempenho anterior.",sub:"tarefa"},
+  {id:8,texto:"Eu sinto que tive sucesso quando marco mais pontos/gols que os outros.",sub:"ego"},
+  {id:9,texto:"Eu sinto que tive sucesso quando uma habilidade nova que praticei realmente funciona.",sub:"tarefa"},
+  {id:10,texto:"Eu sinto que tive sucesso quando os outros cometem mais erros do que eu.",sub:"ego"},
+  {id:11,texto:"Eu sinto que tive sucesso quando dou o meu melhor esforço pessoal.",sub:"tarefa"},
+  {id:12,texto:"Eu sinto que tive sucesso quando supero claramente meus adversários.",sub:"ego"},
+  {id:13,texto:"Eu sinto que tive sucesso quando algo que aprendi me faz querer praticar mais.",sub:"tarefa"},
+]};
+
+const SIQ_DATA={id:"siq",nome:"SIQ (Imagem Mental)",color:"#0891b2",escala:["Nunca","Raramente","Às vezes","Sempre"],subescalas:{cognitiva:{nome:"Imagem Cognitiva",cor:"#0891b2"},motivacional:{nome:"Imagem Motivacional",cor:"#d97706"},controle:{nome:"Controle Emocional",cor:"#059669"}},itens:[
+  {id:1,texto:"Eu visualizo mentalmente como vou executar um movimento ou jogada antes de fazê-lo.",sub:"cognitiva"},
+  {id:2,texto:"Eu me imagino recebendo um troféu ou sendo parabenizado pelo meu desempenho.",sub:"motivacional"},
+  {id:3,texto:"Eu me visualizo mantendo a calma em momentos decisivos do jogo.",sub:"controle"},
+  {id:4,texto:"Eu repito mentalmente a técnica correta de um movimento antes de treinar.",sub:"cognitiva"},
+  {id:5,texto:"Eu imagino o time todo celebrando uma vitória importante.",sub:"motivacional"},
+  {id:6,texto:"Eu me visualizo respirando fundo e relaxando antes de uma jogada importante.",sub:"controle"},
+  {id:7,texto:"Antes de uma partida, eu visualizo mentalmente toda a sequência de jogadas que vou fazer.",sub:"cognitiva"},
+  {id:8,texto:"Eu me imagino sendo admirado por jogar bem.",sub:"motivacional"},
+  {id:9,texto:"Eu me visualizo controlando minha frustração após cometer um erro.",sub:"controle"},
+  {id:10,texto:"Eu visualizo mentalmente corrigir um erro técnico que cometi no treino anterior.",sub:"cognitiva"},
+  {id:11,texto:"Eu imagino atingir minhas metas pessoais na temporada.",sub:"motivacional"},
+  {id:12,texto:"Eu me visualizo confiante e tranquilo mesmo quando o placar está apertado.",sub:"controle"},
+]};
+
+const RESILIENCIA_DATA={id:"resiliencia",nome:"Resiliência Esportiva",color:"#7c3aed",escala:["Nunca","Raramente","Às vezes","Sempre"],subescalas:{recuperacao:{nome:"Recuperação de Adversidades",cor:"#7c3aed"},adaptacao:{nome:"Persistência e Adaptação",cor:"#059669"}},itens:[
+  {id:1,texto:"Depois de um erro ou derrota, eu consigo voltar a jogar bem rapidamente.",sub:"recuperacao"},
+  {id:2,texto:"Eu me adapto bem a mudanças inesperadas durante o jogo (lesão de companheiro, mudança de tática).",sub:"adaptacao"},
+  {id:3,texto:"Um erro me deixa desanimado por muito tempo.",sub:"recuperacao",inverso:true},
+  {id:4,texto:"Quando as coisas não saem como planejado, eu encontro outra forma de resolver.",sub:"adaptacao"},
+  {id:5,texto:"Eu consigo manter a confiança mesmo depois de uma sequência de derrotas.",sub:"recuperacao"},
+  {id:6,texto:"Mudanças de última hora (horário, local, adversário) me desorganizam completamente.",sub:"adaptacao",inverso:true},
+  {id:7,texto:"Eu aprendo com as dificuldades e uso isso para melhorar.",sub:"recuperacao"},
+  {id:8,texto:"Eu me esforço para continuar mesmo quando o time está perdendo.",sub:"adaptacao"},
+  {id:9,texto:"Situações de pressão ou crítica me afetam por dias.",sub:"recuperacao",inverso:true},
+  {id:10,texto:"Eu consigo me ajustar rapidamente quando o técnico muda minha posição ou função no time.",sub:"adaptacao"},
+]};
+
+const SUPORTE_SOCIAL_DATA={id:"suporte_social",nome:"Suporte Social Percebido",color:"#ec4899",escala:["Nunca","Raramente","Às vezes","Sempre"],subescalas:{familia:{nome:"Suporte da Família",cor:"#ec4899"},treinador:{nome:"Suporte do Treinador",cor:"#0891b2"},colegas:{nome:"Suporte dos Colegas",cor:"#059669"}},itens:[
+  {id:1,texto:"Minha família me apoia mesmo quando eu não jogo bem.",sub:"familia"},
+  {id:2,texto:"Meu treinador se importa comigo além do meu desempenho esportivo.",sub:"treinador"},
+  {id:3,texto:"Meus colegas de time me incentivam quando estou desmotivado.",sub:"colegas"},
+  {id:4,texto:"Minha família comparece ou se interessa pelos meus jogos e treinos.",sub:"familia"},
+  {id:5,texto:"Meu treinador me dá feedback que me ajuda a melhorar, não apenas crítica.",sub:"treinador"},
+  {id:6,texto:"Eu sinto que faço parte do grupo dentro do time.",sub:"colegas"},
+  {id:7,texto:"Minha família entende a importância do esporte na minha vida.",sub:"familia"},
+  {id:8,texto:"Eu sinto confiança para conversar com meu treinador sobre dificuldades pessoais.",sub:"treinador"},
+  {id:9,texto:"Meus colegas de equipe comemoram minhas conquistas comigo.",sub:"colegas"},
+  {id:10,texto:"Eu sinto apoio emocional da minha família nos momentos difíceis do esporte.",sub:"familia"},
+  {id:11,texto:"Meu treinador acredita no meu potencial.",sub:"treinador"},
+  {id:12,texto:"Eu posso contar com meus colegas de time fora dos jogos e treinos também.",sub:"colegas"},
+]};
+
+
+function getEscalaData(id){return{csai2r:CSAI2R_DATA,sas:SAS_DATA,acsi28:ACSI28_DATA,teosq:TEOSQ_DATA,siq:SIQ_DATA,resiliencia:RESILIENCIA_DATA,suporte_social:SUPORTE_SOCIAL_DATA}[id]||null}
 function calcEscala(ed,resp){const t={};const c={};Object.keys(ed.subescalas).forEach(k=>{t[k]=0;c[k]=0;});ed.itens.forEach(item=>{const v=resp[item.id];if(v!=null){const val=item.inverso?(ed.escala.length+1-v):v;t[item.sub]+=val;c[item.sub]++;}});return{totais:t,contagens:c}}
 
 const aw={minHeight:"100vh",background:"#f5f5f7",display:"flex",flexDirection:"column"};
@@ -423,12 +487,20 @@ function csvPaciente(p){
   const csaiResp=tasks.filter(t=>t.type==="csai2r"&&t.response?.totais).slice(-1)[0]?.response?.totais||null;
   const sasResp=tasks.filter(t=>t.type==="sas"&&t.response?.totais).slice(-1)[0]?.response?.totais||null;
   const acsiResp=tasks.filter(t=>t.type==="acsi28"&&t.response?.totais).slice(-1)[0]?.response?.totais||null;
+  const teosqResp=tasks.filter(t=>t.type==="teosq"&&t.response?.totais).slice(-1)[0]?.response?.totais||null;
+  const siqResp=tasks.filter(t=>t.type==="siq"&&t.response?.totais).slice(-1)[0]?.response?.totais||null;
+  const resilResp=tasks.filter(t=>t.type==="resiliencia"&&t.response?.totais).slice(-1)[0]?.response?.totais||null;
+  const suporteResp=tasks.filter(t=>t.type==="suporte_social"&&t.response?.totais).slice(-1)[0]?.response?.totais||null;
   let csv="";
   csv+="RESUMO\n"+toCSV([["Campo","Valor"],["Paciente",p.name],["Grupo",p._grupo||"—"],["Data",new Date().toLocaleDateString("pt-BR")],["Registros no diário",diarios.length],["Total de tarefas",tasks.length],["Tarefas respondidas",tasks.filter(t=>t.response).length]])+"\n\n";
   if(escResp){csv+="ESCALA DE BEM-ESTAR\n"+toCSV([["Dimensão","Valor (%)"],["Humor",escResp.humor],["Ansiedade",escResp.ansiedade],["Sono",escResp.sono],["Estresse",escResp.estresse],["Tristeza",escResp.tristeza]])+"\n\n";}
   if(csaiResp){csv+="CSAI-2R\n"+toCSV([["Subescala","Pontuação","Máximo","%"],["Ans. Cognitiva",csaiResp.cognitiva,32,Math.round((csaiResp.cognitiva/32)*100)],["Ans. Somática",csaiResp.somatica,28,Math.round((csaiResp.somatica/28)*100)],["Autoconfiança",csaiResp.autoconfianca,20,Math.round((csaiResp.autoconfianca/20)*100)]])+"\n\n";}
   if(sasResp){csv+="SAS\n"+toCSV([["Subescala","Pontuação","Máximo","%"],["Somática",sasResp.somatica,28,Math.round((sasResp.somatica/28)*100)],["Preocupação",sasResp.preocupacao,28,Math.round((sasResp.preocupacao/28)*100)],["Concentração",sasResp.concentracao,28,Math.round((sasResp.concentracao/28)*100)]])+"\n\n";}
   if(acsiResp){csv+="ACSI-28\n"+toCSV([["Subescala","Pontuação","Máximo","%"],["Adversidade",acsiResp.adversidade,16,Math.round((acsiResp.adversidade/16)*100)],["Pressão",acsiResp.pressao,16,Math.round((acsiResp.pressao/16)*100)],["Metas",acsiResp.metas,16,Math.round((acsiResp.metas/16)*100)],["Concentração",acsiResp.concentracao,16,Math.round((acsiResp.concentracao/16)*100)],["Preocupação",acsiResp.preocupacao,16,Math.round((acsiResp.preocupacao/16)*100)],["Confiança",acsiResp.confianca,16,Math.round((acsiResp.confianca/16)*100)],["Treinabilidade",acsiResp.treinabilidade,16,Math.round((acsiResp.treinabilidade/16)*100)]])+"\n\n";}
+  if(teosqResp){csv+="TEOSQ\n"+toCSV([["Subescala","Pontuação","Máximo","%"],["Orientação à Tarefa",teosqResp.tarefa,28,Math.round((teosqResp.tarefa/28)*100)],["Orientação ao Ego",teosqResp.ego,24,Math.round((teosqResp.ego/24)*100)]])+"\n\n";}
+  if(siqResp){csv+="SIQ — IMAGEM MENTAL\n"+toCSV([["Subescala","Pontuação","Máximo","%"],["Imagem Cognitiva",siqResp.cognitiva,16,Math.round((siqResp.cognitiva/16)*100)],["Imagem Motivacional",siqResp.motivacional,16,Math.round((siqResp.motivacional/16)*100)],["Controle Emocional",siqResp.controle,16,Math.round((siqResp.controle/16)*100)]])+"\n\n";}
+  if(resilResp){csv+="RESILIÊNCIA ESPORTIVA\n"+toCSV([["Subescala","Pontuação","Máximo","%"],["Recuperação de Adversidades",resilResp.recuperacao,20,Math.round((resilResp.recuperacao/20)*100)],["Persistência e Adaptação",resilResp.adaptacao,20,Math.round((resilResp.adaptacao/20)*100)]])+"\n\n";}
+  if(suporteResp){csv+="SUPORTE SOCIAL PERCEBIDO\n"+toCSV([["Subescala","Pontuação","Máximo","%"],["Suporte da Família",suporteResp.familia,16,Math.round((suporteResp.familia/16)*100)],["Suporte do Treinador",suporteResp.treinador,16,Math.round((suporteResp.treinador/16)*100)],["Suporte dos Colegas",suporteResp.colegas,16,Math.round((suporteResp.colegas/16)*100)]])+"\n\n";}
   if(diarios.length){csv+="DIÁRIO\n"+toCSV([["Emoção","Intensidade","Data","Hora","Contexto"],...diarios.map(d=>[d.emocao,d.intensidade,d.data||"—",d.hora||"—",d.contexto||"—"])]);}
   return csv;
 }
@@ -610,7 +682,12 @@ function ExportarScreen({patients,grupos,onClose}){
 
 // ── Login ──
 function LoginScreen({onLogin}){
-  const [role,setRole]=useState("therapist");const [pid,setPid]=useState("");const [pass,setPass]=useState("");const [err,setErr]=useState("");const [loading,setLoading]=useState(false);
+  const [role,setRole]=useState("therapist");
+  const [mode,setMode]=useState("login"); // "login" | "cadastro" | "pendente_aviso"
+  const [pid,setPid]=useState("");const [pass,setPass]=useState("");
+  const [novoPass,setNovoPass]=useState("");const [confirmPass,setConfirmPass]=useState("");
+  const [err,setErr]=useState("");const [loading,setLoading]=useState(false);
+
   async function handle(){
     setErr("");setLoading(true);
     try{
@@ -618,11 +695,32 @@ function LoginScreen({onLogin}){
       else{const all=await fbGet("patients");if(!all){setErr("Nenhum paciente cadastrado.");setLoading(false);return;}
         const found=Object.values(all).find(p=>p.name.trim().toLowerCase()===pid.trim().toLowerCase());
         if(!found){setErr("Paciente não encontrado.");setLoading(false);return;}
+        if(found.status==="pendente"){setErr("Seu cadastro ainda está aguardando aprovação do terapeuta.");setLoading(false);return;}
+        if(found.status==="rejeitado"){setErr("Seu cadastro não foi aprovado. Fale com seu terapeuta.");setLoading(false);return;}
         if(found.password&&found.password!==pass){setErr("Senha incorreta.");setLoading(false);return;}
         onLogin("patient",found.id);}
     }catch(e){setErr("Erro de conexão.");}
     setLoading(false);
   }
+
+  async function handleCadastro(){
+    setErr("");
+    if(!pid.trim()){setErr("Digite seu nome completo.");return;}
+    if(!novoPass||novoPass.length<4){setErr("A senha deve ter pelo menos 4 caracteres.");return;}
+    if(novoPass!==confirmPass){setErr("As senhas não coincidem.");return;}
+    setLoading(true);
+    try{
+      const all=await fbGet("patients");const list=all?Object.values(all):[];
+      if(list.find(p=>p.name.trim().toLowerCase()===pid.trim().toLowerCase())){setErr(`Já existe um cadastro com o nome "${pid}". Se for você, peça a senha ao seu terapeuta.`);setLoading(false);return;}
+      const id="p"+Date.now();
+      await fbSet(`patients/${id}`,{id,name:pid.trim(),password:novoPass,status:"pendente",tasks:{},prontuario:{identificacao:{},demanda:{},evolucao_reg:{},encerramento:{},historia:{},evolucao:{}}});
+      setMode("pendente_aviso");
+    }catch(e){setErr("Erro ao criar cadastro. Tente novamente.");}
+    setLoading(false);
+  }
+
+  function resetAndGoLogin(){setMode("login");setPid("");setPass("");setNovoPass("");setConfirmPass("");setErr("");}
+
   return<div style={{minHeight:"100vh",background:"linear-gradient(160deg,#1e1b4b,#4c1d95,#0c4a6e)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
     <div className="fade-in" style={{width:"100%",maxWidth:360}}>
       <div style={{textAlign:"center",marginBottom:32}}>
@@ -630,7 +728,26 @@ function LoginScreen({onLogin}){
         <h1 style={{color:"#fff",fontSize:28,fontWeight:900,letterSpacing:"-1px",marginBottom:4}}>MeuPsi</h1>
         <p style={{color:"rgba(255,255,255,.6)",fontSize:12,lineHeight:1.6}}>João Rosa · Psicólogo TCC<br/>CRP 06/227336</p>
       </div>
-      <div style={{background:"rgba(255,255,255,.95)",borderRadius:24,padding:28,boxShadow:"0 24px 60px rgba(0,0,0,.3)"}}>
+
+      {mode==="pendente_aviso"&&<div style={{background:"rgba(255,255,255,.95)",borderRadius:24,padding:28,boxShadow:"0 24px 60px rgba(0,0,0,.3)",textAlign:"center"}}>
+        <div style={{fontSize:48,marginBottom:12}}>⏳</div>
+        <h2 style={{fontSize:17,fontWeight:800,color:"#1f2937",marginBottom:8}}>Cadastro enviado!</h2>
+        <p style={{fontSize:13,color:"#6b7280",lineHeight:1.6,marginBottom:20}}>Seu cadastro está aguardando aprovação do terapeuta. Você poderá entrar assim que for aprovado.</p>
+        <button className="btn-main" onClick={resetAndGoLogin}>Voltar ao login</button>
+      </div>}
+
+      {mode==="cadastro"&&<div style={{background:"rgba(255,255,255,.95)",borderRadius:24,padding:28,boxShadow:"0 24px 60px rgba(0,0,0,.3)"}}>
+        <h2 style={{fontSize:17,fontWeight:800,color:"#1f2937",marginBottom:4}}>Criar conta de paciente</h2>
+        <p style={{fontSize:12,color:"#9ca3af",marginBottom:18}}>Seu cadastro ficará pendente até o terapeuta aprovar.</p>
+        <input className="inp" placeholder="Seu nome completo" value={pid} onChange={e=>setPid(e.target.value)}/>
+        <input type="password" className="inp" placeholder="Crie uma senha" value={novoPass} onChange={e=>setNovoPass(e.target.value)}/>
+        <input type="password" className="inp" placeholder="Confirme a senha" value={confirmPass} onChange={e=>setConfirmPass(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleCadastro()} style={{marginBottom:16}}/>
+        {err&&<p style={{color:"#e11d48",fontSize:12,marginBottom:10}}>{err}</p>}
+        <button className="btn-main" onClick={handleCadastro} disabled={loading} style={{marginBottom:10}}>{loading?"Enviando...":"Criar cadastro"}</button>
+        <button onClick={resetAndGoLogin} style={{width:"100%",background:"none",border:"none",color:"#6d28d9",fontWeight:700,fontSize:13,cursor:"pointer",padding:"8px 0"}}>← Já tenho cadastro</button>
+      </div>}
+
+      {mode==="login"&&<div style={{background:"rgba(255,255,255,.95)",borderRadius:24,padding:28,boxShadow:"0 24px 60px rgba(0,0,0,.3)"}}>
         <div style={{display:"flex",marginBottom:22,borderRadius:12,overflow:"hidden",background:"#f3f4f6",padding:4,gap:4}}>
           {["therapist","patient"].map(r=><button key={r} onClick={()=>{setRole(r);setErr("");}} style={{flex:1,padding:"9px 0",background:role===r?"#fff":"transparent",color:role===r?"#6d28d9":"#9ca3af",border:"none",cursor:"pointer",fontWeight:700,fontSize:13,borderRadius:9,boxShadow:role===r?"0 2px 8px rgba(0,0,0,.1)":"none",transition:"all .2s"}}>{r==="therapist"?"Terapeuta":"Paciente"}</button>)}
         </div>
@@ -638,7 +755,8 @@ function LoginScreen({onLogin}){
         <input type="password" className="inp" placeholder="Senha" value={pass} onChange={e=>setPass(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handle()} style={{marginBottom:16}}/>
         {err&&<p style={{color:"#e11d48",fontSize:12,marginBottom:10}}>{err}</p>}
         <button className="btn-main" onClick={handle} disabled={loading}>{loading?"Entrando...":"Entrar"}</button>
-      </div>
+        {role==="patient"&&<button onClick={()=>{setMode("cadastro");setErr("");}} style={{width:"100%",background:"none",border:"none",color:"#6d28d9",fontWeight:700,fontSize:13,cursor:"pointer",padding:"12px 0 0"}}>Não tenho cadastro → Criar conta</button>}
+      </div>}
     </div>
   </div>;
 }
@@ -652,6 +770,7 @@ function TherapistApp({onLogout}){
   const [modal,setModal]=useState(null);
   const [confirmDel,setConfirmDel]=useState(null);
   const [showExport,setShowExport]=useState(false);
+  const [confirmRejeitar,setConfirmRejeitar]=useState(null);
 
   useEffect(()=>{const u=fbListen("patients",d=>setPatients(d?Object.values(d):[]));return()=>u();},[]);
   useEffect(()=>{const u=fbListen("grupos",d=>setGrupos(d?Object.values(d):[]));return()=>u();},[]);
@@ -665,31 +784,52 @@ function TherapistApp({onLogout}){
       await fbUpdate(`patients/${modal.id}`,updates);
     }else{
       const id="p"+Date.now();
-      await fbSet(`patients/${id}`,{id,name,password:pass||"1234",tasks:{},prontuario:{identificacao:{},demanda:{},evolucao_reg:{},encerramento:{},historia:{},evolucao:{}}});
+      await fbSet(`patients/${id}`,{id,name,password:pass||"1234",status:"aprovado",tasks:{},prontuario:{identificacao:{},demanda:{},evolucao_reg:{},encerramento:{},historia:{},evolucao:{}}});
     }
     setModal(null);
   }
 
   async function deletePatient(id){await fbSet(`patients/${id}`,null);setConfirmDel(null);}
+  async function aprovarPaciente(id){await fbUpdate(`patients/${id}`,{status:"aprovado"});}
+  async function rejeitarPaciente(p){await fbSet(`patients/${p.id}`,null);setConfirmRejeitar(null);}
 
   if(patients===null)return<div style={aw}><Header title="MeuPsi" subtitle="Painel do Terapeuta" onBack={onLogout}/><Spinner/></div>;
   if(showExport)return<ExportarScreen patients={patients} grupos={grupos} onClose={()=>setShowExport(false)}/>;
   if(sel){const p=patients.find(p=>p.id===sel);if(p)return<PatientDetail patient={p} onBack={()=>setSel(null)}/>;}
 
+  const pendentes=patients.filter(p=>p.status==="pendente");
+  const aprovados=patients.filter(p=>p.status!=="pendente");
+
   return<div style={aw}>
     {confirmDel&&<ConfirmModal msg={`Apagar "${confirmDel.name}"?`} onConfirm={()=>deletePatient(confirmDel.id)} onCancel={()=>setConfirmDel(null)}/>}
+    {confirmRejeitar&&<ConfirmModal msg={`Rejeitar cadastro de "${confirmRejeitar.name}"? O cadastro será apagado.`} onConfirm={()=>rejeitarPaciente(confirmRejeitar)} onCancel={()=>setConfirmRejeitar(null)}/>}
     {modal&&<PatientModal patient={modal==="new"?null:modal} onClose={()=>setModal(null)} onSave={savePatient}/>}
     <Header title="MeuPsi" subtitle="Painel do Terapeuta" onBack={onLogout}/>
-    <TabBar tabs={[["patients","👥 Pacientes"],["groups","🗂 Grupos"],["dashboard","📊 Dashboard"],["overview","📈 Visão Geral"],["config","⚙️ Config"]]} active={tab} onChange={setTab}/>
+    <TabBar tabs={[["patients",`👥 Pacientes${pendentes.length?` 🔴${pendentes.length}`:""}`],["groups","🗂 Grupos"],["dashboard","📊 Dashboard"],["overview","📈 Visão Geral"],["config","⚙️ Config"]]} active={tab} onChange={setTab}/>
     <div className="fade-in" style={ct}>
       {tab==="patients"&&<>
+        {pendentes.length>0&&<>
+          <h2 style={{...h2s,color:"#d97706"}}>⏳ Aguardando aprovação ({pendentes.length})</h2>
+          <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:24}}>
+            {pendentes.map(p=><div key={p.id} style={{background:"#fffbeb",border:"1.5px solid #fde68a",borderRadius:16,padding:"14px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div style={{display:"flex",alignItems:"center",gap:12}}>
+                <div style={{width:42,height:42,borderRadius:14,background:"#fde68a",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>👤</div>
+                <div style={{fontWeight:700,color:"#92400e",fontSize:15}}>{p.name}</div>
+              </div>
+              <div style={{display:"flex",gap:6}}>
+                <button onClick={()=>aprovarPaciente(p.id)} style={{...btn("#d1fae5"),color:"#065f46",padding:"7px 12px",fontSize:13}}>✓ Aprovar</button>
+                <button onClick={()=>setConfirmRejeitar(p)} style={{...btn("#fee2e2"),padding:"7px 10px"}}>✕</button>
+              </div>
+            </div>)}
+          </div>
+        </>}
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
           <h2 style={h2s}>Meus Pacientes</h2>
           <button onClick={()=>setModal("new")} style={{...btn(),padding:"9px 16px",borderRadius:10}}>+ Novo</button>
         </div>
-        {patients.length===0&&<EmptyState icon="👤" text="Nenhum paciente ainda."/>}
+        {aprovados.length===0&&<EmptyState icon="👤" text="Nenhum paciente ainda."/>}
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
-          {patients.map(p=><div key={p.id} className="card-hover" style={{background:"#fff",borderRadius:16,padding:"14px 18px",boxShadow:"0 2px 10px rgba(0,0,0,.06)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          {aprovados.map(p=><div key={p.id} className="card-hover" style={{background:"#fff",borderRadius:16,padding:"14px 18px",boxShadow:"0 2px 10px rgba(0,0,0,.06)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
             <div onClick={()=>setSel(p.id)} style={{flex:1,display:"flex",alignItems:"center",gap:12}}>
               <div style={{width:42,height:42,borderRadius:14,background:"linear-gradient(135deg,#ede9fe,#dbeafe)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>👤</div>
               <div><div style={{fontWeight:700,color:"#1f2937",fontSize:15}}>{p.name}</div><div style={{fontSize:12,color:"#9ca3af",marginTop:2}}>{p.tasks?Object.keys(p.tasks).length:0} tarefa(s)</div></div>
@@ -702,12 +842,12 @@ function TherapistApp({onLogout}){
           </div>)}
         </div>
       </>}
-      {tab==="groups"&&<GruposTab patients={patients}/>}
-      {tab==="dashboard"&&<DashboardTab patients={patients} onExport={()=>setShowExport(true)}/>}
+      {tab==="groups"&&<GruposTab patients={aprovados}/>}
+      {tab==="dashboard"&&<DashboardTab patients={aprovados} onExport={()=>setShowExport(true)}/>}
       {tab==="overview"&&<>
         <h2 style={h2s}>Visão Geral</h2>
-        {patients.length===0&&<EmptyState icon="📊" text="Nenhum dado ainda."/>}
-        {patients.map(p=>{const tasks=p.tasks?Object.values(p.tasks):[];const done=tasks.filter(t=>t.response).length;
+        {aprovados.length===0&&<EmptyState icon="📊" text="Nenhum dado ainda."/>}
+        {aprovados.map(p=>{const tasks=p.tasks?Object.values(p.tasks):[];const done=tasks.filter(t=>t.response).length;
           return<div key={p.id} style={{background:"#fff",borderRadius:16,padding:18,marginBottom:10,boxShadow:"0 2px 10px rgba(0,0,0,.06)"}}>
             <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}><div style={{fontWeight:700,color:"#1f2937"}}>{p.name}</div><div style={{fontSize:13,fontWeight:700,color:"#6d28d9"}}>{tasks.length?Math.round((done/tasks.length)*100):0}%</div></div>
             <div style={{background:"#f3f4f6",borderRadius:20,height:8,overflow:"hidden"}}><div style={{width:tasks.length?`${(done/tasks.length)*100}%`:"0%",background:"linear-gradient(90deg,#6d28d9,#0ea5e9)",height:"100%",borderRadius:20}}/></div>
@@ -1010,7 +1150,7 @@ function TaskForm({task,onSubmit,onBack}){
       {task.type==="atencao"&&<AtencaoForm color={ti.color} onSubmit={onSubmit}/>}
       {task.type==="experimento"&&<ExperimentoForm color={ti.color} onSubmit={onSubmit}/>}
       {task.type==="escala"&&<EscalaForm color={ti.color} onSubmit={onSubmit}/>}
-      {["csai2r","sas","acsi28"].includes(task.type)&&<EscalaPsiForm tipo={task.type} color={ti.color} onSubmit={onSubmit}/>}
+      {["csai2r","sas","acsi28","teosq","siq","resiliencia","suporte_social"].includes(task.type)&&<EscalaPsiForm tipo={task.type} color={ti.color} onSubmit={onSubmit}/>}
       {task.type==="tr"&&<TRForm color={ti.color} onSubmit={onSubmit}/>}
       {task.type==="stroop"&&<StroopForm color={ti.color} onSubmit={onSubmit}/>}
       {task.type==="tmt"&&<TMTForm color={ti.color} onSubmit={onSubmit}/>}
@@ -1034,7 +1174,7 @@ function ResponseView({response,type}){
   if(type==="atencao")items.push(["Páginas",response.paginas],["Acertos",response.acertos],["Erros",response.erros],["Precisão",`${response.precisao}%`]);
   if(type==="experimento")items.push(["Hipótese",response.hipotese],["Ação",response.acao],["Resultado",response.resultado],["Aprendizado",response.aprendizado]);
   if(type==="escala"){ESCALAS_DEF.forEach(s=>items.push([s.nome,`${response[s.id]}%`]));if(response.obs)items.push(["Obs",response.obs]);}
-  if(["csai2r","sas","acsi28"].includes(type)&&response.totais){
+  if(["csai2r","sas","acsi28","teosq","siq","resiliencia","suporte_social"].includes(type)&&response.totais){
     const ed=getEscalaData(type);if(!ed)return null;
     return<div style={{display:"flex",flexDirection:"column",gap:8}}>{Object.entries(ed.subescalas).map(([key,info])=>{const total=response.totais[key]||0;const contagem=ed.itens.filter(i=>i.sub===key).length;const max=contagem*ed.escala.length;const pct=max>0?Math.round((total/max)*100):0;return<div key={key} style={{background:"#f9fafb",borderRadius:10,padding:12}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}><span style={{fontSize:12,fontWeight:700,color:"#374151"}}>{info.nome}</span><span style={{fontSize:13,fontWeight:800,color:info.cor}}>{total}/{max}</span></div><div style={{background:"#e5e7eb",borderRadius:20,height:8,overflow:"hidden"}}><div style={{width:`${pct}%`,background:info.cor,height:"100%",borderRadius:20}}/></div><div style={{fontSize:11,color:"#9ca3af",marginTop:3}}>{pct}%</div></div>;})}</div>;
   }
@@ -1054,11 +1194,21 @@ function DashboardTab({patients,onExport}){
   const csaiResp=tasks.filter(t=>t.type==="csai2r"&&t.response?.totais).slice(-1)[0]?.response?.totais||null;
   const sasResp=tasks.filter(t=>t.type==="sas"&&t.response?.totais).slice(-1)[0]?.response?.totais||null;
   const acsiResp=tasks.filter(t=>t.type==="acsi28"&&t.response?.totais).slice(-1)[0]?.response?.totais||null;
+  const teosqResp=tasks.filter(t=>t.type==="teosq"&&t.response?.totais).slice(-1)[0]?.response?.totais||null;
+  const siqResp=tasks.filter(t=>t.type==="siq"&&t.response?.totais).slice(-1)[0]?.response?.totais||null;
+  const resilResp=tasks.filter(t=>t.type==="resiliencia"&&t.response?.totais).slice(-1)[0]?.response?.totais||null;
+  const suporteResp=tasks.filter(t=>t.type==="suporte_social"&&t.response?.totais).slice(-1)[0]?.response?.totais||null;
   const beValues=escResp?[escResp.humor,escResp.ansiedade,escResp.sono,escResp.estresse,escResp.tristeza]:[0,0,0,0,0];
   const beColors=["#f59e0b","#8b5cf6","#3b82f6","#ef4444","#60a5fa"];
   const csaiValues=csaiResp?[Math.round((csaiResp.cognitiva/32)*100),Math.round((csaiResp.somatica/28)*100),Math.round((csaiResp.autoconfianca/20)*100)]:[0,0,0];
   const sasValues=sasResp?[Math.round((sasResp.somatica/28)*100),Math.round((sasResp.preocupacao/28)*100),Math.round((sasResp.concentracao/28)*100)]:[0,0,0];
   const acsiValues=acsiResp?[Math.round((acsiResp.adversidade/16)*100),Math.round((acsiResp.pressao/16)*100),Math.round((acsiResp.metas/16)*100),Math.round((acsiResp.concentracao/16)*100),Math.round((acsiResp.preocupacao/16)*100),Math.round((acsiResp.confianca/16)*100),Math.round((acsiResp.treinabilidade/16)*100)]:[0,0,0,0,0,0,0];
+  // ── Helpers para os novos instrumentos: calcula % do máximo por subescala dinamicamente ──
+  function subValuesPct(ed,resp){if(!resp)return Object.keys(ed.subescalas).map(()=>0);return Object.keys(ed.subescalas).map(k=>{const max=ed.itens.filter(i=>i.sub===k).length*ed.escala.length;return max>0?Math.round((resp[k]/max)*100):0;});}
+  const teosqValues=subValuesPct(TEOSQ_DATA,teosqResp);
+  const siqValues=subValuesPct(SIQ_DATA,siqResp);
+  const resilValues=subValuesPct(RESILIENCIA_DATA,resilResp);
+  const suporteValues=subValuesPct(SUPORTE_SOCIAL_DATA,suporteResp);
   const ECORES={Alegria:"#f59e0b",Tristeza:"#3b82f6",Raiva:"#ef4444",Ansiedade:"#8b5cf6",Medo:"#6366f1",Nojo:"#10b981",Vergonha:"#f97316",Culpa:"#64748b",Cansaço:"#94a3b8",Amor:"#ec4899",Neutro:"#6b7280",Empolgação:"#fbbf24"};
   const emoCounts={};diarios.forEach(d=>{emoCounts[d.emocao]=(emoCounts[d.emocao]||0)+1;});
   const emoSorted=Object.entries(emoCounts).sort((a,b)=>b[1]-a[1]);
@@ -1085,12 +1235,20 @@ function DashboardTab({patients,onExport}){
     {subTab==="radar"&&<div>
       <div style={{...crd,marginBottom:14}}><div style={{fontSize:14,fontWeight:800,color:"#1f2937",marginBottom:2}}>📊 Bem-Estar</div><div style={{fontSize:12,color:"#9ca3af",marginBottom:10}}>Humor, ansiedade, sono, estresse e tristeza</div>{escResp?<><RadarChart labels={["Humor","Ansiedade","Sono","Estresse","Tristeza"]} values={beValues} colors={beColors} size={220}/><div style={{display:"flex",flexWrap:"wrap",gap:6,marginTop:8,justifyContent:"center"}}>{["Humor","Ansiedade","Sono","Estresse","Tristeza"].map((l,i)=><div key={l} style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:8,height:8,borderRadius:"50%",background:beColors[i]}}/><span style={{fontSize:10,color:"#6b7280",fontWeight:600}}>{l}</span></div>)}</div></>:<EmptyState icon="📊" text="Nenhuma escala respondida ainda."/>}</div>
       <div style={{...crd,marginBottom:14}}><div style={{fontSize:14,fontWeight:800,color:"#6d28d9",marginBottom:2}}>📋 CSAI-2R</div><div style={{fontSize:12,color:"#9ca3af",marginBottom:10}}>Ansiedade cognitiva, somática e autoconfiança</div>{csaiResp?<RadarChart labels={["Ans. Cognitiva","Ans. Somática","Autoconfiança"]} values={csaiValues} colors={["#6d28d9","#e11d48","#059669"]} size={200}/>:<EmptyState icon="📋" text="CSAI-2R não respondido ainda."/>}</div>
-      <div style={crd}><div style={{fontSize:14,fontWeight:800,color:"#059669",marginBottom:2}}>📋 ACSI-28</div><div style={{fontSize:12,color:"#9ca3af",marginBottom:10}}>7 subescalas de habilidades de coping</div>{acsiResp?<RadarChart labels={["Adversid.","Pressão","Metas","Concentr.","Preocup.","Confiança","Treinab."]} values={acsiValues} colors={["#ef4444","#f97316","#eab308","#22c55e","#06b6d4","#8b5cf6","#ec4899"]} size={240}/>:<EmptyState icon="📋" text="ACSI-28 não respondido ainda."/>}</div>
+      <div style={{...crd,marginBottom:14}}><div style={{fontSize:14,fontWeight:800,color:"#059669",marginBottom:2}}>📋 ACSI-28</div><div style={{fontSize:12,color:"#9ca3af",marginBottom:10}}>7 subescalas de habilidades de coping</div>{acsiResp?<RadarChart labels={["Adversid.","Pressão","Metas","Concentr.","Preocup.","Confiança","Treinab."]} values={acsiValues} colors={["#ef4444","#f97316","#eab308","#22c55e","#06b6d4","#8b5cf6","#ec4899"]} size={240}/>:<EmptyState icon="📋" text="ACSI-28 não respondido ainda."/>}</div>
+      <div style={{...crd,marginBottom:14}}><div style={{fontSize:14,fontWeight:800,color:"#d97706",marginBottom:2}}>🎯 TEOSQ</div><div style={{fontSize:12,color:"#9ca3af",marginBottom:10}}>Orientação à tarefa vs. orientação ao ego</div>{teosqResp?<RadarChart labels={["Tarefa","Ego"]} values={teosqValues} colors={["#059669","#e11d48"]} size={180}/>:<EmptyState icon="🎯" text="TEOSQ não respondido ainda."/>}</div>
+      <div style={{...crd,marginBottom:14}}><div style={{fontSize:14,fontWeight:800,color:"#0891b2",marginBottom:2}}>🧘 SIQ — Imagem Mental</div><div style={{fontSize:12,color:"#9ca3af",marginBottom:10}}>Imagem cognitiva, motivacional e controle emocional</div>{siqResp?<RadarChart labels={["Cognitiva","Motivacional","Controle"]} values={siqValues} colors={["#0891b2","#d97706","#059669"]} size={200}/>:<EmptyState icon="🧘" text="SIQ não respondido ainda."/>}</div>
+      <div style={{...crd,marginBottom:14}}><div style={{fontSize:14,fontWeight:800,color:"#7c3aed",marginBottom:2}}>🛡️ Resiliência Esportiva</div><div style={{fontSize:12,color:"#9ca3af",marginBottom:10}}>Recuperação de adversidades e adaptação</div>{resilResp?<RadarChart labels={["Recuperação","Adaptação"]} values={resilValues} colors={["#7c3aed","#059669"]} size={180}/>:<EmptyState icon="🛡️" text="Resiliência não respondida ainda."/>}</div>
+      <div style={crd}><div style={{fontSize:14,fontWeight:800,color:"#ec4899",marginBottom:2}}>🤝 Suporte Social Percebido</div><div style={{fontSize:12,color:"#9ca3af",marginBottom:10}}>Família, treinador e colegas</div>{suporteResp?<RadarChart labels={["Família","Treinador","Colegas"]} values={suporteValues} colors={["#ec4899","#0891b2","#059669"]} size={200}/>:<EmptyState icon="🤝" text="Suporte Social não respondido ainda."/>}</div>
     </div>}
     {subTab==="escalas"&&<div>
       <div style={{...crd,marginBottom:14}}><div style={{fontSize:14,fontWeight:800,color:"#6d28d9",marginBottom:12}}>📋 CSAI-2R</div>{csaiResp?<><MiniBar label="Ansiedade Cognitiva" value={csaiResp.cognitiva} max={32} color="#6d28d9"/><MiniBar label="Ansiedade Somática" value={csaiResp.somatica} max={28} color="#e11d48"/><MiniBar label="Autoconfiança" value={csaiResp.autoconfianca} max={20} color="#059669"/></>:<p style={{fontSize:13,color:"#9ca3af"}}>Nenhuma resposta ainda.</p>}</div>
       <div style={{...crd,marginBottom:14}}><div style={{fontSize:14,fontWeight:800,color:"#0891b2",marginBottom:12}}>📋 SAS</div>{sasResp?<><MiniBar label="Ansiedade Somática" value={sasResp.somatica} max={28} color="#e11d48"/><MiniBar label="Preocupação" value={sasResp.preocupacao} max={28} color="#d97706"/><MiniBar label="Perturbação Concentração" value={sasResp.concentracao} max={28} color="#7c3aed"/></>:<p style={{fontSize:13,color:"#9ca3af"}}>Nenhuma resposta ainda.</p>}</div>
-      <div style={crd}><div style={{fontSize:14,fontWeight:800,color:"#059669",marginBottom:12}}>📋 ACSI-28</div>{acsiResp?[["adversidade","Coping Adversidade","#ef4444",16],["pressao","Pressão","#f97316",16],["metas","Metas","#eab308",16],["concentracao","Concentração","#22c55e",16],["preocupacao","Preocupação","#06b6d4",16],["confianca","Confiança","#8b5cf6",16],["treinabilidade","Treinabilidade","#ec4899",16]].map(([k,l,c,m])=><MiniBar key={k} label={l} value={acsiResp[k]||0} max={m} color={c}/>):<p style={{fontSize:13,color:"#9ca3af"}}>Nenhuma resposta ainda.</p>}</div>
+      <div style={{...crd,marginBottom:14}}><div style={{fontSize:14,fontWeight:800,color:"#059669",marginBottom:12}}>📋 ACSI-28</div>{acsiResp?[["adversidade","Coping Adversidade","#ef4444",16],["pressao","Pressão","#f97316",16],["metas","Metas","#eab308",16],["concentracao","Concentração","#22c55e",16],["preocupacao","Preocupação","#06b6d4",16],["confianca","Confiança","#8b5cf6",16],["treinabilidade","Treinabilidade","#ec4899",16]].map(([k,l,c,m])=><MiniBar key={k} label={l} value={acsiResp[k]||0} max={m} color={c}/>):<p style={{fontSize:13,color:"#9ca3af"}}>Nenhuma resposta ainda.</p>}</div>
+      <div style={{...crd,marginBottom:14}}><div style={{fontSize:14,fontWeight:800,color:"#d97706",marginBottom:12}}>🎯 TEOSQ</div>{teosqResp?<><MiniBar label="Orientação à Tarefa" value={teosqResp.tarefa||0} max={28} color="#059669"/><MiniBar label="Orientação ao Ego" value={teosqResp.ego||0} max={24} color="#e11d48"/></>:<p style={{fontSize:13,color:"#9ca3af"}}>Nenhuma resposta ainda.</p>}</div>
+      <div style={{...crd,marginBottom:14}}><div style={{fontSize:14,fontWeight:800,color:"#0891b2",marginBottom:12}}>🧘 SIQ — Imagem Mental</div>{siqResp?<><MiniBar label="Imagem Cognitiva" value={siqResp.cognitiva||0} max={16} color="#0891b2"/><MiniBar label="Imagem Motivacional" value={siqResp.motivacional||0} max={16} color="#d97706"/><MiniBar label="Controle Emocional" value={siqResp.controle||0} max={16} color="#059669"/></>:<p style={{fontSize:13,color:"#9ca3af"}}>Nenhuma resposta ainda.</p>}</div>
+      <div style={{...crd,marginBottom:14}}><div style={{fontSize:14,fontWeight:800,color:"#7c3aed",marginBottom:12}}>🛡️ Resiliência Esportiva</div>{resilResp?<><MiniBar label="Recuperação de Adversidades" value={resilResp.recuperacao||0} max={20} color="#7c3aed"/><MiniBar label="Persistência e Adaptação" value={resilResp.adaptacao||0} max={20} color="#059669"/></>:<p style={{fontSize:13,color:"#9ca3af"}}>Nenhuma resposta ainda.</p>}</div>
+      <div style={crd}><div style={{fontSize:14,fontWeight:800,color:"#ec4899",marginBottom:12}}>🤝 Suporte Social Percebido</div>{suporteResp?<><MiniBar label="Suporte da Família" value={suporteResp.familia||0} max={16} color="#ec4899"/><MiniBar label="Suporte do Treinador" value={suporteResp.treinador||0} max={16} color="#0891b2"/><MiniBar label="Suporte dos Colegas" value={suporteResp.colegas||0} max={16} color="#059669"/></>:<p style={{fontSize:13,color:"#9ca3af"}}>Nenhuma resposta ainda.</p>}</div>
     </div>}
     {subTab==="emocoes"&&<div>
       <div style={{...crd,marginBottom:14}}><div style={{fontSize:14,fontWeight:800,color:"#1f2937",marginBottom:4}}>😊 Frequência das Emoções</div><div style={{fontSize:12,color:"#9ca3af",marginBottom:12}}>{diarios.length} registro(s) no diário</div>{diarios.length===0?<EmptyState icon="📔" text="Nenhum registro no diário ainda."/>:<div style={{display:"flex",flexWrap:"wrap",gap:6}}>{emoSorted.map(([nome,count])=><div key={nome} style={{display:"flex",alignItems:"center",gap:5,background:"#f9fafb",borderRadius:20,padding:"5px 10px"}}><div style={{width:8,height:8,borderRadius:"50%",background:ECORES[nome]||"#888",flexShrink:0}}/><span style={{fontSize:12,fontWeight:700,color:"#374151"}}>{nome}</span><span style={{fontSize:11,color:"#9ca3af"}}>{Math.round((count/diarios.length)*100)}%</span></div>)}</div>}</div>
