@@ -689,12 +689,7 @@ function ExportarScreen({patients,grupos,onClose}){
 
 // ── Login ──
 function LoginScreen({onLogin}){
-  const [role,setRole]=useState("therapist");
-  const [mode,setMode]=useState("login"); // "login" | "cadastro" | "pendente_aviso"
-  const [pid,setPid]=useState("");const [pass,setPass]=useState("");
-  const [novoPass,setNovoPass]=useState("");const [confirmPass,setConfirmPass]=useState("");
-  const [err,setErr]=useState("");const [loading,setLoading]=useState(false);
-
+  const [role,setRole]=useState("therapist");const [pid,setPid]=useState("");const [pass,setPass]=useState("");const [err,setErr]=useState("");const [loading,setLoading]=useState(false);
   async function handle(){
     setErr("");setLoading(true);
     try{
@@ -702,32 +697,11 @@ function LoginScreen({onLogin}){
       else{const all=await fbGet("patients");if(!all){setErr("Nenhum paciente cadastrado.");setLoading(false);return;}
         const found=Object.values(all).find(p=>p.name.trim().toLowerCase()===pid.trim().toLowerCase());
         if(!found){setErr("Paciente não encontrado.");setLoading(false);return;}
-        if(found.status==="pendente"){setErr("Seu cadastro ainda está aguardando aprovação do terapeuta.");setLoading(false);return;}
-        if(found.status==="rejeitado"){setErr("Seu cadastro não foi aprovado. Fale com seu terapeuta.");setLoading(false);return;}
         if(found.password&&found.password!==pass){setErr("Senha incorreta.");setLoading(false);return;}
         onLogin("patient",found.id);}
     }catch(e){setErr("Erro de conexão.");}
     setLoading(false);
   }
-
-  async function handleCadastro(){
-    setErr("");
-    if(!pid.trim()){setErr("Digite seu nome completo.");return;}
-    if(!novoPass||novoPass.length<4){setErr("A senha deve ter pelo menos 4 caracteres.");return;}
-    if(novoPass!==confirmPass){setErr("As senhas não coincidem.");return;}
-    setLoading(true);
-    try{
-      const all=await fbGet("patients");const list=all?Object.values(all):[];
-      if(list.find(p=>p.name.trim().toLowerCase()===pid.trim().toLowerCase())){setErr(`Já existe um cadastro com o nome "${pid}". Se for você, peça a senha ao seu terapeuta.`);setLoading(false);return;}
-      const id="p"+Date.now();
-      await fbSet(`patients/${id}`,{id,name:pid.trim(),password:novoPass,status:"pendente",tasks:{},prontuario:{identificacao:{},demanda:{},evolucao_reg:{},encerramento:{},historia:{},evolucao:{}}});
-      setMode("pendente_aviso");
-    }catch(e){setErr("Erro ao criar cadastro. Tente novamente.");}
-    setLoading(false);
-  }
-
-  function resetAndGoLogin(){setMode("login");setPid("");setPass("");setNovoPass("");setConfirmPass("");setErr("");}
-
   return<div style={{minHeight:"100vh",background:"linear-gradient(160deg,#1e1b4b,#4c1d95,#0c4a6e)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
     <div className="fade-in" style={{width:"100%",maxWidth:360}}>
       <div style={{textAlign:"center",marginBottom:32}}>
@@ -735,26 +709,7 @@ function LoginScreen({onLogin}){
         <h1 style={{color:"#fff",fontSize:28,fontWeight:900,letterSpacing:"-1px",marginBottom:4}}>MeuPsi</h1>
         <p style={{color:"rgba(255,255,255,.6)",fontSize:12,lineHeight:1.6}}>João Rosa · Psicólogo TCC<br/>CRP 06/227336</p>
       </div>
-
-      {mode==="pendente_aviso"&&<div style={{background:"rgba(255,255,255,.95)",borderRadius:24,padding:28,boxShadow:"0 24px 60px rgba(0,0,0,.3)",textAlign:"center"}}>
-        <div style={{fontSize:48,marginBottom:12}}>⏳</div>
-        <h2 style={{fontSize:17,fontWeight:800,color:"#1f2937",marginBottom:8}}>Cadastro enviado!</h2>
-        <p style={{fontSize:13,color:"#6b7280",lineHeight:1.6,marginBottom:20}}>Seu cadastro está aguardando aprovação do terapeuta. Você poderá entrar assim que for aprovado.</p>
-        <button className="btn-main" onClick={resetAndGoLogin}>Voltar ao login</button>
-      </div>}
-
-      {mode==="cadastro"&&<div style={{background:"rgba(255,255,255,.95)",borderRadius:24,padding:28,boxShadow:"0 24px 60px rgba(0,0,0,.3)"}}>
-        <h2 style={{fontSize:17,fontWeight:800,color:"#1f2937",marginBottom:4}}>Criar conta de paciente</h2>
-        <p style={{fontSize:12,color:"#9ca3af",marginBottom:18}}>Seu cadastro ficará pendente até o terapeuta aprovar.</p>
-        <input className="inp" placeholder="Seu nome completo" value={pid} onChange={e=>setPid(e.target.value)}/>
-        <input type="password" className="inp" placeholder="Crie uma senha" value={novoPass} onChange={e=>setNovoPass(e.target.value)}/>
-        <input type="password" className="inp" placeholder="Confirme a senha" value={confirmPass} onChange={e=>setConfirmPass(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleCadastro()} style={{marginBottom:16}}/>
-        {err&&<p style={{color:"#e11d48",fontSize:12,marginBottom:10}}>{err}</p>}
-        <button className="btn-main" onClick={handleCadastro} disabled={loading} style={{marginBottom:10}}>{loading?"Enviando...":"Criar cadastro"}</button>
-        <button onClick={resetAndGoLogin} style={{width:"100%",background:"none",border:"none",color:"#6d28d9",fontWeight:700,fontSize:13,cursor:"pointer",padding:"8px 0"}}>← Já tenho cadastro</button>
-      </div>}
-
-      {mode==="login"&&<div style={{background:"rgba(255,255,255,.95)",borderRadius:24,padding:28,boxShadow:"0 24px 60px rgba(0,0,0,.3)"}}>
+      <div style={{background:"rgba(255,255,255,.95)",borderRadius:24,padding:28,boxShadow:"0 24px 60px rgba(0,0,0,.3)"}}>
         <div style={{display:"flex",marginBottom:22,borderRadius:12,overflow:"hidden",background:"#f3f4f6",padding:4,gap:4}}>
           {["therapist","patient"].map(r=><button key={r} onClick={()=>{setRole(r);setErr("");}} style={{flex:1,padding:"9px 0",background:role===r?"#fff":"transparent",color:role===r?"#6d28d9":"#9ca3af",border:"none",cursor:"pointer",fontWeight:700,fontSize:13,borderRadius:9,boxShadow:role===r?"0 2px 8px rgba(0,0,0,.1)":"none",transition:"all .2s"}}>{r==="therapist"?"Terapeuta":"Paciente"}</button>)}
         </div>
@@ -762,8 +717,7 @@ function LoginScreen({onLogin}){
         <input type="password" className="inp" placeholder="Senha" value={pass} onChange={e=>setPass(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handle()} style={{marginBottom:16}}/>
         {err&&<p style={{color:"#e11d48",fontSize:12,marginBottom:10}}>{err}</p>}
         <button className="btn-main" onClick={handle} disabled={loading}>{loading?"Entrando...":"Entrar"}</button>
-        {role==="patient"&&<button onClick={()=>{setMode("cadastro");setErr("");}} style={{width:"100%",background:"none",border:"none",color:"#6d28d9",fontWeight:700,fontSize:13,cursor:"pointer",padding:"12px 0 0"}}>Não tenho cadastro → Criar conta</button>}
-      </div>}
+      </div>
     </div>
   </div>;
 }
@@ -777,7 +731,6 @@ function TherapistApp({onLogout}){
   const [modal,setModal]=useState(null);
   const [confirmDel,setConfirmDel]=useState(null);
   const [showExport,setShowExport]=useState(false);
-  const [confirmRejeitar,setConfirmRejeitar]=useState(null);
 
   useEffect(()=>{const u=fbListen("patients",d=>setPatients(d?Object.values(d):[]));return()=>u();},[]);
   useEffect(()=>{const u=fbListen("grupos",d=>setGrupos(d?Object.values(d):[]));return()=>u();},[]);
@@ -791,52 +744,31 @@ function TherapistApp({onLogout}){
       await fbUpdate(`patients/${modal.id}`,updates);
     }else{
       const id="p"+Date.now();
-      await fbSet(`patients/${id}`,{id,name,password:pass||"1234",status:"aprovado",tasks:{},prontuario:{identificacao:{},demanda:{},evolucao_reg:{},encerramento:{},historia:{},evolucao:{}}});
+      await fbSet(`patients/${id}`,{id,name,password:pass||"1234",tasks:{},prontuario:{identificacao:{},demanda:{},evolucao_reg:{},encerramento:{},historia:{},evolucao:{}}});
     }
     setModal(null);
   }
 
   async function deletePatient(id){await fbSet(`patients/${id}`,null);setConfirmDel(null);}
-  async function aprovarPaciente(id){await fbUpdate(`patients/${id}`,{status:"aprovado"});}
-  async function rejeitarPaciente(p){await fbSet(`patients/${p.id}`,null);setConfirmRejeitar(null);}
 
   if(patients===null)return<div style={aw}><Header title="MeuPsi" subtitle="Painel do Terapeuta" onBack={onLogout}/><Spinner/></div>;
   if(showExport)return<ExportarScreen patients={patients} grupos={grupos} onClose={()=>setShowExport(false)}/>;
   if(sel){const p=patients.find(p=>p.id===sel);if(p)return<PatientDetail patient={p} onBack={()=>setSel(null)}/>;}
 
-  const pendentes=patients.filter(p=>p.status==="pendente");
-  const aprovados=patients.filter(p=>p.status!=="pendente");
-
   return<div style={aw}>
     {confirmDel&&<ConfirmModal msg={`Apagar "${confirmDel.name}"?`} onConfirm={()=>deletePatient(confirmDel.id)} onCancel={()=>setConfirmDel(null)}/>}
-    {confirmRejeitar&&<ConfirmModal msg={`Rejeitar cadastro de "${confirmRejeitar.name}"? O cadastro será apagado.`} onConfirm={()=>rejeitarPaciente(confirmRejeitar)} onCancel={()=>setConfirmRejeitar(null)}/>}
     {modal&&<PatientModal patient={modal==="new"?null:modal} onClose={()=>setModal(null)} onSave={savePatient}/>}
     <Header title="MeuPsi" subtitle="Painel do Terapeuta" onBack={onLogout}/>
-    <TabBar tabs={[["patients",`👥 Pacientes${pendentes.length?` 🔴${pendentes.length}`:""}`],["groups","🗂 Grupos"],["dashboard","📊 Dashboard"],["overview","📈 Visão Geral"],["config","⚙️ Config"]]} active={tab} onChange={setTab}/>
+    <TabBar tabs={[["patients","👥 Pacientes"],["groups","🗂 Grupos"],["dashboard","📊 Dashboard"],["overview","📈 Visão Geral"],["config","⚙️ Config"]]} active={tab} onChange={setTab}/>
     <div className="fade-in" style={ct}>
       {tab==="patients"&&<>
-        {pendentes.length>0&&<>
-          <h2 style={{...h2s,color:"#d97706"}}>⏳ Aguardando aprovação ({pendentes.length})</h2>
-          <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:24}}>
-            {pendentes.map(p=><div key={p.id} style={{background:"#fffbeb",border:"1.5px solid #fde68a",borderRadius:16,padding:"14px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <div style={{display:"flex",alignItems:"center",gap:12}}>
-                <div style={{width:42,height:42,borderRadius:14,background:"#fde68a",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>👤</div>
-                <div style={{fontWeight:700,color:"#92400e",fontSize:15}}>{p.name}</div>
-              </div>
-              <div style={{display:"flex",gap:6}}>
-                <button onClick={()=>aprovarPaciente(p.id)} style={{...btn("#d1fae5"),color:"#065f46",padding:"7px 12px",fontSize:13}}>✓ Aprovar</button>
-                <button onClick={()=>setConfirmRejeitar(p)} style={{...btn("#fee2e2"),padding:"7px 10px"}}>✕</button>
-              </div>
-            </div>)}
-          </div>
-        </>}
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
           <h2 style={h2s}>Meus Pacientes</h2>
           <button onClick={()=>setModal("new")} style={{...btn(),padding:"9px 16px",borderRadius:10}}>+ Novo</button>
         </div>
-        {aprovados.length===0&&<EmptyState icon="👤" text="Nenhum paciente ainda."/>}
+        {patients.length===0&&<EmptyState icon="👤" text="Nenhum paciente ainda."/>}
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
-          {aprovados.map(p=><div key={p.id} className="card-hover" style={{background:"#fff",borderRadius:16,padding:"14px 18px",boxShadow:"0 2px 10px rgba(0,0,0,.06)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          {patients.map(p=><div key={p.id} className="card-hover" style={{background:"#fff",borderRadius:16,padding:"14px 18px",boxShadow:"0 2px 10px rgba(0,0,0,.06)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
             <div onClick={()=>setSel(p.id)} style={{flex:1,display:"flex",alignItems:"center",gap:12}}>
               <div style={{width:42,height:42,borderRadius:14,background:"linear-gradient(135deg,#ede9fe,#dbeafe)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>👤</div>
               <div><div style={{fontWeight:700,color:"#1f2937",fontSize:15}}>{p.name}</div><div style={{fontSize:12,color:"#9ca3af",marginTop:2}}>{p.tasks?Object.keys(p.tasks).length:0} tarefa(s)</div></div>
@@ -849,12 +781,12 @@ function TherapistApp({onLogout}){
           </div>)}
         </div>
       </>}
-      {tab==="groups"&&<GruposTab patients={aprovados}/>}
-      {tab==="dashboard"&&<DashboardTab patients={aprovados} onExport={()=>setShowExport(true)}/>}
+      {tab==="groups"&&<GruposTab patients={patients}/>}
+      {tab==="dashboard"&&<DashboardTab patients={patients} onExport={()=>setShowExport(true)}/>}
       {tab==="overview"&&<>
         <h2 style={h2s}>Visão Geral</h2>
-        {aprovados.length===0&&<EmptyState icon="📊" text="Nenhum dado ainda."/>}
-        {aprovados.map(p=>{const tasks=p.tasks?Object.values(p.tasks):[];const done=tasks.filter(t=>t.response).length;
+        {patients.length===0&&<EmptyState icon="📊" text="Nenhum dado ainda."/>}
+        {patients.map(p=>{const tasks=p.tasks?Object.values(p.tasks):[];const done=tasks.filter(t=>t.response).length;
           return<div key={p.id} style={{background:"#fff",borderRadius:16,padding:18,marginBottom:10,boxShadow:"0 2px 10px rgba(0,0,0,.06)"}}>
             <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}><div style={{fontWeight:700,color:"#1f2937"}}>{p.name}</div><div style={{fontSize:13,fontWeight:700,color:"#6d28d9"}}>{tasks.length?Math.round((done/tasks.length)*100):0}%</div></div>
             <div style={{background:"#f3f4f6",borderRadius:20,height:8,overflow:"hidden"}}><div style={{width:tasks.length?`${(done/tasks.length)*100}%`:"0%",background:"linear-gradient(90deg,#6d28d9,#0ea5e9)",height:"100%",borderRadius:20}}/></div>
