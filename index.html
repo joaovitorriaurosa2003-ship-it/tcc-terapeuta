@@ -46,17 +46,24 @@
 <div id="root"><div style="min-height:100vh;background:linear-gradient(160deg,#1e1b4b,#4c1d95,#0c4a6e);display:flex;align-items:center;justify-content:center"><div style="color:#fff;text-align:center"><div style="font-size:40px;margin-bottom:12px">🧠</div><div style="font-size:16px;font-weight:700">MeuPsi</div><div style="font-size:13px;margin-top:8px;opacity:.8">Carregando...</div></div></div></div>
 <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-<script type="module">
-  import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import{getDatabase,ref,set,get,update,onValue}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script>
   const cfg={apiKey:"AIzaSyDrQDc6-GANiIcU_Eg2X5J7XMLRQwh7UQo",authDomain:"meupsi-91fad.firebaseapp.com",projectId:"meupsi-91fad",storageBucket:"meupsi-91fad.firebasestorage.app",messagingSenderId:"70457582233",appId:"1:70457582233:web:4114186b782d888d9e8e08",databaseURL:"https://meupsi-91fad-default-rtdb.firebaseio.com"};
-  const app=initializeApp(cfg);const db=getDatabase(app);
-  window._db=db;window._ref=ref;window._set=set;window._get=get;window._update=update;window._onValue=onValue;
+  firebase.initializeApp(cfg);
+  const db=firebase.database();
+  window._db=db;
+  window._ref=(database,path)=>database.ref(path);
+  window._set=(refObj,value)=>refObj.set(value);
+  window._get=async(refObj)=>{const snap=await refObj.get();return{exists:()=>snap.exists(),val:()=>snap.val()};};
+  window._update=(refObj,value)=>refObj.update(value);
+  window._onValue=(refObj,cb)=>{const handler=snap=>cb(snap.exists()?snap.val():null);refObj.on("value",handler);return()=>refObj.off("value",handler);};
   window._firebaseReady=true;window.dispatchEvent(new Event("firebaseReady"));
 </script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script type="text/babel" data-presets="react">
 const {useState,useEffect,useRef}=React;
+
 
 async function fbGet(p){const s=await window._get(window._ref(window._db,p));return s.exists()?s.val():null}
 async function fbSet(p,v){await window._set(window._ref(window._db,p),v)}
