@@ -57,7 +57,7 @@
   window._set=(refObj,value)=>refObj.set(value);
   window._get=async(refObj)=>{const snap=await refObj.get();return{exists:()=>snap.exists(),val:()=>snap.val()};};
   window._update=(refObj,value)=>refObj.update(value);
-  window._onValue=(refObj,cb)=>{const handler=snap=>cb(snap.exists()?snap.val():null);refObj.on("value",handler);return()=>refObj.off("value",handler);};
+  window._onValue=(refObj,cb)=>{const handler=snap=>cb({exists:()=>snap.exists(),val:()=>snap.val()});refObj.on("value",handler);return()=>refObj.off("value",handler);};
   window._firebaseReady=true;
 </script>
 <script>
