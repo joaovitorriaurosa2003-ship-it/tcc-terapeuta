@@ -6,9 +6,11 @@
   <title>MeuPsi</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f7;max-width:480px;margin:0 auto}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f7}
     input,textarea,select,button{font-family:inherit;font-size:16px}
     #root{min-height:100vh}
+    /* Mobile wrapper — keeps 480px max for patient/login screens */
+    .mobile-wrap{max-width:480px;margin:0 auto}
     @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
     @keyframes popIn{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}
     @keyframes flutuar{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
@@ -40,6 +42,25 @@
     .diario-fields{overflow:hidden;transition:max-height .4s cubic-bezier(.4,0,.2,1),opacity .35s ease}
     .diario-fields.show{max-height:700px;opacity:1}
     .diario-fields.hide{max-height:0;opacity:0}
+    /* Desktop sidebar layout */
+    .desktop-layout{display:flex;min-height:100vh}
+    .sidebar{width:240px;min-height:100vh;background:linear-gradient(180deg,#1e1b4b 0%,#3b1f8c 100%);display:flex;flex-direction:column;position:fixed;top:0;left:0;z-index:100}
+    .sidebar-logo{padding:28px 20px 24px;border-bottom:1px solid rgba(255,255,255,.1)}
+    .sidebar-nav{padding:16px 12px;flex:1;display:flex;flex-direction:column;gap:4px}
+    .sidebar-btn{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:12px;border:none;cursor:pointer;font-weight:600;font-size:14px;text-align:left;transition:all .2s;background:transparent;color:rgba(255,255,255,.65);width:100%}
+    .sidebar-btn:hover{background:rgba(255,255,255,.08);color:#fff}
+    .sidebar-btn.active{background:rgba(255,255,255,.15);color:#fff;font-weight:700}
+    .sidebar-btn .icon{font-size:18px;width:24px;text-align:center;flex-shrink:0}
+    .sidebar-footer{padding:16px 12px;border-top:1px solid rgba(255,255,255,.1)}
+    .desktop-content{margin-left:240px;flex:1;min-height:100vh;display:flex;flex-direction:column}
+    .desktop-topbar{background:#fff;border-bottom:1px solid #e5e7eb;padding:16px 32px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+    .desktop-main{padding:32px;flex:1;overflow-y:auto;max-width:1100px}
+    /* Responsive grid for desktop patient cards */
+    @media(min-width:768px){
+      .patients-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+      .desktop-two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
+      .desktop-three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;align-items:start}
+    }
   </style>
 </head>
 <body>
@@ -61,6 +82,7 @@
   window._firebaseReady=true;
 </script>
 <script>
+
 const {
   useState,
   useEffect,
@@ -3978,6 +4000,24 @@ function LoginScreen({
     disabled: loading
   }, loading ? "Entrando..." : "Entrar"))));
 }
+function useIsDesktop() {
+  const [isDesktop, setIsDesktop] = useState(typeof window !== 'undefined' ? window.innerWidth >= 768 : false);
+  useEffect(() => {
+    const handler = () => setIsDesktop(window.innerWidth >= 768);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
+  return isDesktop;
+}
+
+const NAV_ITEMS = [
+  { id: "patients", icon: "👥", label: "Pacientes" },
+  { id: "groups",   icon: "🗂", label: "Grupos" },
+  { id: "dashboard",icon: "📊", label: "Dashboard" },
+  { id: "overview", icon: "📈", label: "Visão Geral" },
+  { id: "config",   icon: "⚙️", label: "Configurações" },
+];
+
 function TherapistApp({
   onLogout
 }) {
@@ -3988,6 +4028,8 @@ function TherapistApp({
   const [modal, setModal] = useState(null);
   const [confirmDel, setConfirmDel] = useState(null);
   const [showExport, setShowExport] = useState(false);
+  const isDesktop = useIsDesktop();
+
   useEffect(() => {
     const u = fbListen("patients", d => setPatients(d ? Object.values(d) : []));
     return () => u();
@@ -3996,6 +4038,7 @@ function TherapistApp({
     const u = fbListen("grupos", d => setGrupos(d ? Object.values(d) : []));
     return () => u();
   }, []);
+
   async function savePatient(name, pass) {
     if (!name.trim()) return;
     const all = await fbGet("patients");
@@ -4005,241 +4048,179 @@ function TherapistApp({
       return;
     }
     if (modal?.id) {
-      const updates = {
-        name
-      };
+      const updates = { name };
       if (pass) updates.password = pass;
       await fbUpdate(`patients/${modal.id}`, updates);
     } else {
       const id = "p" + Date.now();
       await fbSet(`patients/${id}`, {
-        id,
-        name,
-        password: pass || "1234",
-        tasks: {},
-        prontuario: {
-          identificacao: {},
-          demanda: {},
-          evolucao_reg: {},
-          encerramento: {},
-          historia: {},
-          evolucao: {}
-        }
+        id, name, password: pass || "1234", tasks: {},
+        prontuario: { identificacao: {}, demanda: {}, evolucao_reg: {}, encerramento: {}, historia: {}, evolucao: {} }
       });
     }
     setModal(null);
   }
+
   async function deletePatient(id) {
     await fbSet(`patients/${id}`, null);
     setConfirmDel(null);
   }
-  if (patients === null) return React.createElement("div", {
-    style: aw
-  }, React.createElement(Header, {
-    title: "MeuPsi",
-    subtitle: "Painel do Terapeuta",
-    onBack: onLogout
-  }), React.createElement(Spinner, null));
+
+  if (patients === null) return React.createElement("div", { style: aw },
+    React.createElement(Header, { title: "MeuPsi", subtitle: "Painel do Terapeuta", onBack: onLogout }),
+    React.createElement(Spinner, null)
+  );
+
   if (showExport) return React.createElement(ExportarScreen, {
-    patients: patients,
-    grupos: grupos,
-    onClose: () => setShowExport(false)
+    patients: patients, grupos: grupos, onClose: () => setShowExport(false)
   });
+
   if (sel) {
     const p = patients.find(p => p.id === sel);
-    if (p) return React.createElement(PatientDetail, {
-      patient: p,
-      onBack: () => setSel(null)
-    });
+    if (p) return React.createElement(PatientDetail, { patient: p, onBack: () => setSel(null) });
   }
-  return React.createElement("div", {
-    style: aw
-  }, confirmDel && React.createElement(ConfirmModal, {
-    msg: `Apagar "${confirmDel.name}"?`,
-    onConfirm: () => deletePatient(confirmDel.id),
-    onCancel: () => setConfirmDel(null)
-  }), modal && React.createElement(PatientModal, {
-    patient: modal === "new" ? null : modal,
-    onClose: () => setModal(null),
-    onSave: savePatient
-  }), React.createElement(Header, {
-    title: "MeuPsi",
-    subtitle: "Painel do Terapeuta",
-    onBack: onLogout
-  }), React.createElement(TabBar, {
-    tabs: [["patients", "👥 Pacientes"], ["groups", "🗂 Grupos"], ["dashboard", "📊 Dashboard"], ["overview", "📈 Visão Geral"], ["config", "⚙️ Config"]],
-    active: tab,
-    onChange: setTab
-  }), React.createElement("div", {
-    className: "fade-in",
-    style: ct
-  }, tab === "patients" && React.createElement(React.Fragment, null, React.createElement("div", {
-    style: {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginBottom: 16
-    }
-  }, React.createElement("h2", {
-    style: h2s
-  }, "Meus Pacientes"), React.createElement("button", {
-    onClick: () => setModal("new"),
-    style: {
-      ...btn(),
-      padding: "9px 16px",
-      borderRadius: 10
-    }
-  }, "+ Novo")), patients.length === 0 && React.createElement(EmptyState, {
-    icon: "👤",
-    text: "Nenhum paciente ainda."
-  }), React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 10
-    }
-  }, patients.map(p => React.createElement("div", {
-    key: p.id,
-    className: "card-hover",
-    style: {
-      background: "#fff",
-      borderRadius: 16,
-      padding: "14px 18px",
-      boxShadow: "0 2px 10px rgba(0,0,0,.06)",
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center"
-    }
-  }, React.createElement("div", {
-    onClick: () => setSel(p.id),
-    style: {
-      flex: 1,
-      display: "flex",
-      alignItems: "center",
-      gap: 12
-    }
-  }, React.createElement("div", {
-    style: {
-      width: 42,
-      height: 42,
-      borderRadius: 14,
-      background: "linear-gradient(135deg,#ede9fe,#dbeafe)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      fontSize: 20,
-      flexShrink: 0
-    }
-  }, "👤"), React.createElement("div", null, React.createElement("div", {
-    style: {
-      fontWeight: 700,
-      color: "#1f2937",
-      fontSize: 15
-    }
-  }, p.name), React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: "#9ca3af",
-      marginTop: 2
-    }
-  }, p.tasks ? Object.keys(p.tasks).length : 0, " tarefa(s)"))), React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 8,
-      alignItems: "center"
-    }
-  }, React.createElement("button", {
-    onClick: () => setModal(p),
-    style: {
-      ...btn("#ede9fe"),
-      color: "#6d28d9",
-      padding: "6px 10px"
-    }
-  }, "✏️"), React.createElement("button", {
-    onClick: () => setConfirmDel(p),
-    style: {
-      ...btn("#fee2e2"),
-      padding: "6px 10px"
-    }
-  }, "🗑"), React.createElement("div", {
-    onClick: () => setSel(p.id),
-    style: {
-      width: 32,
-      height: 32,
-      borderRadius: 10,
-      background: "#f3f4f6",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      fontSize: 18,
-      color: "#6d28d9",
-      cursor: "pointer"
-    }
-  }, "›")))))), tab === "groups" && React.createElement(GruposTab, {
-    patients: patients
-  }), tab === "dashboard" && React.createElement(DashboardTab, {
-    patients: patients,
-    onExport: () => setShowExport(true)
-  }), tab === "overview" && React.createElement(React.Fragment, null, React.createElement("h2", {
-    style: h2s
-  }, "Visão Geral"), patients.length === 0 && React.createElement(EmptyState, {
-    icon: "📊",
-    text: "Nenhum dado ainda."
-  }), patients.map(p => {
-    const tasks = p.tasks ? Object.values(p.tasks) : [];
-    const done = tasks.filter(t => t.response).length;
-    return React.createElement("div", {
-      key: p.id,
-      style: {
-        background: "#fff",
-        borderRadius: 16,
-        padding: 18,
-        marginBottom: 10,
-        boxShadow: "0 2px 10px rgba(0,0,0,.06)"
-      }
-    }, React.createElement("div", {
-      style: {
-        display: "flex",
-        justifyContent: "space-between",
-        marginBottom: 8
-      }
-    }, React.createElement("div", {
-      style: {
-        fontWeight: 700,
-        color: "#1f2937"
-      }
-    }, p.name), React.createElement("div", {
-      style: {
-        fontSize: 13,
-        fontWeight: 700,
-        color: "#6d28d9"
-      }
-    }, tasks.length ? Math.round(done / tasks.length * 100) : 0, "%")), React.createElement("div", {
-      style: {
-        background: "#f3f4f6",
-        borderRadius: 20,
-        height: 8,
-        overflow: "hidden"
-      }
-    }, React.createElement("div", {
-      style: {
-        width: tasks.length ? `${done / tasks.length * 100}%` : "0%",
-        background: "linear-gradient(90deg,#6d28d9,#0ea5e9)",
-        height: "100%",
-        borderRadius: 20
-      }
-    })), React.createElement("div", {
-      style: {
-        fontSize: 12,
-        color: "#9ca3af",
-        marginTop: 6
-      }
-    }, done, " de ", tasks.length, " tarefas concluídas"));
-  })), tab === "config" && React.createElement(ConfigTab, {
-    role: "therapist",
-    onLogout: onLogout
-  })));
+
+  // ── Tab content (shared between mobile and desktop) ──
+  const tabContent = React.createElement("div", { className: "fade-in" },
+    confirmDel && React.createElement(ConfirmModal, {
+      msg: `Apagar "${confirmDel.name}"?`,
+      onConfirm: () => deletePatient(confirmDel.id),
+      onCancel: () => setConfirmDel(null)
+    }),
+    modal && React.createElement(PatientModal, {
+      patient: modal === "new" ? null : modal,
+      onClose: () => setModal(null),
+      onSave: savePatient
+    }),
+
+    // Pacientes
+    tab === "patients" && React.createElement(React.Fragment, null,
+      React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 } },
+        React.createElement("h2", { style: h2s }, "Meus Pacientes"),
+        React.createElement("button", { onClick: () => setModal("new"), style: { ...btn(), padding: "9px 16px", borderRadius: 10 } }, "+ Novo")
+      ),
+      patients.length === 0 && React.createElement(EmptyState, { icon: "👤", text: "Nenhum paciente ainda." }),
+      React.createElement("div", { className: isDesktop ? "patients-grid" : "" },
+        patients.map(p => React.createElement("div", {
+          key: p.id, className: "card-hover",
+          style: { background: "#fff", borderRadius: 16, padding: "14px 18px", boxShadow: "0 2px 10px rgba(0,0,0,.06)", display: "flex", justifyContent: "space-between", alignItems: "center" }
+        },
+          React.createElement("div", { onClick: () => setSel(p.id), style: { flex: 1, display: "flex", alignItems: "center", gap: 12 } },
+            React.createElement("div", { style: { width: 42, height: 42, borderRadius: 14, background: "linear-gradient(135deg,#ede9fe,#dbeafe)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 } }, "👤"),
+            React.createElement("div", null,
+              React.createElement("div", { style: { fontWeight: 700, color: "#1f2937", fontSize: 15 } }, p.name),
+              React.createElement("div", { style: { fontSize: 12, color: "#9ca3af", marginTop: 2 } }, (p.tasks ? Object.keys(p.tasks).length : 0), " tarefa(s)")
+            )
+          ),
+          React.createElement("div", { style: { display: "flex", gap: 8, alignItems: "center" } },
+            React.createElement("button", { onClick: () => setModal(p), style: { ...btn("#ede9fe"), color: "#6d28d9", padding: "6px 10px" } }, "✏️"),
+            React.createElement("button", { onClick: () => setConfirmDel(p), style: { ...btn("#fee2e2"), padding: "6px 10px" } }, "🗑"),
+            React.createElement("div", { onClick: () => setSel(p.id), style: { width: 32, height: 32, borderRadius: 10, background: "#f3f4f6", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, color: "#6d28d9", cursor: "pointer" } }, "›")
+          )
+        ))
+      )
+    ),
+
+    tab === "groups" && React.createElement(GruposTab, { patients: patients }),
+    tab === "dashboard" && React.createElement(DashboardTab, { patients: patients, onExport: () => setShowExport(true) }),
+
+    tab === "overview" && React.createElement(React.Fragment, null,
+      React.createElement("h2", { style: { ...h2s, marginBottom: 20 } }, "Visão Geral"),
+      patients.length === 0 && React.createElement(EmptyState, { icon: "📊", text: "Nenhum dado ainda." }),
+      React.createElement("div", { className: isDesktop ? "desktop-two-col" : "" },
+        patients.map(p => {
+          const tasks = p.tasks ? Object.values(p.tasks) : [];
+          const done = tasks.filter(t => t.response).length;
+          return React.createElement("div", {
+            key: p.id,
+            style: { background: "#fff", borderRadius: 16, padding: 18, marginBottom: isDesktop ? 0 : 10, boxShadow: "0 2px 10px rgba(0,0,0,.06)" }
+          },
+            React.createElement("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: 8 } },
+              React.createElement("div", { style: { fontWeight: 700, color: "#1f2937" } }, p.name),
+              React.createElement("div", { style: { fontSize: 13, fontWeight: 700, color: "#6d28d9" } }, tasks.length ? Math.round(done / tasks.length * 100) : 0, "%")
+            ),
+            React.createElement("div", { style: { background: "#f3f4f6", borderRadius: 20, height: 8, overflow: "hidden" } },
+              React.createElement("div", { style: { width: tasks.length ? `${done / tasks.length * 100}%` : "0%", background: "linear-gradient(90deg,#6d28d9,#0ea5e9)", height: "100%", borderRadius: 20 } })
+            ),
+            React.createElement("div", { style: { fontSize: 12, color: "#9ca3af", marginTop: 6 } }, done, " de ", tasks.length, " tarefas concluídas")
+          );
+        })
+      )
+    ),
+
+    tab === "config" && React.createElement(ConfigTab, { role: "therapist", onLogout: onLogout })
+  );
+
+  // ── DESKTOP layout ──
+  if (isDesktop) {
+    return React.createElement("div", { className: "desktop-layout" },
+      // Sidebar
+      React.createElement("aside", { className: "sidebar" },
+        // Logo
+        React.createElement("div", { className: "sidebar-logo" },
+          React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10 } },
+            React.createElement("div", { style: { width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,#7c3aed,#0ea5e9)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 } }, "🧠"),
+            React.createElement("div", null,
+              React.createElement("div", { style: { color: "#fff", fontWeight: 800, fontSize: 16 } }, "MeuPsi"),
+              React.createElement("div", { style: { color: "rgba(255,255,255,.5)", fontSize: 11 } }, "Painel do Terapeuta")
+            )
+          )
+        ),
+        // Nav items
+        React.createElement("nav", { className: "sidebar-nav" },
+          NAV_ITEMS.map(item => React.createElement("button", {
+            key: item.id,
+            className: `sidebar-btn${tab === item.id ? " active" : ""}`,
+            onClick: () => setTab(item.id)
+          },
+            React.createElement("span", { className: "icon" }, item.icon),
+            React.createElement("span", null, item.label)
+          ))
+        ),
+        // Footer logout
+        React.createElement("div", { className: "sidebar-footer" },
+          React.createElement("button", {
+            onClick: onLogout,
+            className: "sidebar-btn",
+            style: { color: "rgba(255,100,100,.8)" }
+          },
+            React.createElement("span", { className: "icon" }, "🚪"),
+            React.createElement("span", null, "Sair")
+          )
+        )
+      ),
+      // Main content
+      React.createElement("main", { className: "desktop-content" },
+        // Top bar
+        React.createElement("div", { className: "desktop-topbar" },
+          React.createElement("div", null,
+            React.createElement("div", { style: { fontWeight: 800, fontSize: 18, color: "#1f2937" } },
+              NAV_ITEMS.find(n => n.id === tab)?.icon, " ", NAV_ITEMS.find(n => n.id === tab)?.label
+            ),
+            React.createElement("div", { style: { fontSize: 12, color: "#9ca3af", marginTop: 2 } }, "João Rosa · CRP 06/227336")
+          ),
+          React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 12 } },
+            React.createElement("div", { style: { width: 34, height: 34, borderRadius: 10, background: "linear-gradient(135deg,#ede9fe,#dbeafe)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 } }, "👤"),
+            React.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: "#374151" } }, "Terapeuta")
+          )
+        ),
+        // Page content
+        React.createElement("div", { className: "desktop-main" }, tabContent)
+      )
+    );
+  }
+
+  // ── MOBILE layout ──
+  return React.createElement("div", { style: aw },
+    React.createElement(Header, { title: "MeuPsi", subtitle: "Painel do Terapeuta", onBack: onLogout }),
+    React.createElement(TabBar, {
+      tabs: [["patients", "👥 Pacientes"], ["groups", "🗂 Grupos"], ["dashboard", "📊 Dashboard"], ["overview", "📈 Visão Geral"], ["config", "⚙️ Config"]],
+      active: tab, onChange: setTab
+    }),
+    React.createElement("div", { style: ct }, tabContent)
+  );
 }
+
 function PatientDetail({
   patient,
   onBack
@@ -9045,6 +9026,7 @@ function App() {
 }
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(React.createElement(App, null));
+
 </script>
 </body>
 </html>
