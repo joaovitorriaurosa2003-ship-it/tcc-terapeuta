@@ -83,6 +83,7 @@
 </script>
 <script>
 
+
 const {
   useState,
   useEffect,
@@ -8125,6 +8126,7 @@ function DashboardTab({
 }) {
   const [sel, setSel] = useState(0);
   const [subTab, setSubTab] = useState("radar");
+  const isDesktop = useIsDesktop();
   const p = patients[sel];
   const tasks = p?.tasks ? Object.values(p.tasks) : [];
   const diarios = p?.diarios ? Object.values(p.diarios) : [];
@@ -8153,655 +8155,190 @@ function DashboardTab({
   const resilValues = subValuesPct(RESILIENCIA_DATA, resilResp);
   const suporteValues = subValuesPct(SUPORTE_SOCIAL_DATA, suporteResp);
   const ECORES = {
-    Alegria: "#f59e0b",
-    Tristeza: "#3b82f6",
-    Raiva: "#ef4444",
-    Ansiedade: "#8b5cf6",
-    Medo: "#6366f1",
-    Nojo: "#10b981",
-    Vergonha: "#f97316",
-    Culpa: "#64748b",
-    Cansaço: "#94a3b8",
-    Amor: "#ec4899",
-    Neutro: "#6b7280",
-    Empolgação: "#fbbf24"
+    Alegria: "#f59e0b", Tristeza: "#3b82f6", Raiva: "#ef4444", Ansiedade: "#8b5cf6",
+    Medo: "#6366f1", Nojo: "#10b981", Vergonha: "#f97316", Culpa: "#64748b",
+    Cansaço: "#94a3b8", Amor: "#ec4899", Neutro: "#6b7280", Empolgação: "#fbbf24"
   };
   const emoCounts = {};
-  diarios.forEach(d => {
-    emoCounts[d.emocao] = (emoCounts[d.emocao] || 0) + 1;
-  });
+  diarios.forEach(d => { emoCounts[d.emocao] = (emoCounts[d.emocao] || 0) + 1; });
   const emoSorted = Object.entries(emoCounts).sort((a, b) => b[1] - a[1]);
-  if (patients.length === 0) return React.createElement(EmptyState, {
-    icon: "📊",
-    text: "Nenhum paciente cadastrado ainda."
-  });
-  return React.createElement("div", null, React.createElement("div", {
-    style: {
-      marginBottom: 14
-    }
-  }, React.createElement("div", {
-    style: {
-      fontSize: 11,
-      fontWeight: 700,
-      color: "#9ca3af",
-      marginBottom: 8,
-      textTransform: "uppercase",
-      letterSpacing: ".5px"
-    }
-  }, "Paciente"), React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 8
-    }
-  }, patients.map((pt, i) => {
-    const ptTasks = pt.tasks ? Object.values(pt.tasks) : [];
-    const humor = ptTasks.filter(t => t.type === "escala" && t.response).slice(-1)[0]?.response?.humor || null;
-    const color = humor >= 60 ? "#059669" : humor >= 40 ? "#d97706" : "#e11d48";
-    return React.createElement("div", {
-      key: pt.id,
-      onClick: () => setSel(i),
-      style: {
-        background: sel === i ? "#ede9fe" : "#fff",
-        borderRadius: 14,
-        padding: "12px 14px",
-        cursor: "pointer",
-        boxShadow: "0 2px 8px rgba(0,0,0,.06)",
-        border: `1.5px solid ${sel === i ? "#6d28d9" : "#f0f0f0"}`,
-        display: "flex",
-        alignItems: "center",
-        gap: 12,
-        transition: "all .2s"
-      }
-    }, React.createElement("div", {
-      style: {
-        width: 36,
-        height: 36,
-        borderRadius: 10,
-        background: sel === i ? "#6d28d9" : "#f3f4f6",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontSize: 16
-      }
-    }, "👤"), React.createElement("div", {
-      style: {
-        flex: 1
-      }
-    }, React.createElement("div", {
-      style: {
-        fontWeight: 700,
-        color: sel === i ? "#6d28d9" : "#1f2937",
-        fontSize: 14
-      }
-    }, pt.name), React.createElement("div", {
-      style: {
-        fontSize: 11,
-        color: "#9ca3af",
-        marginTop: 1
-      }
-    }, humor !== null ? React.createElement("span", null, "Humor: ", React.createElement("span", {
-      style: {
-        color,
-        fontWeight: 700
-      }
-    }, humor, "%")) : "Sem dados ainda")), React.createElement("div", {
-      style: {
-        fontSize: 18,
-        color: sel === i ? "#6d28d9" : "#d1d5db"
-      }
-    }, "›"));
-  }))), React.createElement("button", {
-    onClick: onExport,
-    style: {
-      width: "100%",
-      marginBottom: 14,
-      padding: "11px 0",
-      borderRadius: 12,
-      border: "none",
-      background: "linear-gradient(135deg,#059669,#34d399)",
-      color: "#fff",
-      fontWeight: 700,
-      fontSize: 14,
-      cursor: "pointer",
-      boxShadow: "0 4px 12px rgba(5,150,105,.3)"
-    }
-  }, "📥 Exportar dados"), React.createElement("div", {
-    style: {
-      display: "flex",
-      background: "#fff",
-      borderRadius: 14,
-      padding: 4,
-      gap: 4,
-      marginBottom: 14,
-      boxShadow: "0 2px 8px rgba(0,0,0,.05)"
-    }
-  }, [["radar", "📡 Radar"], ["escalas", "📋 Escalas"], ["emocoes", "😊 Emoções"]].map(([id, label]) => React.createElement("button", {
-    key: id,
-    onClick: () => setSubTab(id),
-    style: {
-      flex: 1,
-      padding: "9px 4px",
-      border: "none",
-      cursor: "pointer",
-      fontWeight: 700,
-      fontSize: 12,
-      borderRadius: 10,
-      background: subTab === id ? "#6d28d9" : "transparent",
-      color: subTab === id ? "#fff" : "#9ca3af",
-      transition: "all .2s"
-    }
-  }, label))), subTab === "radar" && React.createElement("div", null, React.createElement("div", {
-    style: {
-      ...crd,
-      marginBottom: 14
-    }
-  }, React.createElement("div", {
-    style: {
-      fontSize: 14,
-      fontWeight: 800,
-      color: "#1f2937",
-      marginBottom: 2
-    }
-  }, "📊 Bem-Estar"), React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: "#9ca3af",
-      marginBottom: 10
-    }
-  }, "Humor, ansiedade, sono, estresse e tristeza"), escResp ? React.createElement(React.Fragment, null, React.createElement(RadarChart, {
-    labels: ["Humor", "Ansiedade", "Sono", "Estresse", "Tristeza"],
-    values: beValues,
-    colors: beColors,
-    size: 220
-  }), React.createElement("div", {
-    style: {
-      display: "flex",
-      flexWrap: "wrap",
-      gap: 6,
-      marginTop: 8,
-      justifyContent: "center"
-    }
-  }, ["Humor", "Ansiedade", "Sono", "Estresse", "Tristeza"].map((l, i) => React.createElement("div", {
-    key: l,
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 4
-    }
-  }, React.createElement("div", {
-    style: {
-      width: 8,
-      height: 8,
-      borderRadius: "50%",
-      background: beColors[i]
-    }
-  }), React.createElement("span", {
-    style: {
-      fontSize: 10,
-      color: "#6b7280",
-      fontWeight: 600
-    }
-  }, l))))) : React.createElement(EmptyState, {
-    icon: "📊",
-    text: "Nenhuma escala respondida ainda."
-  })), React.createElement("div", {
-    style: {
-      ...crd,
-      marginBottom: 14
-    }
-  }, React.createElement("div", {
-    style: {
-      fontSize: 14,
-      fontWeight: 800,
-      color: "#6d28d9",
-      marginBottom: 2
-    }
-  }, "📋 CSAI-2R"), React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: "#9ca3af",
-      marginBottom: 10
-    }
-  }, "Ansiedade cognitiva, somática e autoconfiança"), csaiResp ? React.createElement(RadarChart, {
-    labels: ["Ans. Cognitiva", "Ans. Somática", "Autoconfiança"],
-    values: csaiValues,
-    colors: ["#6d28d9", "#e11d48", "#059669"],
-    size: 200
-  }) : React.createElement(EmptyState, {
-    icon: "📋",
-    text: "CSAI-2R não respondido ainda."
-  })), React.createElement("div", {
-    style: {
-      ...crd,
-      marginBottom: 14
-    }
-  }, React.createElement("div", {
-    style: {
-      fontSize: 14,
-      fontWeight: 800,
-      color: "#059669",
-      marginBottom: 2
-    }
-  }, "📋 ACSI-28"), React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: "#9ca3af",
-      marginBottom: 10
-    }
-  }, "7 subescalas de habilidades de coping"), acsiResp ? React.createElement(RadarChart, {
-    labels: ["Adversid.", "Pressão", "Metas", "Concentr.", "Preocup.", "Confiança", "Treinab."],
-    values: acsiValues,
-    colors: ["#ef4444", "#f97316", "#eab308", "#22c55e", "#06b6d4", "#8b5cf6", "#ec4899"],
-    size: 240
-  }) : React.createElement(EmptyState, {
-    icon: "📋",
-    text: "ACSI-28 não respondido ainda."
-  })), React.createElement("div", {
-    style: {
-      ...crd,
-      marginBottom: 14
-    }
-  }, React.createElement("div", {
-    style: {
-      fontSize: 14,
-      fontWeight: 800,
-      color: "#d97706",
-      marginBottom: 2
-    }
-  }, "🎯 TEOSQ"), React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: "#9ca3af",
-      marginBottom: 10
-    }
-  }, "Orientação à tarefa vs. orientação ao ego"), teosqResp ? React.createElement(RadarChart, {
-    labels: ["Tarefa", "Ego"],
-    values: teosqValues,
-    colors: ["#059669", "#e11d48"],
-    size: 180
-  }) : React.createElement(EmptyState, {
-    icon: "🎯",
-    text: "TEOSQ não respondido ainda."
-  })), React.createElement("div", {
-    style: {
-      ...crd,
-      marginBottom: 14
-    }
-  }, React.createElement("div", {
-    style: {
-      fontSize: 14,
-      fontWeight: 800,
-      color: "#0891b2",
-      marginBottom: 2
-    }
-  }, "🧘 SIQ — Imagem Mental"), React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: "#9ca3af",
-      marginBottom: 10
-    }
-  }, "Imagem cognitiva, motivacional e controle emocional"), siqResp ? React.createElement(RadarChart, {
-    labels: ["Cognitiva", "Motivacional", "Controle"],
-    values: siqValues,
-    colors: ["#0891b2", "#d97706", "#059669"],
-    size: 200
-  }) : React.createElement(EmptyState, {
-    icon: "🧘",
-    text: "SIQ não respondido ainda."
-  })), React.createElement("div", {
-    style: {
-      ...crd,
-      marginBottom: 14
-    }
-  }, React.createElement("div", {
-    style: {
-      fontSize: 14,
-      fontWeight: 800,
-      color: "#7c3aed",
-      marginBottom: 2
-    }
-  }, "🛡️ Resiliência Esportiva"), React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: "#9ca3af",
-      marginBottom: 10
-    }
-  }, "Recuperação de adversidades e adaptação"), resilResp ? React.createElement(RadarChart, {
-    labels: ["Recuperação", "Adaptação"],
-    values: resilValues,
-    colors: ["#7c3aed", "#059669"],
-    size: 180
-  }) : React.createElement(EmptyState, {
-    icon: "🛡️",
-    text: "Resiliência não respondida ainda."
-  })), React.createElement("div", {
-    style: crd
-  }, React.createElement("div", {
-    style: {
-      fontSize: 14,
-      fontWeight: 800,
-      color: "#ec4899",
-      marginBottom: 2
-    }
-  }, "🤝 Suporte Social Percebido"), React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: "#9ca3af",
-      marginBottom: 10
-    }
-  }, "Família, treinador e colegas"), suporteResp ? React.createElement(RadarChart, {
-    labels: ["Família", "Treinador", "Colegas"],
-    values: suporteValues,
-    colors: ["#ec4899", "#0891b2", "#059669"],
-    size: 200
-  }) : React.createElement(EmptyState, {
-    icon: "🤝",
-    text: "Suporte Social não respondido ainda."
-  }))), subTab === "escalas" && React.createElement("div", null, React.createElement("div", {
-    style: {
-      ...crd,
-      marginBottom: 14
-    }
-  }, React.createElement("div", {
-    style: {
-      fontSize: 14,
-      fontWeight: 800,
-      color: "#6d28d9",
-      marginBottom: 12
-    }
-  }, "📋 CSAI-2R"), csaiResp ? React.createElement(React.Fragment, null, React.createElement(MiniBar, {
-    label: "Ansiedade Cognitiva",
-    value: csaiResp.cognitiva,
-    max: 32,
-    color: "#6d28d9"
-  }), React.createElement(MiniBar, {
-    label: "Ansiedade Somática",
-    value: csaiResp.somatica,
-    max: 28,
-    color: "#e11d48"
-  }), React.createElement(MiniBar, {
-    label: "Autoconfiança",
-    value: csaiResp.autoconfianca,
-    max: 20,
-    color: "#059669"
-  })) : React.createElement("p", {
-    style: {
-      fontSize: 13,
-      color: "#9ca3af"
-    }
-  }, "Nenhuma resposta ainda.")), React.createElement("div", {
-    style: {
-      ...crd,
-      marginBottom: 14
-    }
-  }, React.createElement("div", {
-    style: {
-      fontSize: 14,
-      fontWeight: 800,
-      color: "#0891b2",
-      marginBottom: 12
-    }
-  }, "📋 SAS"), sasResp ? React.createElement(React.Fragment, null, React.createElement(MiniBar, {
-    label: "Ansiedade Somática",
-    value: sasResp.somatica,
-    max: 28,
-    color: "#e11d48"
-  }), React.createElement(MiniBar, {
-    label: "Preocupação",
-    value: sasResp.preocupacao,
-    max: 28,
-    color: "#d97706"
-  }), React.createElement(MiniBar, {
-    label: "Perturbação Concentração",
-    value: sasResp.concentracao,
-    max: 28,
-    color: "#7c3aed"
-  })) : React.createElement("p", {
-    style: {
-      fontSize: 13,
-      color: "#9ca3af"
-    }
-  }, "Nenhuma resposta ainda.")), React.createElement("div", {
-    style: {
-      ...crd,
-      marginBottom: 14
-    }
-  }, React.createElement("div", {
-    style: {
-      fontSize: 14,
-      fontWeight: 800,
-      color: "#059669",
-      marginBottom: 12
-    }
-  }, "📋 ACSI-28"), acsiResp ? [["adversidade", "Coping Adversidade", "#ef4444", 16], ["pressao", "Pressão", "#f97316", 16], ["metas", "Metas", "#eab308", 16], ["concentracao", "Concentração", "#22c55e", 16], ["preocupacao", "Preocupação", "#06b6d4", 16], ["confianca", "Confiança", "#8b5cf6", 16], ["treinabilidade", "Treinabilidade", "#ec4899", 16]].map(([k, l, c, m]) => React.createElement(MiniBar, {
-    key: k,
-    label: l,
-    value: acsiResp[k] || 0,
-    max: m,
-    color: c
-  })) : React.createElement("p", {
-    style: {
-      fontSize: 13,
-      color: "#9ca3af"
-    }
-  }, "Nenhuma resposta ainda.")), React.createElement("div", {
-    style: {
-      ...crd,
-      marginBottom: 14
-    }
-  }, React.createElement("div", {
-    style: {
-      fontSize: 14,
-      fontWeight: 800,
-      color: "#d97706",
-      marginBottom: 12
-    }
-  }, "🎯 TEOSQ"), teosqResp ? React.createElement(React.Fragment, null, React.createElement(MiniBar, {
-    label: "Orientação à Tarefa",
-    value: teosqResp.tarefa || 0,
-    max: 28,
-    color: "#059669"
-  }), React.createElement(MiniBar, {
-    label: "Orientação ao Ego",
-    value: teosqResp.ego || 0,
-    max: 24,
-    color: "#e11d48"
-  })) : React.createElement("p", {
-    style: {
-      fontSize: 13,
-      color: "#9ca3af"
-    }
-  }, "Nenhuma resposta ainda.")), React.createElement("div", {
-    style: {
-      ...crd,
-      marginBottom: 14
-    }
-  }, React.createElement("div", {
-    style: {
-      fontSize: 14,
-      fontWeight: 800,
-      color: "#0891b2",
-      marginBottom: 12
-    }
-  }, "🧘 SIQ — Imagem Mental"), siqResp ? React.createElement(React.Fragment, null, React.createElement(MiniBar, {
-    label: "Imagem Cognitiva",
-    value: siqResp.cognitiva || 0,
-    max: 16,
-    color: "#0891b2"
-  }), React.createElement(MiniBar, {
-    label: "Imagem Motivacional",
-    value: siqResp.motivacional || 0,
-    max: 16,
-    color: "#d97706"
-  }), React.createElement(MiniBar, {
-    label: "Controle Emocional",
-    value: siqResp.controle || 0,
-    max: 16,
-    color: "#059669"
-  })) : React.createElement("p", {
-    style: {
-      fontSize: 13,
-      color: "#9ca3af"
-    }
-  }, "Nenhuma resposta ainda.")), React.createElement("div", {
-    style: {
-      ...crd,
-      marginBottom: 14
-    }
-  }, React.createElement("div", {
-    style: {
-      fontSize: 14,
-      fontWeight: 800,
-      color: "#7c3aed",
-      marginBottom: 12
-    }
-  }, "🛡️ Resiliência Esportiva"), resilResp ? React.createElement(React.Fragment, null, React.createElement(MiniBar, {
-    label: "Recuperação de Adversidades",
-    value: resilResp.recuperacao || 0,
-    max: 20,
-    color: "#7c3aed"
-  }), React.createElement(MiniBar, {
-    label: "Persistência e Adaptação",
-    value: resilResp.adaptacao || 0,
-    max: 20,
-    color: "#059669"
-  })) : React.createElement("p", {
-    style: {
-      fontSize: 13,
-      color: "#9ca3af"
-    }
-  }, "Nenhuma resposta ainda.")), React.createElement("div", {
-    style: crd
-  }, React.createElement("div", {
-    style: {
-      fontSize: 14,
-      fontWeight: 800,
-      color: "#ec4899",
-      marginBottom: 12
-    }
-  }, "🤝 Suporte Social Percebido"), suporteResp ? React.createElement(React.Fragment, null, React.createElement(MiniBar, {
-    label: "Suporte da Família",
-    value: suporteResp.familia || 0,
-    max: 16,
-    color: "#ec4899"
-  }), React.createElement(MiniBar, {
-    label: "Suporte do Treinador",
-    value: suporteResp.treinador || 0,
-    max: 16,
-    color: "#0891b2"
-  }), React.createElement(MiniBar, {
-    label: "Suporte dos Colegas",
-    value: suporteResp.colegas || 0,
-    max: 16,
-    color: "#059669"
-  })) : React.createElement("p", {
-    style: {
-      fontSize: 13,
-      color: "#9ca3af"
-    }
-  }, "Nenhuma resposta ainda."))), subTab === "emocoes" && React.createElement("div", null, React.createElement("div", {
-    style: {
-      ...crd,
-      marginBottom: 14
-    }
-  }, React.createElement("div", {
-    style: {
-      fontSize: 14,
-      fontWeight: 800,
-      color: "#1f2937",
-      marginBottom: 4
-    }
-  }, "😊 Frequência das Emoções"), React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: "#9ca3af",
-      marginBottom: 12
-    }
-  }, diarios.length, " registro(s) no diário"), diarios.length === 0 ? React.createElement(EmptyState, {
-    icon: "📔",
-    text: "Nenhum registro no diário ainda."
-  }) : React.createElement("div", {
-    style: {
-      display: "flex",
-      flexWrap: "wrap",
-      gap: 6
-    }
-  }, emoSorted.map(([nome, count]) => React.createElement("div", {
-    key: nome,
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 5,
-      background: "#f9fafb",
-      borderRadius: 20,
-      padding: "5px 10px"
-    }
-  }, React.createElement("div", {
-    style: {
-      width: 8,
-      height: 8,
-      borderRadius: "50%",
-      background: ECORES[nome] || "#888",
-      flexShrink: 0
-    }
-  }), React.createElement("span", {
-    style: {
-      fontSize: 12,
-      fontWeight: 700,
-      color: "#374151"
-    }
-  }, nome), React.createElement("span", {
-    style: {
-      fontSize: 11,
-      color: "#9ca3af"
-    }
-  }, Math.round(count / diarios.length * 100), "%"))))), diarios.length > 0 && React.createElement("div", {
-    style: {
-      ...crd,
-      marginBottom: 14
-    }
-  }, React.createElement("div", {
-    style: {
-      fontSize: 14,
-      fontWeight: 800,
-      color: "#1f2937",
-      marginBottom: 12
-    }
-  }, "📈 Intensidade Média"), Object.entries(diarios.reduce((acc, d) => {
-    if (!acc[d.emocao]) acc[d.emocao] = {
-      total: 0,
-      count: 0
-    };
-    acc[d.emocao].total += d.intensidade;
-    acc[d.emocao].count++;
-    return acc;
-  }, {})).map(([nome, {
-    total,
-    count
-  }]) => React.createElement(MiniBar, {
-    key: nome,
-    label: nome,
-    value: Math.round(total / count * 10),
-    max: 100,
-    color: ECORES[nome] || "#888"
-  }))), escResp && React.createElement("div", {
-    style: crd
-  }, React.createElement("div", {
-    style: {
-      fontSize: 14,
-      fontWeight: 800,
-      color: "#1f2937",
-      marginBottom: 12
-    }
-  }, "📊 Escala de Bem-Estar"), [["humor", "Humor", "#f59e0b"], ["ansiedade", "Ansiedade", "#8b5cf6"], ["sono", "Sono", "#3b82f6"], ["estresse", "Estresse", "#ef4444"], ["tristeza", "Tristeza", "#60a5fa"]].map(([k, l, c]) => React.createElement(MiniBar, {
-    key: k,
-    label: l,
-    value: escResp[k],
-    max: 100,
-    color: c
-  })))));
+
+  if (patients.length === 0) return React.createElement(EmptyState, { icon: "📊", text: "Nenhum paciente cadastrado ainda." });
+
+  const patientSelector = React.createElement("div", null,
+    React.createElement("div", { style: { marginBottom: 14 } },
+      React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: "#9ca3af", marginBottom: 8, textTransform: "uppercase", letterSpacing: ".5px" } }, "Paciente"),
+      React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } },
+        patients.map((pt, i) => {
+          const ptTasks = pt.tasks ? Object.values(pt.tasks) : [];
+          const humor = ptTasks.filter(t => t.type === "escala" && t.response).slice(-1)[0]?.response?.humor || null;
+          const color = humor >= 60 ? "#059669" : humor >= 40 ? "#d97706" : "#e11d48";
+          return React.createElement("div", {
+            key: pt.id, onClick: () => setSel(i),
+            style: { background: sel === i ? "#ede9fe" : "#fff", borderRadius: 14, padding: "12px 14px", cursor: "pointer", boxShadow: "0 2px 8px rgba(0,0,0,.06)", border: `1.5px solid ${sel === i ? "#6d28d9" : "#f0f0f0"}`, display: "flex", alignItems: "center", gap: 12, transition: "all .2s" }
+          },
+            React.createElement("div", { style: { width: 36, height: 36, borderRadius: 10, background: sel === i ? "#6d28d9" : "#f3f4f6", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 } }, "👤"),
+            React.createElement("div", { style: { flex: 1 } },
+              React.createElement("div", { style: { fontWeight: 700, color: sel === i ? "#6d28d9" : "#1f2937", fontSize: 14 } }, pt.name),
+              React.createElement("div", { style: { fontSize: 11, color: "#9ca3af", marginTop: 1 } },
+                humor !== null ? React.createElement("span", null, "Humor: ", React.createElement("span", { style: { color, fontWeight: 700 } }, humor, "%")) : "Sem dados ainda"
+              )
+            ),
+            React.createElement("div", { style: { fontSize: 18, color: sel === i ? "#6d28d9" : "#d1d5db" } }, "›")
+          );
+        })
+      )
+    ),
+    React.createElement("button", {
+      onClick: onExport,
+      style: { width: "100%", marginBottom: isDesktop ? 0 : 14, padding: "11px 0", borderRadius: 12, border: "none", background: "linear-gradient(135deg,#059669,#34d399)", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", boxShadow: "0 4px 12px rgba(5,150,105,.3)" }
+    }, "📥 Exportar dados")
+  );
+
+  const dataContent = React.createElement("div", null,
+    React.createElement("div", { style: { display: "flex", background: "#fff", borderRadius: 14, padding: 4, gap: 4, marginBottom: 14, boxShadow: "0 2px 8px rgba(0,0,0,.05)" } },
+      [["radar", "📡 Radar"], ["escalas", "📋 Escalas"], ["emocoes", "😊 Emoções"]].map(([id, label]) => React.createElement("button", {
+        key: id, onClick: () => setSubTab(id),
+        style: { flex: 1, padding: "9px 4px", border: "none", cursor: "pointer", fontWeight: 700, fontSize: 12, borderRadius: 10, background: subTab === id ? "#6d28d9" : "transparent", color: subTab === id ? "#fff" : "#9ca3af", transition: "all .2s" }
+      }, label))
+    ),
+
+    subTab === "radar" && React.createElement("div", { className: isDesktop ? "desktop-two-col" : "" },
+      React.createElement("div", { style: { ...crd, marginBottom: isDesktop ? 0 : 14 } },
+        React.createElement("div", { style: { fontSize: 14, fontWeight: 800, color: "#1f2937", marginBottom: 2 } }, "📊 Bem-Estar"),
+        React.createElement("div", { style: { fontSize: 12, color: "#9ca3af", marginBottom: 10 } }, "Humor, ansiedade, sono, estresse e tristeza"),
+        escResp ? React.createElement(React.Fragment, null,
+          React.createElement(RadarChart, { labels: ["Humor", "Ansiedade", "Sono", "Estresse", "Tristeza"], values: beValues, colors: beColors, size: 220 }),
+          React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8, justifyContent: "center" } },
+            ["Humor", "Ansiedade", "Sono", "Estresse", "Tristeza"].map((l, i) => React.createElement("div", { key: l, style: { display: "flex", alignItems: "center", gap: 4 } },
+              React.createElement("div", { style: { width: 8, height: 8, borderRadius: "50%", background: beColors[i] } }),
+              React.createElement("span", { style: { fontSize: 10, color: "#6b7280", fontWeight: 600 } }, l)
+            ))
+          )
+        ) : React.createElement(EmptyState, { icon: "📊", text: "Nenhuma escala respondida ainda." })
+      ),
+      React.createElement("div", { style: { ...crd, marginBottom: isDesktop ? 0 : 14 } },
+        React.createElement("div", { style: { fontSize: 14, fontWeight: 800, color: "#6d28d9", marginBottom: 2 } }, "📋 CSAI-2R"),
+        React.createElement("div", { style: { fontSize: 12, color: "#9ca3af", marginBottom: 10 } }, "Ansiedade cognitiva, somática e autoconfiança"),
+        csaiResp ? React.createElement(RadarChart, { labels: ["Ans. Cognitiva", "Ans. Somática", "Autoconfiança"], values: csaiValues, colors: ["#6d28d9", "#e11d48", "#059669"], size: 200 }) : React.createElement(EmptyState, { icon: "📋", text: "CSAI-2R não respondido ainda." })
+      ),
+      React.createElement("div", { style: { ...crd, marginBottom: isDesktop ? 0 : 14 } },
+        React.createElement("div", { style: { fontSize: 14, fontWeight: 800, color: "#059669", marginBottom: 2 } }, "📋 ACSI-28"),
+        React.createElement("div", { style: { fontSize: 12, color: "#9ca3af", marginBottom: 10 } }, "7 subescalas de habilidades de coping"),
+        acsiResp ? React.createElement(RadarChart, { labels: ["Adversid.", "Pressão", "Metas", "Concentr.", "Preocup.", "Confiança", "Treinab."], values: acsiValues, colors: ["#ef4444", "#f97316", "#eab308", "#22c55e", "#06b6d4", "#8b5cf6", "#ec4899"], size: 240 }) : React.createElement(EmptyState, { icon: "📋", text: "ACSI-28 não respondido ainda." })
+      ),
+      React.createElement("div", { style: { ...crd, marginBottom: isDesktop ? 0 : 14 } },
+        React.createElement("div", { style: { fontSize: 14, fontWeight: 800, color: "#d97706", marginBottom: 2 } }, "🎯 TEOSQ"),
+        React.createElement("div", { style: { fontSize: 12, color: "#9ca3af", marginBottom: 10 } }, "Orientação à tarefa vs. orientação ao ego"),
+        teosqResp ? React.createElement(RadarChart, { labels: ["Tarefa", "Ego"], values: teosqValues, colors: ["#059669", "#e11d48"], size: 180 }) : React.createElement(EmptyState, { icon: "🎯", text: "TEOSQ não respondido ainda." })
+      ),
+      React.createElement("div", { style: { ...crd, marginBottom: isDesktop ? 0 : 14 } },
+        React.createElement("div", { style: { fontSize: 14, fontWeight: 800, color: "#0891b2", marginBottom: 2 } }, "🧘 SIQ — Imagem Mental"),
+        React.createElement("div", { style: { fontSize: 12, color: "#9ca3af", marginBottom: 10 } }, "Imagem cognitiva, motivacional e controle emocional"),
+        siqResp ? React.createElement(RadarChart, { labels: ["Cognitiva", "Motivacional", "Controle"], values: siqValues, colors: ["#0891b2", "#d97706", "#059669"], size: 200 }) : React.createElement(EmptyState, { icon: "🧘", text: "SIQ não respondido ainda." })
+      ),
+      React.createElement("div", { style: { ...crd, marginBottom: isDesktop ? 0 : 14 } },
+        React.createElement("div", { style: { fontSize: 14, fontWeight: 800, color: "#7c3aed", marginBottom: 2 } }, "🛡️ Resiliência Esportiva"),
+        React.createElement("div", { style: { fontSize: 12, color: "#9ca3af", marginBottom: 10 } }, "Recuperação de adversidades e adaptação"),
+        resilResp ? React.createElement(RadarChart, { labels: ["Recuperação", "Adaptação"], values: resilValues, colors: ["#7c3aed", "#059669"], size: 180 }) : React.createElement(EmptyState, { icon: "🛡️", text: "Resiliência não respondida ainda." })
+      ),
+      React.createElement("div", { style: crd },
+        React.createElement("div", { style: { fontSize: 14, fontWeight: 800, color: "#ec4899", marginBottom: 2 } }, "🤝 Suporte Social Percebido"),
+        React.createElement("div", { style: { fontSize: 12, color: "#9ca3af", marginBottom: 10 } }, "Família, treinador e colegas"),
+        suporteResp ? React.createElement(RadarChart, { labels: ["Família", "Treinador", "Colegas"], values: suporteValues, colors: ["#ec4899", "#0891b2", "#059669"], size: 200 }) : React.createElement(EmptyState, { icon: "🤝", text: "Suporte Social não respondido ainda." })
+      )
+    ),
+
+    subTab === "escalas" && React.createElement("div", { className: isDesktop ? "desktop-two-col" : "" },
+      React.createElement("div", { style: { ...crd, marginBottom: isDesktop ? 0 : 14 } },
+        React.createElement("div", { style: { fontSize: 14, fontWeight: 800, color: "#6d28d9", marginBottom: 12 } }, "📋 CSAI-2R"),
+        csaiResp ? React.createElement(React.Fragment, null,
+          React.createElement(MiniBar, { label: "Ansiedade Cognitiva", value: csaiResp.cognitiva, max: 32, color: "#6d28d9" }),
+          React.createElement(MiniBar, { label: "Ansiedade Somática", value: csaiResp.somatica, max: 28, color: "#e11d48" }),
+          React.createElement(MiniBar, { label: "Autoconfiança", value: csaiResp.autoconfianca, max: 20, color: "#059669" })
+        ) : React.createElement("p", { style: { fontSize: 13, color: "#9ca3af" } }, "Nenhuma resposta ainda.")
+      ),
+      React.createElement("div", { style: { ...crd, marginBottom: isDesktop ? 0 : 14 } },
+        React.createElement("div", { style: { fontSize: 14, fontWeight: 800, color: "#0891b2", marginBottom: 12 } }, "📋 SAS"),
+        sasResp ? React.createElement(React.Fragment, null,
+          React.createElement(MiniBar, { label: "Ansiedade Somática", value: sasResp.somatica, max: 28, color: "#e11d48" }),
+          React.createElement(MiniBar, { label: "Preocupação", value: sasResp.preocupacao, max: 28, color: "#d97706" }),
+          React.createElement(MiniBar, { label: "Perturbação Concentração", value: sasResp.concentracao, max: 28, color: "#7c3aed" })
+        ) : React.createElement("p", { style: { fontSize: 13, color: "#9ca3af" } }, "Nenhuma resposta ainda.")
+      ),
+      React.createElement("div", { style: { ...crd, marginBottom: isDesktop ? 0 : 14 } },
+        React.createElement("div", { style: { fontSize: 14, fontWeight: 800, color: "#059669", marginBottom: 12 } }, "📋 ACSI-28"),
+        acsiResp ? [["adversidade", "Coping Adversidade", "#ef4444", 16], ["pressao", "Pressão", "#f97316", 16], ["metas", "Metas", "#eab308", 16], ["concentracao", "Concentração", "#22c55e", 16], ["preocupacao", "Preocupação", "#06b6d4", 16], ["confianca", "Confiança", "#8b5cf6", 16], ["treinabilidade", "Treinabilidade", "#ec4899", 16]].map(([k, l, c, m]) => React.createElement(MiniBar, { key: k, label: l, value: acsiResp[k] || 0, max: m, color: c })) : React.createElement("p", { style: { fontSize: 13, color: "#9ca3af" } }, "Nenhuma resposta ainda.")
+      ),
+      React.createElement("div", { style: { ...crd, marginBottom: isDesktop ? 0 : 14 } },
+        React.createElement("div", { style: { fontSize: 14, fontWeight: 800, color: "#d97706", marginBottom: 12 } }, "🎯 TEOSQ"),
+        teosqResp ? React.createElement(React.Fragment, null,
+          React.createElement(MiniBar, { label: "Orientação à Tarefa", value: teosqResp.tarefa || 0, max: 28, color: "#059669" }),
+          React.createElement(MiniBar, { label: "Orientação ao Ego", value: teosqResp.ego || 0, max: 24, color: "#e11d48" })
+        ) : React.createElement("p", { style: { fontSize: 13, color: "#9ca3af" } }, "Nenhuma resposta ainda.")
+      ),
+      React.createElement("div", { style: { ...crd, marginBottom: isDesktop ? 0 : 14 } },
+        React.createElement("div", { style: { fontSize: 14, fontWeight: 800, color: "#0891b2", marginBottom: 12 } }, "🧘 SIQ — Imagem Mental"),
+        siqResp ? React.createElement(React.Fragment, null,
+          React.createElement(MiniBar, { label: "Imagem Cognitiva", value: siqResp.cognitiva || 0, max: 16, color: "#0891b2" }),
+          React.createElement(MiniBar, { label: "Imagem Motivacional", value: siqResp.motivacional || 0, max: 16, color: "#d97706" }),
+          React.createElement(MiniBar, { label: "Controle Emocional", value: siqResp.controle || 0, max: 16, color: "#059669" })
+        ) : React.createElement("p", { style: { fontSize: 13, color: "#9ca3af" } }, "Nenhuma resposta ainda.")
+      ),
+      React.createElement("div", { style: { ...crd, marginBottom: isDesktop ? 0 : 14 } },
+        React.createElement("div", { style: { fontSize: 14, fontWeight: 800, color: "#7c3aed", marginBottom: 12 } }, "🛡️ Resiliência Esportiva"),
+        resilResp ? React.createElement(React.Fragment, null,
+          React.createElement(MiniBar, { label: "Recuperação de Adversidades", value: resilResp.recuperacao || 0, max: 20, color: "#7c3aed" }),
+          React.createElement(MiniBar, { label: "Persistência e Adaptação", value: resilResp.adaptacao || 0, max: 20, color: "#059669" })
+        ) : React.createElement("p", { style: { fontSize: 13, color: "#9ca3af" } }, "Nenhuma resposta ainda.")
+      ),
+      React.createElement("div", { style: crd },
+        React.createElement("div", { style: { fontSize: 14, fontWeight: 800, color: "#ec4899", marginBottom: 12 } }, "🤝 Suporte Social Percebido"),
+        suporteResp ? React.createElement(React.Fragment, null,
+          React.createElement(MiniBar, { label: "Suporte da Família", value: suporteResp.familia || 0, max: 16, color: "#ec4899" }),
+          React.createElement(MiniBar, { label: "Suporte do Treinador", value: suporteResp.treinador || 0, max: 16, color: "#0891b2" }),
+          React.createElement(MiniBar, { label: "Suporte dos Colegas", value: suporteResp.colegas || 0, max: 16, color: "#059669" })
+        ) : React.createElement("p", { style: { fontSize: 13, color: "#9ca3af" } }, "Nenhuma resposta ainda.")
+      )
+    ),
+
+    subTab === "emocoes" && React.createElement("div", { className: isDesktop ? "desktop-two-col" : "" },
+      React.createElement("div", { style: { ...crd, marginBottom: isDesktop ? 0 : 14 } },
+        React.createElement("div", { style: { fontSize: 14, fontWeight: 800, color: "#1f2937", marginBottom: 4 } }, "😊 Frequência das Emoções"),
+        React.createElement("div", { style: { fontSize: 12, color: "#9ca3af", marginBottom: 12 } }, diarios.length, " registro(s) no diário"),
+        diarios.length === 0 ? React.createElement(EmptyState, { icon: "📔", text: "Nenhum registro no diário ainda." }) : React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: 6 } },
+          emoSorted.map(([nome, count]) => React.createElement("div", { key: nome, style: { display: "flex", alignItems: "center", gap: 5, background: "#f9fafb", borderRadius: 20, padding: "5px 10px" } },
+            React.createElement("div", { style: { width: 8, height: 8, borderRadius: "50%", background: ECORES[nome] || "#888", flexShrink: 0 } }),
+            React.createElement("span", { style: { fontSize: 12, fontWeight: 700, color: "#374151" } }, nome),
+            React.createElement("span", { style: { fontSize: 11, color: "#9ca3af" } }, Math.round(count / diarios.length * 100), "%")
+          ))
+        )
+      ),
+      diarios.length > 0 && React.createElement("div", { style: { ...crd, marginBottom: isDesktop ? 0 : 14 } },
+        React.createElement("div", { style: { fontSize: 14, fontWeight: 800, color: "#1f2937", marginBottom: 12 } }, "📈 Intensidade Média"),
+        Object.entries(diarios.reduce((acc, d) => {
+          if (!acc[d.emocao]) acc[d.emocao] = { total: 0, count: 0 };
+          acc[d.emocao].total += d.intensidade;
+          acc[d.emocao].count++;
+          return acc;
+        }, {})).map(([nome, vals]) => React.createElement(MiniBar, { key: nome, label: nome, value: Math.round(vals.total / vals.count * 10), max: 100, color: ECORES[nome] || "#888" }))
+      ),
+      escResp && React.createElement("div", { style: crd },
+        React.createElement("div", { style: { fontSize: 14, fontWeight: 800, color: "#1f2937", marginBottom: 12 } }, "📊 Escala de Bem-Estar"),
+        [["humor", "Humor", "#f59e0b"], ["ansiedade", "Ansiedade", "#8b5cf6"], ["sono", "Sono", "#3b82f6"], ["estresse", "Estresse", "#ef4444"], ["tristeza", "Tristeza", "#60a5fa"]].map(([k, l, c]) => React.createElement(MiniBar, { key: k, label: l, value: escResp[k], max: 100, color: c }))
+      )
+    )
+  );
+
+  if (isDesktop) {
+    return React.createElement("div", { style: { display: "grid", gridTemplateColumns: "300px 1fr", gap: 24, alignItems: "start" } },
+      patientSelector,
+      dataContent
+    );
+  }
+  return React.createElement("div", null, patientSelector, dataContent);
 }
+
 function ConfigTab({
   role,
   patientId,
@@ -9026,6 +8563,7 @@ function App() {
 }
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(React.createElement(App, null));
+
 
 </script>
 </body>
