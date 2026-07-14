@@ -4923,6 +4923,131 @@ function TherapistApp({
   );
 }
 
+function ModoTeste({ patient, onClose }) {
+  const [testeAtivo, setTesteAtivo] = useState(null); // { type, label, color }
+  const [salvando, setSalvando] = useState(false);
+  const [sucesso, setSucesso] = useState("");
+
+  async function handleResult(response) {
+    setSalvando(true);
+    const id = "t" + Date.now();
+    const ti = getTypeInfo(testeAtivo.type);
+    await fbSet(`patients/${patient.id}/tasks/${id}`, {
+      id,
+      type: testeAtivo.type,
+      title: ti.label || testeAtivo.type,
+      note: "Aplicado em sessão (Modo Teste)",
+      response,
+      createdAt: new Date().toLocaleDateString("pt-BR"),
+      answeredAt: new Date().toLocaleDateString("pt-BR"),
+      modoTeste: true
+    });
+    setSalvando(false);
+    setSucesso(`✅ ${ti.label} salvo no prontuário de ${patient.name}!`);
+    setTesteAtivo(null);
+    setTimeout(() => setSucesso(""), 4000);
+  }
+
+  // Se um teste está ativo, renderiza ele em tela cheia
+  if (testeAtivo) {
+    const ti = getTypeInfo(testeAtivo.type);
+    return React.createElement("div", { style: aw },
+      React.createElement(Header, {
+        title: ti.label,
+        subtitle: `Modo Teste · ${patient.name}`,
+        onBack: () => setTesteAtivo(null),
+        backLabel: "← Voltar"
+      }),
+      React.createElement("div", { style: ct },
+        React.createElement("div", {
+          style: { background: "#fef3c7", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 12, color: "#92400e", fontWeight: 600 }
+        }, "🧪 Modo Teste — o resultado será salvo automaticamente no prontuário do paciente"),
+
+        testeAtivo.type === "pensamentos"   && React.createElement(PensamentosForm,   { color: ti.color, onSubmit: handleResult }),
+        testeAtivo.type === "atencao"       && React.createElement(AtencaoForm,       { color: ti.color, onSubmit: handleResult }),
+        testeAtivo.type === "experimento"   && React.createElement(ExperimentoForm,   { color: ti.color, onSubmit: handleResult }),
+        testeAtivo.type === "escala"        && React.createElement(EscalaForm,        { color: ti.color, onSubmit: handleResult }),
+        ["csai2r","sas","acsi28","teosq","siq","resiliencia","suporte_social","hama"].includes(testeAtivo.type) &&
+          React.createElement(EscalaPsiForm, { tipo: testeAtivo.type, color: ti.color, onSubmit: handleResult }),
+        testeAtivo.type === "tr"            && React.createElement(TRForm,            { color: ti.color, onSubmit: handleResult }),
+        testeAtivo.type === "stroop"        && React.createElement(StroopForm,        { color: ti.color, onSubmit: handleResult }),
+        testeAtivo.type === "tmt"           && React.createElement(TMTForm,           { color: ti.color, onSubmit: handleResult }),
+        testeAtivo.type === "nback"         && React.createElement(NBackForm,         { color: ti.color, onSubmit: handleResult }),
+        testeAtivo.type === "gonogo"        && React.createElement(GoNoGoForm,        { color: ti.color, onSubmit: handleResult }),
+        testeAtivo.type === "flanker"       && React.createElement(FlankerForm,       { color: ti.color, onSubmit: handleResult }),
+        testeAtivo.type === "matrizes"      && React.createElement(MatrizesForm,      { color: ti.color, onSubmit: handleResult }),
+        testeAtivo.type === "memoria_lista" && React.createElement(MemoriaListaForm,  { color: ti.color, onSubmit: handleResult })
+      )
+    );
+  }
+
+  // Tela de seleção
+  return React.createElement("div", { style: aw },
+    React.createElement(Header, {
+      title: "🧪 Modo Teste",
+      subtitle: patient.name,
+      onBack: onClose,
+      backLabel: "← Voltar"
+    }),
+    React.createElement("div", { style: ct },
+      sucesso && React.createElement("div", {
+        style: { background: "#d1fae5", borderRadius: 12, padding: 14, marginBottom: 16, color: "#065f46", fontWeight: 700, fontSize: 14, textAlign: "center" }
+      }, sucesso),
+
+      React.createElement("div", {
+        style: { background: "linear-gradient(135deg,#fef3c7,#fffbeb)", borderRadius: 14, padding: 16, marginBottom: 20, borderLeft: "4px solid #d97706" }
+      },
+        React.createElement("div", { style: { fontWeight: 800, color: "#92400e", fontSize: 14, marginBottom: 4 } }, "🧪 Como funciona"),
+        React.createElement("div", { style: { fontSize: 13, color: "#78350f", lineHeight: 1.6 } },
+          "Selecione qualquer teste abaixo e aplique diretamente com o atleta presente. O resultado é salvo automaticamente no prontuário, sem precisar criar tarefa ou entrar como paciente."
+        )
+      ),
+
+      TASK_CATEGORIES.map(cat => {
+        const catTypes = TASK_TYPES.filter(t => cat.ids.includes(t.id));
+        return React.createElement("div", { key: cat.id, style: { marginBottom: 16 } },
+          // Category header
+          React.createElement("div", {
+            style: { fontSize: 13, fontWeight: 800, color: cat.color, marginBottom: 8, display: "flex", alignItems: "center", gap: 8 }
+          },
+            React.createElement("div", { style: { width: 3, height: 16, background: cat.color, borderRadius: 4 } }),
+            cat.label
+          ),
+          // Task buttons grid
+          React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 } },
+            catTypes.map(t => React.createElement("button", {
+              key: t.id,
+              onClick: () => setTesteAtivo(t),
+              style: {
+                display: "flex", flexDirection: "column", alignItems: "flex-start",
+                gap: 4, padding: "12px 14px", borderRadius: 12,
+                border: `1.5px solid ${t.color}30`,
+                background: `${t.color}08`,
+                cursor: "pointer", textAlign: "left",
+                transition: "all .15s"
+              }
+            },
+              React.createElement("span", { style: { fontSize: 18 } },
+                t.id === "tr" ? "⚡" : t.id === "gonogo" ? "🚦" : t.id === "flanker" ? "➡️" :
+                t.id === "stroop" ? "🎨" : t.id === "tmt" ? "🔢" : t.id === "nback" ? "🧩" :
+                t.id === "atencao" ? "🎯" : t.id === "matrizes" ? "🧩" : t.id === "memoria_lista" ? "🧠" :
+                t.id === "csai2r" ? "😰" : t.id === "sas" ? "📋" : t.id === "hama" ? "📊" :
+                t.id === "acsi28" ? "💪" : t.id === "teosq" ? "🎯" : t.id === "siq" ? "🧘" :
+                t.id === "resiliencia" ? "🛡️" : t.id === "suporte_social" ? "🤝" :
+                t.id === "pensamentos" ? "💭" : t.id === "experimento" ? "🔬" : t.id === "escala" ? "📊" : "📋"
+              ),
+              React.createElement("span", { style: { fontSize: 11, fontWeight: 700, color: t.color, lineHeight: 1.3 } },
+                t.label.replace(/^[^\s]+\s/, "") // remove emoji from label
+              )
+            ))
+          )
+        );
+      })
+    )
+  );
+}
+
+
 function PatientDetail({
   patient,
   onBack
@@ -4935,6 +5060,7 @@ function PatientDetail({
   const [tnote, setTnote] = useState("");
   const [confirmDel, setConfirmDel] = useState(null);
   const [viewTask, setViewTask] = useState(null);
+  const [modoTeste, setModoTeste] = useState(false);
   useEffect(() => {
     const u = fbListen(`patients/${patient.id}`, d => {
       if (d) setLp(d);
@@ -4964,6 +5090,12 @@ function PatientDetail({
   }
   const tasks = lp.tasks ? Object.values(lp.tasks) : [];
   const diarios = lp.diarios ? Object.values(lp.diarios).reverse() : [];
+  if (modoTeste) {
+    return React.createElement(ModoTeste, {
+      patient: lp,
+      onClose: () => setModoTeste(false)
+    });
+  }
   if (viewTask) {
     const ti = getTypeInfo(viewTask.type);
     return React.createElement("div", {
@@ -5055,7 +5187,16 @@ function PatientDetail({
     subtitle: "Detalhes",
     onBack: onBack,
     backLabel: "← Voltar"
-  }), React.createElement(TabBar, {
+  }),
+  React.createElement("div", {
+    style: { background: "#fff", borderBottom: "1px solid #f0f0f0", padding: "8px 16px", display: "flex", justifyContent: "flex-end" }
+  },
+    React.createElement("button", {
+      onClick: () => setModoTeste(true),
+      style: { background: "linear-gradient(135deg,#d97706,#f59e0b)", color: "#fff", border: "none", borderRadius: 10, padding: "8px 16px", cursor: "pointer", fontWeight: 700, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }
+    }, "🧪 Modo Teste")
+  ),
+  React.createElement(TabBar, {
     tabs: [["tasks", "📋 Tarefas"], ["responses", "✅ Respostas"], ["diario", "📔 Diário"], ["prontuario", "📁 Prontuário"]],
     active: tab,
     onChange: setTab
