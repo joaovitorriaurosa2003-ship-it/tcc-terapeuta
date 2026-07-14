@@ -4158,45 +4158,92 @@ function AgendaTab({ patients }) {
 
   function exportarPDF() {
     const w = window.open("", "_blank");
+
+    // Collect all events for the month
     let evList = [];
     for (let d = 1; d <= diasNoMes; d++) {
-      const evs = getEventosDia(d);
-      evs.forEach(ev => evList.push({ dia: d, ...ev }));
+      getEventosDia(d).forEach(ev => evList.push({ dia: d, ...ev }));
     }
     evList.sort((a, b) => a.dia - b.dia || a.horario.localeCompare(b.horario));
 
-    const rows = evList.map(ev => {
-      const t = getTipo(ev.tipo);
-      return `<tr>
-        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-weight:700;">${String(ev.dia).padStart(2,"0")}/${String(mes+1).padStart(2,"0")}/${ano}</td>
-        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">${ev.horario}</td>
-        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;"><span style="background:${t.bg};color:${t.color};padding:2px 8px;border-radius:20px;font-size:12px;font-weight:700;">${t.label}</span></td>
-        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-weight:600;">${ev.titulo}</td>
-        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;color:#6b7280;">${ev.pacienteNome || "—"}</td>
-        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;color:#6b7280;font-size:13px;">${ev.obs || "—"}</td>
-      </tr>`;
-    }).join("");
+    // Build calendar grid HTML
+    const DIAS_SEMANA_PDF = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
+    const cells = [];
+    for (let i = 0; i < primeiroDia; i++) cells.push(null);
+    for (let d = 1; d <= diasNoMes; d++) cells.push(d);
+    while (cells.length % 7 !== 0) cells.push(null);
+
+    const calCells = cells.map((dia, idx) => {
+      const evsDia = dia ? getEventosDia(dia) : [];
+      const isSab = idx % 7 === 6;
+      const isDom = idx % 7 === 0;
+      const isHojeDia = dia && ano === hoje.getFullYear() && mes === hoje.getMonth() && dia === hoje.getDate();
+      const evHtml = evsDia.map(ev => {
+        const t = getTipo(ev.tipo);
+        return `<div style="background:${t.bg};color:${t.color};border-radius:4px;padding:2px 5px;font-size:9px;font-weight:700;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${ev.horario} ${ev.titulo}${ev.pacienteNome ? ' — '+ev.pacienteNome : ''}</div>`;
+      }).join("");
+      return `<td style="width:14.28%;vertical-align:top;padding:6px 4px;border:1px solid #e5e7eb;background:${!dia?'#f9fafb':isHojeDia?'#faf5ff':'#fff'};min-height:80px;">
+        ${dia ? `<div style="text-align:right;margin-bottom:4px;"><span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:${isHojeDia?'#6d28d9':'transparent'};color:${isHojeDia?'#fff':isDom||isSab?'#e11d48':'#374151'};font-size:12px;font-weight:${isHojeDia?'800':'600'};">${dia}</span></div>${evHtml}` : ''}
+      </td>`;
+    });
+
+    // Build rows of 7
+    let calRows = '';
+    for (let r = 0; r < cells.length / 7; r++) {
+      calRows += `<tr>${calCells.slice(r*7, r*7+7).join('')}</tr>`;
+    }
+
+    // Observations section: only events with obs or paciente
+    const obsHtml = evList.length === 0
+      ? '<p style="color:#9ca3af;text-align:center;padding:20px;">Nenhum agendamento registrado neste mês.</p>'
+      : evList.map(ev => {
+          const t = getTipo(ev.tipo);
+          return `<div style="border-left:4px solid ${t.color};padding:10px 14px;margin-bottom:10px;background:${t.bg};border-radius:0 8px 8px 0;page-break-inside:avoid;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+              <div>
+                <span style="font-weight:800;color:${t.color};font-size:14px;">${String(ev.dia).padStart(2,'0')}/${String(mes+1).padStart(2,'0')} às ${ev.horario}</span>
+                <span style="margin-left:10px;font-size:13px;font-weight:700;color:#1f2937;">${ev.titulo}</span>
+                ${ev.pacienteNome ? `<span style="margin-left:8px;font-size:12px;color:#6b7280;">· ${ev.pacienteNome}</span>` : ''}
+              </div>
+              <span style="background:#fff;color:${t.color};padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700;border:1px solid ${t.color};">${t.label}</span>
+            </div>
+            <div style="font-size:12px;color:#374151;margin-top:6px;min-height:18px;">
+              <strong style="color:#9ca3af;">Observações:</strong> ${ev.obs || '<span style="color:#d1d5db;">—</span>'}
+            </div>
+          </div>`;
+        }).join('');
 
     w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
-      <title>Agenda ${MESES[mes]} ${ano}</title>
-      <style>body{font-family:Arial,sans-serif;padding:32px;color:#1f2937}
-      h1{color:#6d28d9;margin-bottom:4px}
-      h2{color:#9ca3af;font-size:14px;margin-bottom:24px;font-weight:400}
-      table{width:100%;border-collapse:collapse}
-      th{text-align:left;padding:10px 12px;background:#f3f4f6;font-size:12px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px}
-      tr:hover td{background:#fafafa}
-      .empty{text-align:center;padding:40px;color:#9ca3af}
-      @media print{body{padding:16px}}</style></head>
-      <body>
+      <title>Agenda ${MESES[mes]} ${ano} — MeuPsi</title>
+      <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: Arial, sans-serif; padding: 28px; color: #1f2937; font-size: 13px; }
+        h1 { color: #6d28d9; font-size: 22px; margin-bottom: 2px; }
+        .subtitle { color: #9ca3af; font-size: 12px; margin-bottom: 24px; }
+        .section-title { font-size: 14px; font-weight: 800; color: #374151; margin: 24px 0 12px; padding-bottom: 6px; border-bottom: 2px solid #e5e7eb; }
+        table.cal { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        table.cal th { padding: 8px 4px; text-align: center; font-size: 11px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: .5px; border: 1px solid #e5e7eb; background: #f9fafb; }
+        @media print {
+          body { padding: 16px; }
+          @page { margin: 1.5cm; size: A4; }
+        }
+      </style>
+    </head>
+    <body>
       <h1>📅 Agenda — MeuPsi</h1>
-      <h2>João Rosa · CRP 06/227336 · ${MESES[mes]} ${ano}</h2>
-      ${evList.length === 0
-        ? '<p class="empty">Nenhum agendamento registrado neste mês.</p>'
-        : `<table><thead><tr>
-            <th>Data</th><th>Horário</th><th>Tipo</th><th>Título</th><th>Paciente</th><th>Observações</th>
-          </tr></thead><tbody>${rows}</tbody></table>`}
+      <div class="subtitle">João Rosa · CRP 06/227336 &nbsp;·&nbsp; ${MESES[mes]} de ${ano}</div>
+
+      <div class="section-title">Calendário do mês</div>
+      <table class="cal">
+        <thead><tr>${DIAS_SEMANA_PDF.map((d,i)=>`<th style="color:${i===0||i===6?'#e11d48':'#9ca3af'}">${d}</th>`).join('')}</tr></thead>
+        <tbody>${calRows}</tbody>
+      </table>
+
+      <div class="section-title" style="margin-top:32px;">Detalhes dos agendamentos</div>
+      ${obsHtml}
+
       <script>window.onload=()=>window.print();<\/script>
-      </body></html>`);
+    </body></html>`);
     w.document.close();
   }
 
