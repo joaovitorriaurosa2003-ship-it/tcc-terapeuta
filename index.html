@@ -174,6 +174,14 @@ const TASK_TYPES = [{
   id: "flanker",
   label: "➡️ Teste de Flanker",
   color: "#e11d48"
+}, {
+  id: "matrizes",
+  label: "🧩 Matrizes Progressivas",
+  color: "#7c3aed"
+}, {
+  id: "memoria_lista",
+  label: "🧠 Memória de Lista",
+  color: "#0891b2"
 }];
 function getTypeInfo(id) {
   return TASK_TYPES.find(t => t.id === id) || {};
@@ -7526,6 +7534,379 @@ function FlankerForm({
     }
   }, "✗", erros)));
 }
+// ── Matrizes Progressivas ──────────────────────────────────────────────────
+// 20 itens gerados proceduralmente com SVG, 4 níveis de dificuldade
+function MatrizesForm({ color, onSubmit }) {
+  // Each item: a 3x3 grid of shapes where bottom-right is missing.
+  // Rule types: rotation, progression, mirror, count
+  const SHAPES = ["circle", "square", "triangle", "diamond"];
+  const COLORS_M = ["#6d28d9", "#0891b2", "#059669", "#d97706", "#e11d48"];
+
+  function drawShape(type, fill, size, cx, cy) {
+    const s = size;
+    if (type === "circle") return `<circle cx="${cx}" cy="${cy}" r="${s * 0.38}" fill="${fill}" opacity="0.85"/>`;
+    if (type === "square") {
+      const h = s * 0.7;
+      return `<rect x="${cx - h/2}" y="${cy - h/2}" width="${h}" height="${h}" rx="${s*0.08}" fill="${fill}" opacity="0.85"/>`;
+    }
+    if (type === "triangle") return `<polygon points="${cx},${cy - s*0.4} ${cx + s*0.38},${cy + s*0.32} ${cx - s*0.38},${cy + s*0.32}" fill="${fill}" opacity="0.85"/>`;
+    if (type === "diamond") return `<polygon points="${cx},${cy - s*0.42} ${cx + s*0.36},${cy} ${cx},${cy + s*0.42} ${cx - s*0.36},${cy}" fill="${fill}" opacity="0.85"/>`;
+    return "";
+  }
+
+  function drawCount(count, type, fill, cellSize) {
+    const cx = cellSize / 2, cy = cellSize / 2;
+    const s = cellSize * 0.28;
+    if (count === 1) return drawShape(type, fill, cellSize * 0.6, cx, cy);
+    if (count === 2) return drawShape(type, fill, cellSize * 0.45, cx - s, cy) + drawShape(type, fill, cellSize * 0.45, cx + s, cy);
+    if (count === 3) return drawShape(type, fill, cellSize * 0.38, cx, cy - s * 0.8) + drawShape(type, fill, cellSize * 0.38, cx - s, cy + s * 0.5) + drawShape(type, fill, cellSize * 0.38, cx + s, cy + s * 0.5);
+    return drawShape(type, fill, cellSize * 0.35, cx - s, cy - s * 0.6) + drawShape(type, fill, cellSize * 0.35, cx + s, cy - s * 0.6) + drawShape(type, fill, cellSize * 0.35, cx - s, cy + s * 0.6) + drawShape(type, fill, cellSize * 0.35, cx + s, cy + s * 0.6);
+  }
+
+  // Generate 20 items with increasing difficulty
+  function generateItems() {
+    const items = [];
+    const seed = (n, s) => (n * 9301 + s * 49297 + 233) % 1000;
+    for (let i = 0; i < 20; i++) {
+      const level = Math.floor(i / 5); // 0-3
+      const s1 = seed(i, 1), s2 = seed(i, 2), s3 = seed(i, 3);
+      const shapeIdx = s1 % SHAPES.length;
+      const shape = SHAPES[shapeIdx];
+      const col = COLORS_M[s2 % COLORS_M.length];
+      const col2 = COLORS_M[(s2 + 2) % COLORS_M.length];
+      const col3 = COLORS_M[(s2 + 4) % COLORS_M.length];
+
+      let grid, answer, options;
+
+      if (level === 0) {
+        // Rule: same shape, progressing fill color row by row
+        const cols = [col, col2, col3];
+        grid = [
+          [{ shape, col: cols[0] }, { shape, col: cols[1] }, { shape, col: cols[2] }],
+          [{ shape, col: cols[1] }, { shape, col: cols[2] }, { shape, col: cols[0] }],
+          [{ shape, col: cols[2] }, { shape, col: cols[0] }, null]
+        ];
+        answer = { shape, col: cols[1] };
+        options = [
+          { shape, col: cols[1] },
+          { shape, col: cols[2] },
+          { shape: SHAPES[(shapeIdx + 1) % 4], col: cols[1] },
+          { shape, col: COLORS_M[(s2 + 1) % 5] }
+        ];
+      } else if (level === 1) {
+        // Rule: shape changes each column, color same per row
+        const shapes3 = [SHAPES[s1 % 4], SHAPES[(s1 + 1) % 4], SHAPES[(s1 + 2) % 4]];
+        const rowCols = [col, col2, col3];
+        grid = [
+          [{ shape: shapes3[0], col: rowCols[0] }, { shape: shapes3[1], col: rowCols[0] }, { shape: shapes3[2], col: rowCols[0] }],
+          [{ shape: shapes3[0], col: rowCols[1] }, { shape: shapes3[1], col: rowCols[1] }, { shape: shapes3[2], col: rowCols[1] }],
+          [{ shape: shapes3[0], col: rowCols[2] }, { shape: shapes3[1], col: rowCols[2] }, null]
+        ];
+        answer = { shape: shapes3[2], col: rowCols[2] };
+        options = [
+          { shape: shapes3[2], col: rowCols[2] },
+          { shape: shapes3[1], col: rowCols[2] },
+          { shape: shapes3[2], col: rowCols[1] },
+          { shape: shapes3[0], col: rowCols[2] }
+        ];
+      } else if (level === 2) {
+        // Rule: count increases 1→2→3 per row, shape same
+        grid = [
+          [{ shape, col, count: 1 }, { shape, col, count: 2 }, { shape, col, count: 3 }],
+          [{ shape, col: col2, count: 2 }, { shape, col: col2, count: 3 }, { shape, col: col2, count: 1 }],
+          [{ shape, col: col3, count: 3 }, { shape, col: col3, count: 1 }, null]
+        ];
+        answer = { shape, col: col3, count: 2 };
+        options = [
+          { shape, col: col3, count: 2 },
+          { shape, col: col3, count: 3 },
+          { shape, col: col2, count: 2 },
+          { shape: SHAPES[(shapeIdx + 1) % 4], col: col3, count: 2 }
+        ];
+      } else {
+        // Level 3: combined rules - shape+color+count all vary
+        const shapes3 = [SHAPES[s1 % 4], SHAPES[(s1 + 1) % 4], SHAPES[(s1 + 2) % 4]];
+        const rowCols = [col, col2, col3];
+        const counts = [[1,2,3],[2,3,1],[3,1,null]];
+        grid = [
+          [{ shape: shapes3[0], col: rowCols[0], count: counts[0][0] }, { shape: shapes3[1], col: rowCols[1], count: counts[0][1] }, { shape: shapes3[2], col: rowCols[2], count: counts[0][2] }],
+          [{ shape: shapes3[1], col: rowCols[1], count: counts[1][0] }, { shape: shapes3[2], col: rowCols[2], count: counts[1][1] }, { shape: shapes3[0], col: rowCols[0], count: counts[1][2] }],
+          [{ shape: shapes3[2], col: rowCols[2], count: counts[2][0] }, { shape: shapes3[0], col: rowCols[0], count: counts[2][1] }, null]
+        ];
+        answer = { shape: shapes3[1], col: rowCols[1], count: 2 };
+        options = [
+          { shape: shapes3[1], col: rowCols[1], count: 2 },
+          { shape: shapes3[2], col: rowCols[2], count: 2 },
+          { shape: shapes3[1], col: rowCols[0], count: 2 },
+          { shape: shapes3[1], col: rowCols[1], count: 3 }
+        ];
+      }
+
+      // Shuffle options (seeded)
+      const shuffled = [...options].sort((a, b) => seed(i + s3, options.indexOf(a)) - seed(i + s3, options.indexOf(b)));
+      const correctIdx = shuffled.findIndex(o => o.shape === answer.shape && o.col === answer.col && (o.count || 1) === (answer.count || 1));
+
+      items.push({ grid, answer, options: shuffled, correctIdx, level });
+    }
+    return items;
+  }
+
+  const [fase, setFase] = useState("intro");
+  const [items] = useState(() => generateItems());
+  const [current, setCurrent] = useState(0);
+  const [acertos, setAcertos] = useState(0);
+  const [respostas, setRespostas] = useState([]);
+  const [selecionado, setSelecionado] = useState(null);
+  const [feedback, setFeedback] = useState(null);
+  const CELL = 70;
+
+  function renderCell(cell, size = CELL) {
+    if (!cell) return `<rect x="2" y="2" width="${size-4}" height="${size-4}" rx="4" fill="#f9fafb" stroke="#e5e7eb" stroke-width="1" stroke-dasharray="4,3"/>`;
+    const count = cell.count || 1;
+    return drawCount(count, cell.shape, cell.col, size);
+  }
+
+  function GridSVG({ grid, size }) {
+    const s = size || CELL;
+    const svgSize = s * 3 + 8;
+    const cells = [];
+    for (let r = 0; r < 3; r++) {
+      for (let c = 0; c < 3; c++) {
+        const cell = grid[r][c];
+        const x = c * s + 4, y = r * s + 4;
+        cells.push(
+          React.createElement("g", { key: `${r}-${c}`, transform: `translate(${x},${y})` },
+            React.createElement("rect", { x: 0, y: 0, width: s, height: s, rx: 6, fill: "#fff", stroke: "#e5e7eb", strokeWidth: 1.5 }),
+            cell && React.createElement("g", { dangerouslySetInnerHTML: { __html: renderCell(cell, s) } })
+          )
+        );
+      }
+    }
+    return React.createElement("svg", { width: svgSize, height: svgSize, viewBox: `0 0 ${svgSize} ${svgSize}` }, ...cells);
+  }
+
+  function OptionSVG({ cell, size }) {
+    const s = size || CELL;
+    return React.createElement("svg", { width: s, height: s, viewBox: `0 0 ${s} ${s}` },
+      React.createElement("rect", { x: 0, y: 0, width: s, height: s, rx: 6, fill: "#fff" }),
+      React.createElement("g", { dangerouslySetInnerHTML: { __html: renderCell(cell, s) } })
+    );
+  }
+
+  function responder(idx) {
+    if (feedback) return;
+    setSelecionado(idx);
+    const item = items[current];
+    const isCorrect = idx === item.correctIdx;
+    setFeedback(isCorrect ? "certo" : "errado");
+    if (isCorrect) setAcertos(a => a + 1);
+    setRespostas(r => [...r, { item: current, resposta: idx, correto: isCorrect, nivel: item.level }]);
+    setTimeout(() => {
+      setFeedback(null);
+      setSelecionado(null);
+      if (current + 1 >= items.length) {
+        setFase("resultado");
+      } else {
+        setCurrent(c => c + 1);
+      }
+    }, 700);
+  }
+
+  if (fase === "intro") return React.createElement("div", { style: { ...crd, textAlign: "center" } },
+    React.createElement("div", { style: { fontSize: 52, marginBottom: 12 } }, "🧩"),
+    React.createElement("h3", { style: { fontSize: 18, fontWeight: 800, color: "#1f2937", marginBottom: 8 } }, "Matrizes Progressivas"),
+    React.createElement("p", { style: { fontSize: 13, color: "#6b7280", marginBottom: 20, lineHeight: 1.7 } },
+      "Você verá uma grade 3×3 com uma peça faltando no canto inferior direito. Escolha a opção que completa o padrão corretamente."
+    ),
+    React.createElement("div", { style: { background: "#f9fafb", borderRadius: 12, padding: 14, marginBottom: 20, display: "inline-block" } },
+      React.createElement(GridSVG, { grid: [[{ shape: "circle", col: "#6d28d9" }, { shape: "circle", col: "#0891b2" }, { shape: "circle", col: "#059669" }], [{ shape: "circle", col: "#0891b2" }, { shape: "circle", col: "#059669" }, { shape: "circle", col: "#6d28d9" }], [{ shape: "circle", col: "#059669" }, { shape: "circle", col: "#6d28d9" }, null]], size: 50 })
+    ),
+    React.createElement("div", { style: { fontSize: 12, color: "#9ca3af", marginBottom: 20 } }, "20 itens · dificuldade progressiva"),
+    React.createElement("button", { className: "btn-main", style: { background: color }, onClick: () => setFase("teste") }, "Começar")
+  );
+
+  if (fase === "resultado") {
+    const pct = Math.round(acertos / items.length * 100);
+    const nivel = pct >= 80 ? { label: "Superior", cor: "#059669" } : pct >= 65 ? { label: "Médio-Alto", cor: "#0891b2" } : pct >= 50 ? { label: "Médio", cor: "#d97706" } : pct >= 35 ? { label: "Médio-Baixo", cor: "#f97316" } : { label: "Baixo", cor: "#e11d48" };
+    const porNivel = [0,1,2,3].map(l => ({ nivel: l, acertos: respostas.filter(r => r.nivel === l && r.correto).length, total: 5, label: ["Básico","Intermediário","Avançado","Superior"][l] }));
+    return React.createElement("div", { style: crd },
+      React.createElement("div", { style: { textAlign: "center", marginBottom: 20 } },
+        React.createElement("div", { style: { fontSize: 48, marginBottom: 8 } }, pct >= 65 ? "🏆" : pct >= 50 ? "🎯" : "💪"),
+        React.createElement("h3", { style: { fontSize: 18, fontWeight: 800, color: "#1f2937" } }, `${acertos}/${items.length} corretos — ${pct}%`),
+        React.createElement("div", { style: { marginTop: 8, display: "inline-block", background: `${nivel.cor}15`, color: nivel.cor, padding: "4px 16px", borderRadius: 20, fontWeight: 800, fontSize: 14 } }, nivel.label)
+      ),
+      porNivel.map(n => React.createElement("div", { key: n.nivel, style: { marginBottom: 8 } },
+        React.createElement("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: 3 } },
+          React.createElement("span", { style: { fontSize: 12, fontWeight: 700, color: "#374151" } }, n.label),
+          React.createElement("span", { style: { fontSize: 12, fontWeight: 800, color } }, `${n.acertos}/${n.total}`)
+        ),
+        React.createElement("div", { style: { background: "#f3f4f6", borderRadius: 20, height: 7, overflow: "hidden" } },
+          React.createElement("div", { style: { width: `${n.acertos / n.total * 100}%`, background: color, height: "100%", borderRadius: 20 } })
+        )
+      )),
+      React.createElement("button", { className: "btn-main", style: { background: color, marginTop: 16 },
+        onClick: () => onSubmit({ acertos, total: items.length, pct, porNivel, nivel: nivel.label, tipo: "matrizes" })
+      }, "Salvar resultado")
+    );
+  }
+
+  const item = items[current];
+  const pct = Math.round(current / items.length * 100);
+  const NIVEL_LABELS = ["Básico","Intermediário","Avançado","Superior"];
+
+  return React.createElement("div", null,
+    React.createElement("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: 8 } },
+      React.createElement("span", { style: { fontSize: 12, fontWeight: 700, color: "#374151" } }, `${current + 1}/${items.length}`),
+      React.createElement("span", { style: { fontSize: 11, background: `${color}15`, color, padding: "2px 10px", borderRadius: 20, fontWeight: 700 } }, NIVEL_LABELS[item.level]),
+      React.createElement("span", { style: { fontSize: 12, fontWeight: 700, color } }, `${pct}%`)
+    ),
+    React.createElement("div", { style: { background: "#f3f4f6", borderRadius: 20, height: 8, overflow: "hidden", marginBottom: 16 } },
+      React.createElement("div", { style: { width: `${pct}%`, background: color, height: "100%", borderRadius: 20 } })
+    ),
+    React.createElement("div", { style: { background: feedback === "certo" ? "#d1fae5" : feedback === "errado" ? "#fee2e2" : "#f9fafb", borderRadius: 16, padding: 20, display: "flex", justifyContent: "center", marginBottom: 16, transition: "background .2s" } },
+      React.createElement(GridSVG, { grid: item.grid, size: CELL })
+    ),
+    React.createElement("p", { style: { textAlign: "center", fontSize: 13, fontWeight: 700, color: "#9ca3af", marginBottom: 12 } }, "Qual peça completa o padrão?"),
+    React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 } },
+      item.options.map((opt, idx) => React.createElement("button", {
+        key: idx, onClick: () => responder(idx), disabled: !!feedback,
+        style: { border: `2px solid ${selecionado === idx ? (feedback === "certo" ? "#059669" : "#e11d48") : "#e5e7eb"}`, borderRadius: 14, padding: 14, cursor: feedback ? "default" : "pointer", background: selecionado === idx ? (feedback === "certo" ? "#d1fae5" : "#fee2e2") : "#fff", display: "flex", alignItems: "center", justifyContent: "center", transition: "all .2s" }
+      },
+        React.createElement(OptionSVG, { cell: opt, size: CELL })
+      ))
+    )
+  );
+}
+
+// ── Memória de Lista de Palavras ──────────────────────────────────────────
+function MemoriaListaForm({ color, onSubmit }) {
+  const LISTAS = [
+    ["casa", "lua", "peixe", "verde", "carro", "mesa", "nuvem", "livro", "porta", "jardim"],
+    ["fogo", "areia", "ponte", "tigre", "caneta", "água", "pedra", "barco", "chuva", "flor"],
+    ["vento", "prato", "cobra", "relógio", "saco", "fruta", "janela", "campo", "anel", "chave"],
+  ];
+
+  const [fase, setFase] = useState("intro"); // intro | estudo | distrator | recordacao | resultado
+  const [lista] = useState(() => LISTAS[Math.floor(Math.random() * LISTAS.length)]);
+  const [idxPalavra, setIdxPalavra] = useState(0);
+  const [resposta, setResposta] = useState("");
+  const [palavrasDigitadas, setPalavrasDigitadas] = useState([]);
+  const [acertos, setAcertos] = useState(null);
+  const [timeLeft, setTimeLeft] = useState(5);
+  const timerRef = useRef(null);
+
+  // Estudo: mostra cada palavra por 2s
+  useEffect(() => {
+    if (fase !== "estudo") return;
+    if (idxPalavra >= lista.length) {
+      setFase("distrator");
+      setTimeLeft(20);
+      return;
+    }
+    const t = setTimeout(() => setIdxPalavra(i => i + 1), 2000);
+    return () => clearTimeout(t);
+  }, [fase, idxPalavra]);
+
+  // Distrator: conta regressiva 20s (tarefa de contagem simples para interferência)
+  useEffect(() => {
+    if (fase !== "distrator") return;
+    if (timeLeft <= 0) { setFase("recordacao"); return; }
+    timerRef.current = setTimeout(() => setTimeLeft(t => t - 1), 1000);
+    return () => clearTimeout(timerRef.current);
+  }, [fase, timeLeft]);
+
+  function confirmar() {
+    const palavras = resposta.toLowerCase().split(/[\s,;]+/).map(w => w.trim()).filter(Boolean);
+    setPalavrasDigitadas(palavras);
+    const corretas = lista.filter(p => palavras.includes(p));
+    setAcertos(corretas.length);
+    setFase("resultado");
+  }
+
+  if (fase === "intro") return React.createElement("div", { style: { ...crd, textAlign: "center" } },
+    React.createElement("div", { style: { fontSize: 52, marginBottom: 12 } }, "🧠"),
+    React.createElement("h3", { style: { fontSize: 18, fontWeight: 800, color: "#1f2937", marginBottom: 8 } }, "Memória de Lista de Palavras"),
+    React.createElement("p", { style: { fontSize: 13, color: "#6b7280", lineHeight: 1.7, marginBottom: 16 } },
+      "Você verá ", React.createElement("strong", null, "10 palavras"), " uma por vez. Tente memorizar todas. Depois haverá uma tarefa curta de distração, e então você deverá escrever todas as palavras que lembrar."
+    ),
+    React.createElement("div", { style: { background: "#fef3c7", borderRadius: 12, padding: 12, marginBottom: 20, fontSize: 13, color: "#92400e", fontWeight: 600 } },
+      "⏱ Cada palavra aparece por 2 segundos"
+    ),
+    React.createElement("button", { className: "btn-main", style: { background: color }, onClick: () => setFase("estudo") }, "Começar")
+  );
+
+  if (fase === "estudo") return React.createElement("div", { style: { ...crd, textAlign: "center" } },
+    React.createElement("div", { style: { fontSize: 13, fontWeight: 700, color: "#9ca3af", marginBottom: 16 } }, `Palavra ${idxPalavra + 1} de ${lista.length}`),
+    React.createElement("div", { style: { background: "#f3f4f6", borderRadius: 20, height: 8, overflow: "hidden", marginBottom: 32 } },
+      React.createElement("div", { style: { width: `${(idxPalavra / lista.length) * 100}%`, background: color, height: "100%", borderRadius: 20, transition: "width .2s" } })
+    ),
+    React.createElement("div", { style: { fontSize: 52, fontWeight: 900, color, letterSpacing: 2, minHeight: 80, display: "flex", alignItems: "center", justifyContent: "center" } },
+      idxPalavra < lista.length ? lista[idxPalavra] : "..."
+    ),
+    React.createElement("p", { style: { fontSize: 12, color: "#9ca3af", marginTop: 24 } }, "Memorize cada palavra")
+  );
+
+  if (fase === "distrator") return React.createElement("div", { style: { ...crd, textAlign: "center" } },
+    React.createElement("div", { style: { fontSize: 48, marginBottom: 16 } }, "🔢"),
+    React.createElement("h3", { style: { fontSize: 16, fontWeight: 800, color: "#1f2937", marginBottom: 8 } }, "Tarefa de distração"),
+    React.createElement("div", { style: { fontSize: 64, fontWeight: 900, color, marginBottom: 8 } }, timeLeft),
+    React.createElement("p", { style: { fontSize: 13, color: "#6b7280", lineHeight: 1.6 } },
+      "Enquanto aguarda, conte mentalmente de 3 em 3 a partir de 100", React.createElement("br", null),
+      React.createElement("span", { style: { fontWeight: 700 } }, "100 → 97 → 94 → 91...")
+    ),
+    React.createElement("p", { style: { fontSize: 12, color: "#9ca3af", marginTop: 16 } }, "A tarefa de recordação começará automaticamente")
+  );
+
+  if (fase === "recordacao") return React.createElement("div", { style: crd },
+    React.createElement("div", { style: { fontSize: 48, textAlign: "center", marginBottom: 12 } }, "✍️"),
+    React.createElement("h3", { style: { fontSize: 16, fontWeight: 800, color: "#1f2937", marginBottom: 8, textAlign: "center" } }, "Escreva as palavras que lembrar"),
+    React.createElement("p", { style: { fontSize: 13, color: "#6b7280", marginBottom: 16, textAlign: "center" } }, "Separe por vírgula ou espaço. Não precisa ser em ordem."),
+    React.createElement("textarea", {
+      className: "inp",
+      value: resposta,
+      onChange: e => setResposta(e.target.value),
+      placeholder: "casa, lua, peixe...",
+      style: { minHeight: 100, resize: "vertical", fontSize: 16 },
+      autoFocus: true
+    }),
+    React.createElement("button", {
+      className: "btn-main", style: { background: color },
+      onClick: confirmar, disabled: !resposta.trim()
+    }, "Confirmar")
+  );
+
+  // Resultado
+  const pct = Math.round(acertos / lista.length * 100);
+  const nivel = pct >= 80 ? { label: "Excelente", cor: "#059669" } : pct >= 60 ? { label: "Bom", cor: "#0891b2" } : pct >= 40 ? { label: "Moderado", cor: "#d97706" } : { label: "Baixo", cor: "#e11d48" };
+  const corretas = lista.filter(p => palavrasDigitadas.includes(p));
+  const incorretas = palavrasDigitadas.filter(p => !lista.includes(p));
+
+  return React.createElement("div", { style: crd },
+    React.createElement("div", { style: { textAlign: "center", marginBottom: 20 } },
+      React.createElement("div", { style: { fontSize: 48, marginBottom: 8 } }, pct >= 60 ? "🏆" : pct >= 40 ? "🎯" : "💪"),
+      React.createElement("h3", { style: { fontSize: 18, fontWeight: 800, color: "#1f2937" } }, `${acertos}/10 palavras recordadas`),
+      React.createElement("div", { style: { marginTop: 8, display: "inline-block", background: `${nivel.cor}15`, color: nivel.cor, padding: "4px 16px", borderRadius: 20, fontWeight: 800, fontSize: 14 } }, nivel.label)
+    ),
+    React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 } },
+      React.createElement("div", { style: { background: "#d1fae5", borderRadius: 12, padding: 12 } },
+        React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: "#065f46", marginBottom: 6, textTransform: "uppercase" } }, `✓ Corretas (${corretas.length})`),
+        corretas.map(p => React.createElement("div", { key: p, style: { fontSize: 13, color: "#065f46", fontWeight: 600 } }, p))
+      ),
+      React.createElement("div", { style: { background: incorretas.length > 0 ? "#fee2e2" : "#f3f4f6", borderRadius: 12, padding: 12 } },
+        React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: incorretas.length > 0 ? "#991b1b" : "#9ca3af", marginBottom: 6, textTransform: "uppercase" } }, `✗ Intrusões (${incorretas.length})`),
+        incorretas.length > 0 ? incorretas.map(p => React.createElement("div", { key: p, style: { fontSize: 13, color: "#991b1b", fontWeight: 600 } }, p)) : React.createElement("div", { style: { fontSize: 12, color: "#9ca3af" } }, "Nenhuma")
+      )
+    ),
+    React.createElement("div", { style: { fontSize: 12, color: "#9ca3af", marginBottom: 16, background: "#f9fafb", borderRadius: 10, padding: 10 } },
+      React.createElement("strong", null, "Lista original: "), lista.join(", ")
+    ),
+    React.createElement("button", { className: "btn-main", style: { background: color },
+      onClick: () => onSubmit({ acertos, total: lista.length, pct, intrusions: incorretas.length, nivel: nivel.label, tipo: "memoria_lista" })
+    }, "Salvar resultado")
+  );
+}
+
+
 function TaskForm({
   task,
   onSubmit,
@@ -7586,6 +7967,12 @@ function TaskForm({
     color: ti.color,
     onSubmit: onSubmit
   }), task.type === "flanker" && React.createElement(FlankerForm, {
+    color: ti.color,
+    onSubmit: onSubmit
+  }), task.type === "matrizes" && React.createElement(MatrizesForm, {
+    color: ti.color,
+    onSubmit: onSubmit
+  }), task.type === "memoria_lista" && React.createElement(MemoriaListaForm, {
     color: ti.color,
     onSubmit: onSubmit
   })));
@@ -8301,6 +8688,8 @@ function ResponseView({
   const items = [];
   if (type === "pensamentos") items.push(["Situação", response.situacao], ["Pensamento", response.pensamento], ["Emoção", response.emocao], ["Intensidade", `${response.intensidade}/10`], ["Alternativo", response.pensamentoAlternativo]);
   if (type === "atencao") items.push(["Páginas", response.paginas], ["Acertos", response.acertos], ["Erros", response.erros], ["Precisão", `${response.precisao}%`]);
+  if (type === "matrizes") items.push(["Acertos", `${response.acertos}/${response.total}`], ["Percentual", `${response.pct}%`], ["Nível", response.nivel]);
+  if (type === "memoria_lista") items.push(["Palavras recordadas", `${response.acertos}/${response.total}`], ["Percentual", `${response.pct}%`], ["Intrusões", response.intrusions], ["Nível", response.nivel]);
   if (type === "experimento") items.push(["Hipótese", response.hipotese], ["Ação", response.acao], ["Resultado", response.resultado], ["Aprendizado", response.aprendizado]);
   if (type === "escala") {
     ESCALAS_DEF.forEach(s => items.push([s.nome, `${response[s.id]}%`]));
