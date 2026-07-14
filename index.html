@@ -147,6 +147,10 @@ const TASK_TYPES = [{
   label: "🤝 Suporte Social Percebido",
   color: "#ec4899"
 }, {
+  id: "hama",
+  label: "📋 HAM-A (Ansiedade)",
+  color: "#b45309"
+}, {
   id: "tr",
   label: "⚡ Tempo de Reação",
   color: "#7c3aed"
@@ -881,6 +885,34 @@ const SUPORTE_SOCIAL_DATA = {
     sub: "colegas"
   }]
 };
+
+const HAMA_DATA = {
+  id: "hama",
+  nome: "HAM-A",
+  color: "#b45309",
+  escala: ["Ausente", "Leve", "Moderado", "Grave", "Muito grave"],
+  subescalas: {
+    ansiedade_psiquica: { nome: "Ansiedade Psíquica", cor: "#b45309" },
+    ansiedade_somatica: { nome: "Ansiedade Somática", cor: "#d97706" }
+  },
+  itens: [
+    { id: 1, texto: "Humor ansioso: preocupação, antecipação do pior, apreensão (medo antecipado), irritabilidade.", sub: "ansiedade_psiquica" },
+    { id: 2, texto: "Tensão: sensação de tensão, fatigabilidade, incapacidade de relaxar, choro fácil, tremores, sensação de agitação.", sub: "ansiedade_psiquica" },
+    { id: 3, texto: "Medos: de escuro, de estranhos, de ser deixado só, de animais, de tráfego, de multidões.", sub: "ansiedade_psiquica" },
+    { id: 4, texto: "Insônia: dificuldade em adormecer, sono interrompido, sono insatisfatório com fadiga ao acordar, sonhos, pesadelos, terror noturno.", sub: "ansiedade_psiquica" },
+    { id: 5, texto: "Intelectual (cognitivo): dificuldade de concentração, memória prejudicada.", sub: "ansiedade_psiquica" },
+    { id: 6, texto: "Humor depressivo: perda de interesse, falta de prazer nos passatempos, depressão, despertar precoce, variações de humor ao longo do dia.", sub: "ansiedade_psiquica" },
+    { id: 7, texto: "Sintomas somáticos gerais (musculares): dores e rigidez muscular, espasmos, contrações, movimentos clônicos, ranger de dentes, voz insegura, tônus muscular aumentado.", sub: "ansiedade_somatica" },
+    { id: 8, texto: "Sintomas somáticos gerais (sensoriais): zumbidos, visão turva, ondas de calor e frio, sensação de fraqueza, sensação de formigamento.", sub: "ansiedade_somatica" },
+    { id: 9, texto: "Sintomas cardiovasculares: taquicardia, palpitações, dor no peito, pulsação em vasos, sensação de desmaio, batimento cardíaco falhando.", sub: "ansiedade_somatica" },
+    { id: 10, texto: "Sintomas respiratórios: pressão ou constrição no peito, sensação de sufocação, suspiros, falta de ar.", sub: "ansiedade_somatica" },
+    { id: 11, texto: "Sintomas gastrointestinais: dificuldade de deglutição, gases, dor abdominal, queimação, sensação de plenitude gástrica, náuseas, vômitos, borborismo, diarreia, perda de peso, constipação.", sub: "ansiedade_somatica" },
+    { id: 12, texto: "Sintomas geniturinários: micção frequente, urgência miccional, amenorreia, menorragia, frigidez, ejaculação precoce, perda da libido, impotência.", sub: "ansiedade_somatica" },
+    { id: 13, texto: "Sintomas autonômicos: boca seca, rubor, palidez, tendência a suar, vertigens, cefaleia por tensão, piloereção.", sub: "ansiedade_somatica" },
+    { id: 14, texto: "Comportamento na entrevista (geral e fisiológico): agitado, impaciente ou calmo; tremor de mãos, cenho franzido, face tensa, suspiros ou respiração rápida; palidez facial; deglutição, arrotos, reflexo de tendão acentuado, dilatação pupilar, exoftalmia, sudorese.", sub: "ansiedade_somatica" }
+  ]
+};
+
 function getEscalaData(id) {
   return {
     csai2r: CSAI2R_DATA,
@@ -889,7 +921,8 @@ function getEscalaData(id) {
     teosq: TEOSQ_DATA,
     siq: SIQ_DATA,
     resiliencia: RESILIENCIA_DATA,
-    suporte_social: SUPORTE_SOCIAL_DATA
+    suporte_social: SUPORTE_SOCIAL_DATA,
+    hama: HAMA_DATA
   }[id] || null;
 }
 function calcEscala(ed, resp) {
@@ -3375,6 +3408,7 @@ function csvPaciente(p) {
   const siqResp = tasks.filter(t => t.type === "siq" && t.response?.totais).slice(-1)[0]?.response?.totais || null;
   const resilResp = tasks.filter(t => t.type === "resiliencia" && t.response?.totais).slice(-1)[0]?.response?.totais || null;
   const suporteResp = tasks.filter(t => t.type === "suporte_social" && t.response?.totais).slice(-1)[0]?.response?.totais || null;
+  const hamaResp = tasks.filter(t => t.type === "hama" && t.response?.totais).slice(-1)[0]?.response?.totais || null;
   let csv = "";
   csv += "RESUMO\n" + toCSV([["Campo", "Valor"], ["Paciente", p.name], ["Grupo", p._grupo || "—"], ["Data", new Date().toLocaleDateString("pt-BR")], ["Registros no diário", diarios.length], ["Total de tarefas", tasks.length], ["Tarefas respondidas", tasks.filter(t => t.response).length]]) + "\n\n";
   if (escResp) {
@@ -3397,6 +3431,17 @@ function csvPaciente(p) {
   }
   if (resilResp) {
     csv += "RESILIÊNCIA ESPORTIVA\n" + toCSV([["Subescala", "Pontuação", "Máximo", "%"], ["Recuperação de Adversidades", resilResp.recuperacao, 20, Math.round(resilResp.recuperacao / 20 * 100)], ["Persistência e Adaptação", resilResp.adaptacao, 20, Math.round(resilResp.adaptacao / 20 * 100)]]) + "\n\n";
+  }
+  if (hamaResp) {
+    const hamaTotal = (hamaResp.ansiedade_psiquica || 0) + (hamaResp.ansiedade_somatica || 0);
+    const hamaNivel = hamaTotal <= 17 ? "Leve" : hamaTotal <= 24 ? "Moderada" : hamaTotal <= 30 ? "Grave" : "Muito Grave";
+    csv += "HAM-A\n" + toCSV([
+      ["Subescala", "Pontuação", "Máximo", "%"],
+      ["Ansiedade Psíquica", hamaResp.ansiedade_psiquica || 0, 24, Math.round(((hamaResp.ansiedade_psiquica || 0) / 24) * 100)],
+      ["Ansiedade Somática", hamaResp.ansiedade_somatica || 0, 32, Math.round(((hamaResp.ansiedade_somatica || 0) / 32) * 100)],
+      ["Pontuação Total", hamaTotal, 56, Math.round((hamaTotal / 56) * 100)],
+      ["Nível de Ansiedade", hamaNivel, "", ""]
+    ]) + "\n\n";
   }
   if (suporteResp) {
     csv += "SUPORTE SOCIAL PERCEBIDO\n" + toCSV([["Subescala", "Pontuação", "Máximo", "%"], ["Suporte da Família", suporteResp.familia, 16, Math.round(suporteResp.familia / 16 * 100)], ["Suporte do Treinador", suporteResp.treinador, 16, Math.round(suporteResp.treinador / 16 * 100)], ["Suporte dos Colegas", suporteResp.colegas, 16, Math.round(suporteResp.colegas / 16 * 100)]]) + "\n\n";
@@ -4016,8 +4061,315 @@ const NAV_ITEMS = [
   { id: "groups",   icon: "🗂", label: "Grupos" },
   { id: "dashboard",icon: "📊", label: "Dashboard" },
   { id: "overview", icon: "📈", label: "Visão Geral" },
+  { id: "agenda",   icon: "📅", label: "Agenda" },
   { id: "config",   icon: "⚙️", label: "Configurações" },
 ];
+
+function AgendaTab({ patients }) {
+  const hoje = new Date();
+  const [ano, setAno] = useState(hoje.getFullYear());
+  const [mes, setMes] = useState(hoje.getMonth()); // 0-11
+  const [eventos, setEventos] = useState({});
+  const [modal, setModal] = useState(null); // null | { dia, evento? }
+  const [form, setForm] = useState({ titulo: "", horario: "09:00", pacienteId: "", tipo: "sessao", obs: "" });
+  const [saving, setSaving] = useState(false);
+
+  const TIPOS = [
+    { id: "sessao", label: "Sessão", color: "#6d28d9", bg: "#ede9fe" },
+    { id: "avaliacao", label: "Avaliação", color: "#0891b2", bg: "#cffafe" },
+    { id: "supervisao", label: "Supervisão", color: "#059669", bg: "#d1fae5" },
+    { id: "admin", label: "Administrativo", color: "#d97706", bg: "#fef3c7" },
+    { id: "outro", label: "Outro", color: "#6b7280", bg: "#f3f4f6" },
+  ];
+  const getTipo = (id) => TIPOS.find(t => t.id === id) || TIPOS[0];
+
+  // Firebase key: "agenda/YYYY-MM-DD/eventId"
+  useEffect(() => {
+    const chave = `agenda/${ano}-${String(mes + 1).padStart(2, "0")}`;
+    const u = fbListen(chave, d => setEventos(d || {}));
+    return () => u();
+  }, [ano, mes]);
+
+  // Calendar grid
+  const primeiroDia = new Date(ano, mes, 1).getDay(); // 0=Dom
+  const diasNoMes = new Date(ano, mes + 1, 0).getDate();
+  const MESES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+  const DIAS_SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+
+  function navMes(delta) {
+    let nm = mes + delta;
+    let na = ano;
+    if (nm < 0) { nm = 11; na--; }
+    if (nm > 11) { nm = 0; na++; }
+    setMes(nm); setAno(na);
+  }
+
+  function getEventosDia(dia) {
+    const key = String(dia).padStart(2, "0");
+    const dayData = eventos[key];
+    if (!dayData) return [];
+    return Object.entries(dayData)
+      .map(([id, ev]) => ({ ...ev, id }))
+      .sort((a, b) => a.horario.localeCompare(b.horario));
+  }
+
+  function abrirModal(dia, evento = null) {
+    setModal({ dia, evento });
+    setForm(evento ? {
+      titulo: evento.titulo || "",
+      horario: evento.horario || "09:00",
+      pacienteId: evento.pacienteId || "",
+      tipo: evento.tipo || "sessao",
+      obs: evento.obs || ""
+    } : { titulo: "", horario: "09:00", pacienteId: "", tipo: "sessao", obs: "" });
+  }
+
+  async function salvar() {
+    if (!form.titulo.trim()) return;
+    setSaving(true);
+    const dia = String(modal.dia).padStart(2, "0");
+    const chave = `agenda/${ano}-${String(mes + 1).padStart(2, "0")}/${dia}`;
+    const paciente = patients.find(p => p.id === form.pacienteId);
+    const payload = {
+      titulo: form.titulo.trim(),
+      horario: form.horario,
+      pacienteId: form.pacienteId || "",
+      pacienteNome: paciente?.name || "",
+      tipo: form.tipo,
+      obs: form.obs.trim(),
+      criadoEm: new Date().toISOString()
+    };
+    if (modal.evento) {
+      await fbUpdate(`${chave}/${modal.evento.id}`, payload);
+    } else {
+      const id = "ev" + Date.now();
+      await fbSet(`${chave}/${id}`, payload);
+    }
+    setSaving(false);
+    setModal(null);
+  }
+
+  async function apagar() {
+    if (!modal.evento) return;
+    const dia = String(modal.dia).padStart(2, "0");
+    await fbSet(`agenda/${ano}-${String(mes + 1).padStart(2, "0")}/${dia}/${modal.evento.id}`, null);
+    setModal(null);
+  }
+
+  function exportarPDF() {
+    const w = window.open("", "_blank");
+    let evList = [];
+    for (let d = 1; d <= diasNoMes; d++) {
+      const evs = getEventosDia(d);
+      evs.forEach(ev => evList.push({ dia: d, ...ev }));
+    }
+    evList.sort((a, b) => a.dia - b.dia || a.horario.localeCompare(b.horario));
+
+    const rows = evList.map(ev => {
+      const t = getTipo(ev.tipo);
+      return `<tr>
+        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-weight:700;">${String(ev.dia).padStart(2,"0")}/${String(mes+1).padStart(2,"0")}/${ano}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">${ev.horario}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;"><span style="background:${t.bg};color:${t.color};padding:2px 8px;border-radius:20px;font-size:12px;font-weight:700;">${t.label}</span></td>
+        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-weight:600;">${ev.titulo}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;color:#6b7280;">${ev.pacienteNome || "—"}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;color:#6b7280;font-size:13px;">${ev.obs || "—"}</td>
+      </tr>`;
+    }).join("");
+
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+      <title>Agenda ${MESES[mes]} ${ano}</title>
+      <style>body{font-family:Arial,sans-serif;padding:32px;color:#1f2937}
+      h1{color:#6d28d9;margin-bottom:4px}
+      h2{color:#9ca3af;font-size:14px;margin-bottom:24px;font-weight:400}
+      table{width:100%;border-collapse:collapse}
+      th{text-align:left;padding:10px 12px;background:#f3f4f6;font-size:12px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px}
+      tr:hover td{background:#fafafa}
+      .empty{text-align:center;padding:40px;color:#9ca3af}
+      @media print{body{padding:16px}}</style></head>
+      <body>
+      <h1>📅 Agenda — MeuPsi</h1>
+      <h2>João Rosa · CRP 06/227336 · ${MESES[mes]} ${ano}</h2>
+      ${evList.length === 0
+        ? '<p class="empty">Nenhum agendamento registrado neste mês.</p>'
+        : `<table><thead><tr>
+            <th>Data</th><th>Horário</th><th>Tipo</th><th>Título</th><th>Paciente</th><th>Observações</th>
+          </tr></thead><tbody>${rows}</tbody></table>`}
+      <script>window.onload=()=>window.print();<\/script>
+      </body></html>`);
+    w.document.close();
+  }
+
+  const isDesktop = useIsDesktop();
+
+  // Build calendar cells
+  const cells = [];
+  // Empty cells before first day
+  for (let i = 0; i < primeiroDia; i++) cells.push(null);
+  for (let d = 1; d <= diasNoMes; d++) cells.push(d);
+  // Pad to complete last row
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  const hojeStr = `${hoje.getFullYear()}-${hoje.getMonth()}-${hoje.getDate()}`;
+  const isHoje = (d) => d && ano === hoje.getFullYear() && mes === hoje.getMonth() && d === hoje.getDate();
+
+  return React.createElement("div", null,
+    // Modal
+    modal && React.createElement("div", {
+      style: { position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 20 }
+    },
+      React.createElement("div", { style: { background: "#fff", borderRadius: 20, padding: 28, width: "100%", maxWidth: 440, boxShadow: "0 24px 60px rgba(0,0,0,.25)" } },
+        React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 } },
+          React.createElement("h2", { style: { fontSize: 17, fontWeight: 800, color: "#1f2937" } },
+            modal.evento ? "✏️ Editar evento" : `➕ Novo evento — ${String(modal.dia).padStart(2,"0")}/${String(mes+1).padStart(2,"0")}/${ano}`
+          ),
+          React.createElement("button", { onClick: () => setModal(null), style: { background: "none", border: "none", fontSize: 20, cursor: "pointer", color: "#9ca3af" } }, "✕")
+        ),
+        // Tipo pills
+        React.createElement("div", { style: { display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 } },
+          TIPOS.map(t => React.createElement("button", {
+            key: t.id, onClick: () => setForm(f => ({ ...f, tipo: t.id })),
+            style: { padding: "5px 12px", borderRadius: 20, border: `2px solid ${form.tipo === t.id ? t.color : "#e5e7eb"}`, background: form.tipo === t.id ? t.bg : "#fff", color: form.tipo === t.id ? t.color : "#9ca3af", fontWeight: 700, fontSize: 12, cursor: "pointer" }
+          }, t.label))
+        ),
+        // Titulo
+        React.createElement("label", { style: { fontSize: 12, fontWeight: 700, color: "#374151", display: "block", marginBottom: 4 } }, "Título"),
+        React.createElement("input", {
+          className: "inp", placeholder: "ex: Sessão semanal, Supervisão...",
+          value: form.titulo, onChange: e => setForm(f => ({ ...f, titulo: e.target.value }))
+        }),
+        // Horário + Paciente
+        React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 } },
+          React.createElement("div", null,
+            React.createElement("label", { style: { fontSize: 12, fontWeight: 700, color: "#374151", display: "block", marginBottom: 4 } }, "Horário"),
+            React.createElement("input", {
+              className: "inp", type: "time", value: form.horario,
+              onChange: e => setForm(f => ({ ...f, horario: e.target.value })), style: { marginBottom: 0 }
+            })
+          ),
+          React.createElement("div", null,
+            React.createElement("label", { style: { fontSize: 12, fontWeight: 700, color: "#374151", display: "block", marginBottom: 4 } }, "Paciente (opcional)"),
+            React.createElement("select", {
+              className: "inp", value: form.pacienteId,
+              onChange: e => setForm(f => ({ ...f, pacienteId: e.target.value })), style: { marginBottom: 0 }
+            },
+              React.createElement("option", { value: "" }, "Nenhum"),
+              patients.map(p => React.createElement("option", { key: p.id, value: p.id }, p.name))
+            )
+          )
+        ),
+        // Obs
+        React.createElement("label", { style: { fontSize: 12, fontWeight: 700, color: "#374151", display: "block", marginBottom: 4, marginTop: 10 } }, "Observações"),
+        React.createElement("textarea", {
+          className: "inp", placeholder: "Anotações rápidas...",
+          value: form.obs, onChange: e => setForm(f => ({ ...f, obs: e.target.value })),
+          style: { minHeight: 60, resize: "vertical" }
+        }),
+        // Buttons
+        React.createElement("div", { style: { display: "flex", gap: 8, marginTop: 8 } },
+          modal.evento && React.createElement("button", {
+            onClick: apagar,
+            style: { padding: "11px 16px", borderRadius: 10, border: "none", background: "#fee2e2", color: "#e11d48", fontWeight: 700, cursor: "pointer", fontSize: 14 }
+          }, "🗑 Apagar"),
+          React.createElement("button", {
+            onClick: () => setModal(null),
+            style: { flex: 1, padding: "11px 0", borderRadius: 10, border: "1.5px solid #e5e7eb", background: "#fff", color: "#6b7280", fontWeight: 700, cursor: "pointer", fontSize: 14 }
+          }, "Cancelar"),
+          React.createElement("button", {
+            onClick: salvar, disabled: saving || !form.titulo.trim(),
+            style: { flex: 2, padding: "11px 0", borderRadius: 10, border: "none", background: form.titulo.trim() ? "linear-gradient(135deg,#6d28d9,#7c3aed)" : "#e5e7eb", color: form.titulo.trim() ? "#fff" : "#9ca3af", fontWeight: 700, cursor: form.titulo.trim() ? "pointer" : "default", fontSize: 14 }
+          }, saving ? "Salvando..." : modal.evento ? "Salvar" : "Adicionar")
+        )
+      )
+    ),
+
+    // Header: nav + export
+    React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 } },
+      React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 12 } },
+        React.createElement("button", { onClick: () => navMes(-1), style: { width: 36, height: 36, borderRadius: 10, border: "1.5px solid #e5e7eb", background: "#fff", cursor: "pointer", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700 } }, "‹"),
+        React.createElement("h2", { style: { fontSize: 20, fontWeight: 800, color: "#1f2937", minWidth: 180, textAlign: "center" } }, `${MESES[mes]} ${ano}`),
+        React.createElement("button", { onClick: () => navMes(1), style: { width: 36, height: 36, borderRadius: 10, border: "1.5px solid #e5e7eb", background: "#fff", cursor: "pointer", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700 } }, "›")
+      ),
+      React.createElement("div", { style: { display: "flex", gap: 8 } },
+        React.createElement("button", {
+          onClick: () => { setAno(hoje.getFullYear()); setMes(hoje.getMonth()); },
+          style: { padding: "8px 14px", borderRadius: 10, border: "1.5px solid #e5e7eb", background: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 700, color: "#6d28d9" }
+        }, "Hoje"),
+        React.createElement("button", {
+          onClick: exportarPDF,
+          style: { padding: "8px 14px", borderRadius: 10, border: "none", background: "linear-gradient(135deg,#059669,#34d399)", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 700 }
+        }, "📄 Exportar PDF")
+      )
+    ),
+
+    // Calendar grid
+    React.createElement("div", { style: { background: "#fff", borderRadius: 16, boxShadow: "0 2px 12px rgba(0,0,0,.07)", overflow: "hidden" } },
+      // Day headers
+      React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(7,1fr)", background: "#f9fafb", borderBottom: "1px solid #e5e7eb" } },
+        DIAS_SEMANA.map(d => React.createElement("div", {
+          key: d, style: { padding: "10px 0", textAlign: "center", fontSize: 12, fontWeight: 700, color: d === "Dom" || d === "Sáb" ? "#e11d48" : "#9ca3af" }
+        }, d))
+      ),
+      // Day cells
+      React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(7,1fr)" } },
+        cells.map((dia, idx) => {
+          const evsDia = dia ? getEventosDia(dia) : [];
+          const isHojeDia = isHoje(dia);
+          const isSab = idx % 7 === 6;
+          const isDom = idx % 7 === 0;
+          return React.createElement("div", {
+            key: idx,
+            onClick: dia ? () => abrirModal(dia) : undefined,
+            style: {
+              minHeight: isDesktop ? 110 : 80,
+              padding: "8px 6px",
+              borderRight: idx % 7 !== 6 ? "1px solid #f0f0f0" : "none",
+              borderBottom: "1px solid #f0f0f0",
+              background: !dia ? "#fafafa" : isHojeDia ? "#faf5ff" : "#fff",
+              cursor: dia ? "pointer" : "default",
+              position: "relative",
+              transition: "background .15s"
+            }
+          },
+            // Day number
+            dia && React.createElement("div", { style: { display: "flex", justifyContent: "flex-end", marginBottom: 4 } },
+              React.createElement("div", {
+                style: {
+                  width: 26, height: 26, borderRadius: "50%",
+                  background: isHojeDia ? "#6d28d9" : "transparent",
+                  color: isHojeDia ? "#fff" : (isDom || isSab ? "#e11d48" : "#374151"),
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 13, fontWeight: isHojeDia ? 800 : 600
+                }
+              }, dia)
+            ),
+            // Events (show max 3, +N if more)
+            dia && evsDia.slice(0, isDesktop ? 3 : 2).map((ev, i) => {
+              const t = getTipo(ev.tipo);
+              return React.createElement("div", {
+                key: ev.id,
+                onClick: e => { e.stopPropagation(); abrirModal(dia, ev); },
+                style: { background: t.bg, color: t.color, borderRadius: 6, padding: "2px 6px", fontSize: 11, fontWeight: 700, marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "pointer" }
+              }, `${ev.horario} ${ev.titulo}`)
+            }),
+            dia && evsDia.length > (isDesktop ? 3 : 2) && React.createElement("div", {
+              style: { fontSize: 11, color: "#9ca3af", fontWeight: 700, paddingLeft: 4 }
+            }, `+${evsDia.length - (isDesktop ? 3 : 2)} mais`)
+          );
+        })
+      )
+    ),
+
+    // Legend
+    React.createElement("div", { style: { display: "flex", gap: 12, flexWrap: "wrap", marginTop: 16 } },
+      TIPOS.map(t => React.createElement("div", { key: t.id, style: { display: "flex", alignItems: "center", gap: 5 } },
+        React.createElement("div", { style: { width: 10, height: 10, borderRadius: 3, background: t.bg, border: `1.5px solid ${t.color}` } }),
+        React.createElement("span", { style: { fontSize: 12, color: "#6b7280", fontWeight: 600 } }, t.label)
+      ))
+    )
+  );
+}
+
 
 function TherapistApp({
   onLogout
@@ -4124,6 +4476,7 @@ function TherapistApp({
 
     tab === "groups" && React.createElement(GruposTab, { patients: patients }),
     tab === "dashboard" && React.createElement(DashboardTab, { patients: patients, onExport: () => setShowExport(true) }),
+    tab === "agenda" && React.createElement(AgendaTab, { patients: patients }),
 
     tab === "overview" && React.createElement(React.Fragment, null,
       React.createElement("h2", { style: { ...h2s, marginBottom: 20 } }, "Visão Geral"),
@@ -4215,7 +4568,7 @@ function TherapistApp({
   return React.createElement("div", { style: aw },
     React.createElement(Header, { title: "MeuPsi", subtitle: "Painel do Terapeuta", onBack: onLogout }),
     React.createElement(TabBar, {
-      tabs: [["patients", "👥 Pacientes"], ["groups", "🗂 Grupos"], ["dashboard", "📊 Dashboard"], ["overview", "📈 Visão Geral"], ["config", "⚙️ Config"]],
+      tabs: [["patients", "👥 Pacientes"], ["groups", "🗂 Grupos"], ["dashboard", "📊 Dashboard"], ["overview", "📈 Visão Geral"], ["agenda", "📅 Agenda"], ["config", "⚙️ Config"]],
       active: tab, onChange: setTab
     }),
     React.createElement("div", { style: ct }, tabContent)
@@ -7166,7 +7519,7 @@ function TaskForm({
   }), task.type === "escala" && React.createElement(EscalaForm, {
     color: ti.color,
     onSubmit: onSubmit
-  }), ["csai2r", "sas", "acsi28", "teosq", "siq", "resiliencia", "suporte_social"].includes(task.type) && React.createElement(EscalaPsiForm, {
+  }), ["csai2r", "sas", "acsi28", "teosq", "siq", "resiliencia", "suporte_social", "hama"].includes(task.type) && React.createElement(EscalaPsiForm, {
     tipo: task.type,
     color: ti.color,
     onSubmit: onSubmit
@@ -7906,7 +8259,7 @@ function ResponseView({
     ESCALAS_DEF.forEach(s => items.push([s.nome, `${response[s.id]}%`]));
     if (response.obs) items.push(["Obs", response.obs]);
   }
-  if (["csai2r", "sas", "acsi28", "teosq", "siq", "resiliencia", "suporte_social"].includes(type) && response.totais) {
+  if (["csai2r", "sas", "acsi28", "teosq", "siq", "resiliencia", "suporte_social", "hama"].includes(type) && response.totais) {
     const ed = getEscalaData(type);
     if (!ed) return null;
     return React.createElement("div", {
@@ -8138,6 +8491,7 @@ function DashboardTab({
   const siqResp = tasks.filter(t => t.type === "siq" && t.response?.totais).slice(-1)[0]?.response?.totais || null;
   const resilResp = tasks.filter(t => t.type === "resiliencia" && t.response?.totais).slice(-1)[0]?.response?.totais || null;
   const suporteResp = tasks.filter(t => t.type === "suporte_social" && t.response?.totais).slice(-1)[0]?.response?.totais || null;
+  const hamaResp = tasks.filter(t => t.type === "hama" && t.response?.totais).slice(-1)[0]?.response?.totais || null;
   const beValues = escResp ? [escResp.humor, escResp.ansiedade, escResp.sono, escResp.estresse, escResp.tristeza] : [0, 0, 0, 0, 0];
   const beColors = ["#f59e0b", "#8b5cf6", "#3b82f6", "#ef4444", "#60a5fa"];
   const csaiValues = csaiResp ? [Math.round(csaiResp.cognitiva / 32 * 100), Math.round(csaiResp.somatica / 28 * 100), Math.round(csaiResp.autoconfianca / 20 * 100)] : [0, 0, 0];
@@ -8246,6 +8600,11 @@ function DashboardTab({
         React.createElement("div", { style: { fontSize: 14, fontWeight: 800, color: "#ec4899", marginBottom: 2 } }, "🤝 Suporte Social Percebido"),
         React.createElement("div", { style: { fontSize: 12, color: "#9ca3af", marginBottom: 10 } }, "Família, treinador e colegas"),
         suporteResp ? React.createElement(RadarChart, { labels: ["Família", "Treinador", "Colegas"], values: suporteValues, colors: ["#ec4899", "#0891b2", "#059669"], size: 200 }) : React.createElement(EmptyState, { icon: "🤝", text: "Suporte Social não respondido ainda." })
+      ),
+      React.createElement("div", { style: { ...crd, marginBottom: isDesktop ? 0 : 14 } },
+        React.createElement("div", { style: { fontSize: 14, fontWeight: 800, color: "#b45309", marginBottom: 2 } }, "📋 HAM-A"),
+        React.createElement("div", { style: { fontSize: 12, color: "#9ca3af", marginBottom: 10 } }, "Ansiedade psíquica e somática — 14 itens"),
+        hamaResp ? React.createElement(RadarChart, { labels: ["Psíquica", "Somática"], values: [Math.round(((hamaResp.ansiedade_psiquica||0)/24)*100), Math.round(((hamaResp.ansiedade_somatica||0)/32)*100)], colors: ["#b45309", "#d97706"], size: 180 }) : React.createElement(EmptyState, { icon: "📋", text: "HAM-A não respondido ainda." })
       )
     ),
 
@@ -8298,6 +8657,17 @@ function DashboardTab({
           React.createElement(MiniBar, { label: "Suporte da Família", value: suporteResp.familia || 0, max: 16, color: "#ec4899" }),
           React.createElement(MiniBar, { label: "Suporte do Treinador", value: suporteResp.treinador || 0, max: 16, color: "#0891b2" }),
           React.createElement(MiniBar, { label: "Suporte dos Colegas", value: suporteResp.colegas || 0, max: 16, color: "#059669" })
+        ) : React.createElement("p", { style: { fontSize: 13, color: "#9ca3af" } }, "Nenhuma resposta ainda.")
+      ),
+      React.createElement("div", { style: { ...crd, marginBottom: isDesktop ? 0 : 14 } },
+        React.createElement("div", { style: { fontSize: 14, fontWeight: 800, color: "#b45309", marginBottom: 12 } }, "📋 HAM-A"),
+        hamaResp ? React.createElement(React.Fragment, null,
+          React.createElement(MiniBar, { label: "Ansiedade Psíquica", value: hamaResp.ansiedade_psiquica || 0, max: 24, color: "#b45309" }),
+          React.createElement(MiniBar, { label: "Ansiedade Somática", value: hamaResp.ansiedade_somatica || 0, max: 32, color: "#d97706" }),
+          React.createElement("div", { style: { marginTop: 8, padding: "8px 12px", background: "#fef3c7", borderRadius: 10, fontSize: 12, fontWeight: 700, color: "#92400e" } },
+            "Total: ", (hamaResp.ansiedade_psiquica || 0) + (hamaResp.ansiedade_somatica || 0), "/56 — ",
+            (() => { const t = (hamaResp.ansiedade_psiquica||0)+(hamaResp.ansiedade_somatica||0); return t<=17?"Leve":t<=24?"Moderada":t<=30?"Grave":"Muito Grave"; })()
+          )
         ) : React.createElement("p", { style: { fontSize: 13, color: "#9ca3af" } }, "Nenhuma resposta ainda.")
       )
     ),
