@@ -2720,8 +2720,8 @@ function PatientModal({
     onClick: () => onSave(name, pass),
     style: {
       flex: 2,
-      padding: "12px 0",
-      borderRadius: 10,
+      padding: "18px 0",
+      borderRadius: 12,
       border: "none",
       background: "linear-gradient(135deg,#6d28d9,#7c3aed)",
       color: "#fff",
@@ -2998,7 +2998,7 @@ function GruposTab({
   }
   async function disparar(g) {
     const tasks = g.tasks ? Object.values(g.tasks) : [];
-    const membros = g.membros || [];
+    const membros = g.membros ? (Array.isArray(g.membros) ? g.membros : Object.values(g.membros)) : [];
     if (!tasks.length) {
       alert("Adicione tarefas ao grupo primeiro.");
       return;
@@ -3025,7 +3025,7 @@ function GruposTab({
     setTimeout(() => setDispMsg(""), 3000);
   }
   async function dispararProtocolo(g, protocolo) {
-    const membros = g.membros || [];
+    const membros = g.membros ? (Array.isArray(g.membros) ? g.membros : Object.values(g.membros)) : [];
     if (!membros.length) { alert("Adicione pacientes ao grupo primeiro."); return; }
     setDispMsg("⏳ Disparando protocolo...");
     for (const pid of membros) {
@@ -3048,7 +3048,7 @@ function GruposTab({
   }
   async function apagarTarefasGrupo(g) {
     setApagando(true);
-    const membros = g.membros || [];
+    const membros = g.membros ? (Array.isArray(g.membros) ? g.membros : Object.values(g.membros)) : [];
     let total = 0;
     for (const pid of membros) {
       const pData = await fbGet(`patients/${pid}`);
@@ -3393,7 +3393,7 @@ function GrupoForm({
   const isEdit = !!grupo;
   const [nome, setNome] = useState(grupo?.nome || "");
   const [emoji, setEmoji] = useState(grupo?.emoji || "👥");
-  const [membros, setMembros] = useState(grupo?.membros || []);
+  const [membros, setMembros] = useState(grupo?.membros ? (Array.isArray(grupo.membros) ? grupo.membros : Object.values(grupo.membros)) : []);
   const [tasks, setTasks] = useState(grupo?.tasks ? Object.values(grupo.tasks) : []);
   const [showTF, setShowTF] = useState(false);
   const [tt, setTt] = useState("");
@@ -3430,11 +3430,14 @@ function GrupoForm({
     tasks.forEach((t, i) => {
       tasksObj[`task_${i}`] = t;
     });
+    // Salva membros como objeto para evitar conversão de array pelo Firebase
+    const membrosObj = {};
+    membros.forEach((pid, i) => { membrosObj[`m_${i}`] = pid; });
     await fbSet(`grupos/${id}`, {
       id,
       nome,
       emoji,
-      membros,
+      membros: membrosObj,
       tasks: tasksObj
     });
     setSaving(false);
@@ -4362,6 +4365,7 @@ const NAV_ITEMS = [
   { id: "groups",   icon: "🗂", label: "Grupos" },
   { id: "dashboard",icon: "📊", label: "Dashboard" },
   { id: "overview", icon: "📈", label: "Visão Geral" },
+  { id: "respostas",icon: "📬", label: "Respostas" },
   { id: "agenda",   icon: "📅", label: "Agenda" },
   { id: "config",   icon: "⚙️", label: "Configurações" },
 ];
@@ -4719,6 +4723,212 @@ function AgendaTab({ patients }) {
 }
 
 
+function RespostasRecentesTab({ patients, onVerPaciente }) {
+  const [filtro, setFiltro] = useState("todas"); // todas | hoje | semana | nao_vistas
+  const [vistasPelo, setVistasPelo] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("meurhi_vistas") || "{}"); } catch { return {}; }
+  });
+
+  // Coleta todas as respostas de todos os pacientes
+  const todas = [];
+  patients.forEach(p => {
+    const tasks = p.tasks ? Object.values(p.tasks) : [];
+    tasks.filter(t => t.response && t.answeredAt).forEach(t => {
+      todas.push({
+        pacienteId: p.id,
+        pacienteNome: p.name,
+        taskId: t.id,
+        type: t.type,
+        title: t.title,
+        answeredAt: t.answeredAt,
+        fromGroup: t.fromGroup || null,
+        fromProtocol: t.fromProtocol || null,
+        response: t.response,
+        uid: `${p.id}_${t.id}`
+      });
+    });
+  });
+
+  // Ordena por data de resposta (mais recente primeiro)
+  // answeredAt é "DD/MM/YYYY" — converte para timestamp
+  function parseDate(str) {
+    if (!str) return 0;
+    const [d, m, y] = str.split("/");
+    return new Date(`${y}-${m}-${d}`).getTime() || 0;
+  }
+  todas.sort((a, b) => parseDate(b.answeredAt) - parseDate(a.answeredAt));
+
+  const hoje = new Date();
+  const hojeStr = hoje.toLocaleDateString("pt-BR");
+  const semanaAtras = new Date(hoje.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+  const filtradas = todas.filter(r => {
+    if (filtro === "hoje") return r.answeredAt === hojeStr;
+    if (filtro === "semana") return parseDate(r.answeredAt) >= semanaAtras.getTime();
+    if (filtro === "nao_vistas") return !vistasPelo[r.uid];
+    return true;
+  });
+
+  const naoVistas = todas.filter(r => !vistasPelo[r.uid]).length;
+
+  function marcarVista(uid) {
+    const novas = { ...vistasPelo, [uid]: true };
+    setVistasPelo(novas);
+    try { localStorage.setItem("meurhi_vistas", JSON.stringify(novas)); } catch {}
+  }
+
+  function marcarTodasVistas() {
+    const novas = { ...vistasPelo };
+    todas.forEach(r => { novas[r.uid] = true; });
+    setVistasPelo(novas);
+    try { localStorage.setItem("meurhi_vistas", JSON.stringify(novas)); } catch {}
+  }
+
+  function getTypeIcon(type) {
+    const icons = {
+      tr: "⚡", stroop: "🎨", tmt: "🔢", nback: "🧩", gonogo: "🚦",
+      flanker: "➡️", atencao: "🎯", matrizes: "🧩", memoria_lista: "🧠",
+      csai2r: "😰", sas: "📋", hama: "📊", acsi28: "💪", teosq: "🎯",
+      siq: "🧘", resiliencia: "🛡️", suporte_social: "🤝",
+      pensamentos: "💭", experimento: "🔬", escala: "📊"
+    };
+    return icons[type] || "📋";
+  }
+
+  function getResultSummary(r) {
+    const resp = r.response;
+    if (!resp) return null;
+    if (r.type === "escala") return `Humor ${resp.humor}% · Ansiedade ${resp.ansiedade}%`;
+    if (r.type === "tr") return `TR médio ${resp.media}ms · Acertos ${resp.acertos}/20`;
+    if (r.type === "stroop") return `${resp.acertos}/${resp.total || 24} corretos`;
+    if (r.type === "nback") return `${resp.acertos} acertos · ${resp.omissoes} omissões`;
+    if (r.type === "gonogo") return `${resp.acertos} acertos · ${resp.falsosGo} falsos alarmes`;
+    if (r.type === "flanker") return `${resp.acertos}/${resp.total || 24} corretos`;
+    if (r.type === "tmt") return `Parte A: ${resp.tempoA}s · Parte B: ${resp.tempoB}s`;
+    if (r.type === "atencao") return `${resp.acertos} acertos · ${resp.precisao}% precisão`;
+    if (r.type === "matrizes") return `${resp.acertos}/20 · ${resp.nivel}`;
+    if (r.type === "memoria_lista") return `${resp.acertos}/10 palavras · ${resp.nivel}`;
+    if (r.type === "hama") {
+      const total = (resp.totais?.ansiedade_psiquica || 0) + (resp.totais?.ansiedade_somatica || 0);
+      const nivel = total <= 17 ? "Leve" : total <= 24 ? "Moderada" : total <= 30 ? "Grave" : "Muito Grave";
+      return `Total ${total}/56 · ${nivel}`;
+    }
+    if (resp.totais) {
+      const subs = Object.entries(resp.totais).slice(0, 2).map(([k, v]) => `${v}`).join(" / ");
+      return `Subescalas: ${subs}...`;
+    }
+    if (r.type === "pensamentos") return resp.emocao ? `Emoção: ${resp.emocao} (${resp.intensidade}/10)` : null;
+    return null;
+  }
+
+  return React.createElement("div", null,
+    // Header com filtros e badge
+    React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 } },
+      React.createElement("div", null,
+        React.createElement("h2", { style: { ...h2s, marginBottom: 2 } }, "📬 Respostas Recentes"),
+        React.createElement("div", { style: { fontSize: 12, color: "#9ca3af" } },
+          `${todas.length} respostas no total`,
+          naoVistas > 0 && React.createElement("span", {
+            style: { marginLeft: 8, background: "#e11d48", color: "#fff", borderRadius: 20, padding: "1px 8px", fontSize: 11, fontWeight: 800 }
+          }, `${naoVistas} novas`)
+        )
+      ),
+      naoVistas > 0 && React.createElement("button", {
+        onClick: marcarTodasVistas,
+        style: { fontSize: 12, fontWeight: 700, color: "#6d28d9", background: "#ede9fe", border: "none", borderRadius: 8, padding: "6px 12px", cursor: "pointer" }
+      }, "Marcar todas como vistas")
+    ),
+
+    // Filtros
+    React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" } },
+      [
+        ["todas", "Todas"],
+        ["hoje", "Hoje"],
+        ["semana", "Esta semana"],
+        ["nao_vistas", `Não vistas${naoVistas > 0 ? ` (${naoVistas})` : ""}`]
+      ].map(([id, label]) => React.createElement("button", {
+        key: id, onClick: () => setFiltro(id),
+        style: {
+          padding: "7px 14px", borderRadius: 20, border: "none", cursor: "pointer",
+          fontWeight: 700, fontSize: 13,
+          background: filtro === id ? "#6d28d9" : "#fff",
+          color: filtro === id ? "#fff" : "#6b7280",
+          boxShadow: "0 1px 4px rgba(0,0,0,.08)"
+        }
+      }, label))
+    ),
+
+    // Feed
+    filtradas.length === 0 && React.createElement(EmptyState, {
+      icon: "📬",
+      text: filtro === "hoje" ? "Nenhuma resposta hoje ainda." :
+            filtro === "semana" ? "Nenhuma resposta esta semana." :
+            filtro === "nao_vistas" ? "Tudo em dia! Nenhuma resposta nova." :
+            "Nenhuma resposta ainda."
+    }),
+
+    React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } },
+      filtradas.map(r => {
+        const ti = getTypeInfo(r.type);
+        const vista = !!vistasPelo[r.uid];
+        const summary = getResultSummary(r);
+        return React.createElement("div", {
+          key: r.uid,
+          style: {
+            background: "#fff", borderRadius: 16, padding: "14px 16px",
+            boxShadow: "0 2px 10px rgba(0,0,0,.06)",
+            borderLeft: `4px solid ${vista ? "#e5e7eb" : ti.color || "#6d28d9"}`,
+            opacity: vista ? 0.85 : 1,
+            transition: "all .2s"
+          }
+        },
+          React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 } },
+            React.createElement("div", { style: { flex: 1 } },
+              // Paciente + data
+              React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 6 } },
+                React.createElement("div", {
+                  style: { width: 32, height: 32, borderRadius: 10, background: vista ? "#f3f4f6" : `${ti.color}15`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }
+                }, getTypeIcon(r.type)),
+                React.createElement("div", null,
+                  React.createElement("div", { style: { fontWeight: 800, color: "#1f2937", fontSize: 14 } }, r.pacienteNome),
+                  React.createElement("div", { style: { fontSize: 11, color: "#9ca3af" } }, r.answeredAt)
+                ),
+                !vista && React.createElement("div", {
+                  style: { width: 8, height: 8, borderRadius: "50%", background: "#e11d48", flexShrink: 0, marginLeft: 4 }
+                })
+              ),
+              // Tarefa
+              React.createElement("div", { style: { fontSize: 13, fontWeight: 700, color: ti.color || "#374151", marginBottom: summary ? 4 : 0 } },
+                r.title
+              ),
+              // Resumo do resultado
+              summary && React.createElement("div", {
+                style: { fontSize: 12, color: "#6b7280", background: "#f9fafb", borderRadius: 8, padding: "4px 8px", display: "inline-block" }
+              }, summary),
+              // Origem (grupo/protocolo)
+              (r.fromGroup || r.fromProtocol) && React.createElement("div", {
+                style: { fontSize: 11, color: "#9ca3af", marginTop: 4 }
+              }, r.fromProtocol ? `📦 ${r.fromProtocol}` : `👥 ${r.fromGroup}`)
+            ),
+            // Botões
+            React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 6, flexShrink: 0 } },
+              React.createElement("button", {
+                onClick: () => { marcarVista(r.uid); onVerPaciente(r.pacienteId); },
+                style: { padding: "6px 12px", borderRadius: 8, border: "none", background: "#ede9fe", color: "#6d28d9", fontWeight: 700, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap" }
+              }, "Ver paciente"),
+              !vista && React.createElement("button", {
+                onClick: () => marcarVista(r.uid),
+                style: { padding: "6px 12px", borderRadius: 8, border: "1px solid #e5e7eb", background: "#fff", color: "#9ca3af", fontWeight: 600, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap" }
+              }, "Marcar vista")
+            )
+          )
+        );
+      })
+    )
+  );
+}
+
+
 function TherapistApp({
   onLogout
 }) {
@@ -4824,6 +5034,10 @@ function TherapistApp({
 
     tab === "groups" && React.createElement(GruposTab, { patients: patients }),
     tab === "dashboard" && React.createElement(DashboardTab, { patients: patients, onExport: () => setShowExport(true) }),
+    tab === "respostas" && React.createElement(RespostasRecentesTab, {
+      patients: patients,
+      onVerPaciente: (pid) => { setSel(pid); setTab("patients"); }
+    }),
     tab === "agenda" && React.createElement(AgendaTab, { patients: patients }),
 
     tab === "overview" && React.createElement(React.Fragment, null,
@@ -4870,14 +5084,32 @@ function TherapistApp({
         ),
         // Nav items
         React.createElement("nav", { className: "sidebar-nav" },
-          NAV_ITEMS.map(item => React.createElement("button", {
-            key: item.id,
-            className: `sidebar-btn${tab === item.id ? " active" : ""}`,
-            onClick: () => setTab(item.id)
-          },
-            React.createElement("span", { className: "icon" }, item.icon),
-            React.createElement("span", null, item.label)
-          ))
+          NAV_ITEMS.map(item => {
+            // Count unseen responses for badge
+            let badge = 0;
+            if (item.id === "respostas" && patients) {
+              try {
+                const vistas = JSON.parse(localStorage.getItem("meurhi_vistas") || "{}");
+                patients.forEach(p => {
+                  Object.values(p.tasks || {}).forEach(t => {
+                    if (t.response && t.answeredAt && !vistas[`${p.id}_${t.id}`]) badge++;
+                  });
+                });
+              } catch {}
+            }
+            return React.createElement("button", {
+              key: item.id,
+              className: `sidebar-btn${tab === item.id ? " active" : ""}`,
+              onClick: () => setTab(item.id),
+              style: { position: "relative" }
+            },
+              React.createElement("span", { className: "icon" }, item.icon),
+              React.createElement("span", null, item.label),
+              badge > 0 && React.createElement("span", {
+                style: { position: "absolute", top: 6, right: 10, background: "#e11d48", color: "#fff", borderRadius: 20, fontSize: 10, fontWeight: 800, padding: "1px 6px", minWidth: 18, textAlign: "center" }
+              }, badge > 99 ? "99+" : badge)
+            );
+          })
         ),
         // Footer logout
         React.createElement("div", { className: "sidebar-footer" },
@@ -4916,7 +5148,7 @@ function TherapistApp({
   return React.createElement("div", { style: aw },
     React.createElement(Header, { title: "MeuPsi", subtitle: "Painel do Terapeuta", onBack: onLogout }),
     React.createElement(TabBar, {
-      tabs: [["patients", "👥 Pacientes"], ["groups", "🗂 Grupos"], ["dashboard", "📊 Dashboard"], ["overview", "📈 Visão Geral"], ["agenda", "📅 Agenda"], ["config", "⚙️ Config"]],
+      tabs: [["patients", "👥 Pacientes"], ["groups", "🗂 Grupos"], ["dashboard", "📊 Dashboard"], ["overview", "📈 Visão Geral"], ["respostas", "📬 Respostas"], ["agenda", "📅 Agenda"], ["config", "⚙️ Config"]],
       active: tab, onChange: setTab
     }),
     React.createElement("div", { style: ct }, tabContent)
@@ -6578,7 +6810,7 @@ function TRForm({
       borderRadius: 16,
       padding: 40,
       textAlign: "center",
-      minHeight: 150,
+      minHeight: 240,
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -6587,15 +6819,15 @@ function TRForm({
     }
   }, alvoVis && React.createElement("div", {
     style: {
-      width: 100,
-      height: 100,
+      width: 130,
+      height: 130,
       borderRadius: "50%",
       background: "linear-gradient(135deg,#059669,#34d399)",
       boxShadow: "0 0 40px rgba(5,150,105,.6)",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      fontSize: 32
+      fontSize: 44
     }
   }, "👆"), !alvoVis && !feedback && React.createElement("div", {
     style: {
@@ -6829,7 +7061,7 @@ function StroopForm({
     }
   }, item && React.createElement("div", {
     style: {
-      fontSize: 42,
+      fontSize: 52,
       fontWeight: 900,
       color: CORES_CSS[item.cor]
     }
@@ -7117,7 +7349,7 @@ function TMTForm({
     }, React.createElement("circle", {
       cx: `${p.x}%`,
       cy: `${p.y}%`,
-      r: "5.5%",
+      r: "6.5%",
       fill: done ? color : next ? `${color}20` : "#fff",
       stroke: next ? color : "#d1d5db",
       strokeWidth: next ? "2.5" : "1.5",
@@ -7355,14 +7587,14 @@ function NBackForm({
       textAlign: "center",
       marginBottom: 14,
       boxShadow: "0 2px 10px rgba(0,0,0,.06)",
-      minHeight: 120,
+      minHeight: 160,
       display: "flex",
       alignItems: "center",
       justifyContent: "center"
     }
   }, mostrando ? React.createElement("div", {
     style: {
-      fontSize: 64,
+      fontSize: 84,
       fontWeight: 900,
       color
     }
@@ -7376,8 +7608,8 @@ function NBackForm({
     disabled: !mostrando || pos < N,
     style: {
       width: "100%",
-      padding: 14,
-      borderRadius: 12,
+      padding: 20,
+      borderRadius: 14,
       border: "none",
       background: mostrando && pos >= N ? `linear-gradient(135deg,${color},${color}cc)` : "#e5e7eb",
       color: mostrando && pos >= N ? "#fff" : "#9ca3af",
@@ -7636,7 +7868,7 @@ function GoNoGoForm({
     }
   }, stim && !feedback ? React.createElement("div", {
     style: {
-      fontSize: 80
+      fontSize: 100
     }
   }, stim) : feedback === "certo" ? React.createElement("div", null, React.createElement("div", {
     style: {
@@ -7911,8 +8143,8 @@ function FlankerForm({
     }
   }, item && React.createElement("div", {
     style: {
-      fontSize: 40,
-      letterSpacing: 12,
+      fontSize: 44,
+      letterSpacing: 6,
       fontWeight: 900,
       color: "#374151"
     }
@@ -7934,13 +8166,13 @@ function FlankerForm({
     onClick: () => responder(d),
     style: {
       flex: 1,
-      padding: 16,
-      borderRadius: 12,
+      padding: 22,
+      borderRadius: 14,
       border: `2px solid ${color}`,
       background: `${color}10`,
       color,
       fontWeight: 900,
-      fontSize: 28,
+      fontSize: 36,
       cursor: "pointer"
     }
   }, d))), React.createElement("div", {
@@ -8087,7 +8319,7 @@ function MatrizesForm({ color, onSubmit }) {
   const [respostas, setRespostas] = useState([]);
   const [selecionado, setSelecionado] = useState(null);
   const [feedback, setFeedback] = useState(null);
-  const CELL = 70;
+  const CELL = typeof window !== "undefined" && window.innerWidth < 480 ? 52 : 70;
 
   function renderCell(cell, size = CELL) {
     if (!cell) return `<rect x="2" y="2" width="${size-4}" height="${size-4}" rx="4" fill="#f9fafb" stroke="#e5e7eb" stroke-width="1" stroke-dasharray="4,3"/>`;
@@ -8098,28 +8330,31 @@ function MatrizesForm({ color, onSubmit }) {
   function GridSVG({ grid, size }) {
     const s = size || CELL;
     const svgSize = s * 3 + 8;
-    const cells = [];
+    let svgContent = '';
     for (let r = 0; r < 3; r++) {
       for (let c = 0; c < 3; c++) {
         const cell = grid[r][c];
         const x = c * s + 4, y = r * s + 4;
-        cells.push(
-          React.createElement("g", { key: `${r}-${c}`, transform: `translate(${x},${y})` },
-            React.createElement("rect", { x: 0, y: 0, width: s, height: s, rx: 6, fill: "#fff", stroke: "#e5e7eb", strokeWidth: 1.5 }),
-            cell && React.createElement("g", { dangerouslySetInnerHTML: { __html: renderCell(cell, s) } })
-          )
-        );
+        svgContent += `<g transform="translate(${x},${y})">`;
+        svgContent += `<rect x="0" y="0" width="${s}" height="${s}" rx="6" fill="#fff" stroke="#e5e7eb" stroke-width="1.5"/>`;
+        if (cell) svgContent += renderCell(cell, s);
+        svgContent += '</g>';
       }
     }
-    return React.createElement("svg", { width: svgSize, height: svgSize, viewBox: `0 0 ${svgSize} ${svgSize}` }, ...cells);
+    return React.createElement("div", {
+      dangerouslySetInnerHTML: {
+        __html: `<svg width="${svgSize}" height="${svgSize}" viewBox="0 0 ${svgSize} ${svgSize}" xmlns="http://www.w3.org/2000/svg">${svgContent}</svg>`
+      }
+    });
   }
 
   function OptionSVG({ cell, size }) {
     const s = size || CELL;
-    return React.createElement("svg", { width: s, height: s, viewBox: `0 0 ${s} ${s}` },
-      React.createElement("rect", { x: 0, y: 0, width: s, height: s, rx: 6, fill: "#fff" }),
-      React.createElement("g", { dangerouslySetInnerHTML: { __html: renderCell(cell, s) } })
-    );
+    return React.createElement("div", {
+      dangerouslySetInnerHTML: {
+        __html: `<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}" xmlns="http://www.w3.org/2000/svg"><rect x="0" y="0" width="${s}" height="${s}" rx="6" fill="#fff"/>${renderCell(cell, s)}</svg>`
+      }
+    });
   }
 
   function responder(idx) {
@@ -8199,7 +8434,7 @@ function MatrizesForm({ color, onSubmit }) {
     React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 } },
       item.options.map((opt, idx) => React.createElement("button", {
         key: idx, onClick: () => responder(idx), disabled: !!feedback,
-        style: { border: `2px solid ${selecionado === idx ? (feedback === "certo" ? "#059669" : "#e11d48") : "#e5e7eb"}`, borderRadius: 14, padding: 14, cursor: feedback ? "default" : "pointer", background: selecionado === idx ? (feedback === "certo" ? "#d1fae5" : "#fee2e2") : "#fff", display: "flex", alignItems: "center", justifyContent: "center", transition: "all .2s" }
+        style: { border: `2px solid ${selecionado === idx ? (feedback === "certo" ? "#059669" : "#e11d48") : "#e5e7eb"}`, borderRadius: 14, padding: 10, cursor: feedback ? "default" : "pointer", background: selecionado === idx ? (feedback === "certo" ? "#d1fae5" : "#fee2e2") : "#fff", display: "flex", alignItems: "center", justifyContent: "center", minHeight: 80, transition: "all .2s" }
       },
         React.createElement(OptionSVG, { cell: opt, size: CELL })
       ))
@@ -8278,7 +8513,7 @@ function MemoriaListaForm({ color, onSubmit }) {
   if (fase === "distrator") return React.createElement("div", { style: { ...crd, textAlign: "center" } },
     React.createElement("div", { style: { fontSize: 48, marginBottom: 16 } }, "🔢"),
     React.createElement("h3", { style: { fontSize: 16, fontWeight: 800, color: "#1f2937", marginBottom: 8 } }, "Tarefa de distração"),
-    React.createElement("div", { style: { fontSize: 64, fontWeight: 900, color, marginBottom: 8 } }, timeLeft),
+    React.createElement("div", { style: { fontSize: 80, fontWeight: 900, color, marginBottom: 8 } }, timeLeft),
     React.createElement("p", { style: { fontSize: 13, color: "#6b7280", lineHeight: 1.6 } },
       "Enquanto aguarda, conte mentalmente de 3 em 3 a partir de 100", React.createElement("br", null),
       React.createElement("span", { style: { fontWeight: 700 } }, "100 → 97 → 94 → 91...")
@@ -8709,36 +8944,12 @@ function AtencaoForm({
   const COLORS = ["#6d28d9", "#e11d48", "#059669", "#d97706", "#0891b2", "#7c3aed", "#dc2626", "#0284c7"];
   const TARGETS = ["quadrado", "triangulo"];
   function getDiff(p) {
-    if (p === 1) return {
-      cols: 5,
-      rows: 6,
-      ratio: .35,
-      size: 38
-    };
-    if (p === 2) return {
-      cols: 6,
-      rows: 7,
-      ratio: .30,
-      size: 33
-    };
-    if (p === 3) return {
-      cols: 6,
-      rows: 8,
-      ratio: .25,
-      size: 30
-    };
-    if (p === 4) return {
-      cols: 7,
-      rows: 8,
-      ratio: .22,
-      size: 27
-    };
-    return {
-      cols: 7,
-      rows: 9,
-      ratio: .20,
-      size: 24
-    };
+    const isMobile = typeof window !== "undefined" && window.innerWidth < 480;
+    if (p === 1) return isMobile ? { cols: 4, rows: 5, ratio: .35, size: 56 } : { cols: 5, rows: 6, ratio: .35, size: 38 };
+    if (p === 2) return isMobile ? { cols: 4, rows: 6, ratio: .30, size: 50 } : { cols: 6, rows: 7, ratio: .30, size: 33 };
+    if (p === 3) return isMobile ? { cols: 5, rows: 6, ratio: .25, size: 46 } : { cols: 6, rows: 8, ratio: .25, size: 30 };
+    if (p === 4) return isMobile ? { cols: 5, rows: 7, ratio: .22, size: 42 } : { cols: 7, rows: 8, ratio: .22, size: 27 };
+    return isMobile ? { cols: 5, rows: 8, ratio: .20, size: 38 } : { cols: 7, rows: 9, ratio: .20, size: 24 };
   }
   function drawShape(type, color, size) {
     const s = size;
@@ -9101,11 +9312,10 @@ function AtencaoForm({
       opacity: it.state === "missed" ? .35 : 1,
       transition: "background .2s"
     }
-  }, React.createElement("svg", {
-    width: it.size,
-    height: it.size,
+  }, React.createElement("div", {
+    style: { width: it.size, height: it.size },
     dangerouslySetInnerHTML: {
-      __html: drawShape(it.type, it.color, it.size)
+      __html: `<svg width="${it.size}" height="${it.size}" xmlns="http://www.w3.org/2000/svg">${drawShape(it.type, it.color, it.size)}</svg>`
     }
   })))));
 }
