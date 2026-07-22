@@ -3220,7 +3220,7 @@ function GruposTab({
     icon: "👥",
     text: "Nenhum grupo criado ainda."
   }), grupos.map(g => {
-    const membros = g.membros || [];
+    const membros = g.membros ? (Array.isArray(g.membros) ? g.membros : Object.values(g.membros)) : [];
     const tasks = g.tasks ? Object.values(g.tasks) : [];
     return React.createElement("div", {
       key: g.id,
@@ -3866,7 +3866,7 @@ function ExportarScreen({
 }) {
   const gruposNomes = [...new Set(grupos.map(g => g.nome))];
   const patientsComGrupo = patients.map(p => {
-    const g = grupos.find(g => (g.membros || []).includes(p.id));
+    const g = grupos.find(g => { const m = g.membros ? (Array.isArray(g.membros) ? g.membros : Object.values(g.membros)) : []; return m.includes(p.id); });
     return {
       ...p,
       _grupo: g?.nome || "—"
