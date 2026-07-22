@@ -2986,6 +2986,10 @@ function GruposTab({
   const [dispMsg, setDispMsg] = useState("");
   const [confirmApagar, setConfirmApagar] = useState(null);
   const [apagando, setApagando] = useState(false);
+  const [modalAvulsa, setModalAvulsa] = useState(null);
+  const [avulsaType, setAvulsaType] = useState("");
+  const [avulsaNote, setAvulsaNote] = useState("");
+  const [enviandoAvulsa, setEnviandoAvulsa] = useState(false);
   useEffect(() => {
     const u = fbListen("grupos", d => {
       setGrupos(d ? Object.values(d) : []);
@@ -3065,6 +3069,33 @@ function GruposTab({
     setDispMsg(`🗑 ${total} tarefa(s) do grupo "${g.nome}" apagadas!`);
     setTimeout(() => setDispMsg(""), 3500);
   }
+  async function dispararAvulsa() {
+    if (!avulsaType || !modalAvulsa) return;
+    const membros = modalAvulsa.membros
+      ? (Array.isArray(modalAvulsa.membros) ? modalAvulsa.membros : Object.values(modalAvulsa.membros))
+      : [];
+    if (!membros.length) { alert("Grupo sem membros."); return; }
+    setEnviandoAvulsa(true);
+    const ti = getTypeInfo(avulsaType);
+    for (const pid of membros) {
+      const id = "t" + Date.now() + Math.random().toString(36).slice(2, 5);
+      await fbSet(`patients/${pid}/tasks/${id}`, {
+        id, type: avulsaType,
+        title: ti.label || avulsaType,
+        note: avulsaNote.trim(),
+        response: null,
+        createdAt: new Date().toLocaleDateString("pt-BR"),
+        fromGroup: modalAvulsa.nome
+      });
+    }
+    setEnviandoAvulsa(false);
+    setModalAvulsa(null);
+    setAvulsaType("");
+    setAvulsaNote("");
+    setDispMsg("\u2705 Tarefa disparada para " + membros.length + " atleta(s)!");
+    setTimeout(() => setDispMsg(""), 3000);
+  }
+
   if (view) {
     return React.createElement(GrupoForm, {
       grupo: view === "new" ? null : view,
@@ -3072,7 +3103,32 @@ function GruposTab({
       onClose: () => setView(null)
     });
   }
-  return React.createElement("div", null, confirmApagar && React.createElement("div", {
+  return React.createElement("div", null, modalAvulsa && React.createElement("div", {
+    style: { position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 20 }
+  }, React.createElement("div", { style: { background: "#fff", borderRadius: 20, padding: 28, width: "100%", maxWidth: 440, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 24px 60px rgba(0,0,0,.25)" } },
+    React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 } },
+      React.createElement("h2", { style: { fontSize: 16, fontWeight: 800, color: "#1f2937" } }, "\u2795 Tarefa avulsa \u2014 " + modalAvulsa.nome),
+      React.createElement("button", { onClick: () => setModalAvulsa(null), style: { background: "none", border: "none", fontSize: 20, cursor: "pointer", color: "#9ca3af" } }, "\u2715")
+    ),
+    React.createElement("div", { style: { background: "#fef3c7", borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 12, color: "#92400e", fontWeight: 600 } },
+      "Disparada imediatamente para todos os membros. N\u00e3o fica salva como tarefa padr\u00e3o do grupo."
+    ),
+    React.createElement(TaskTypePicker, { value: avulsaType, onChange: v => setAvulsaType(v), placeholder: "Selecione o tipo de tarefa..." }),
+    React.createElement("label", { style: { fontSize: 12, fontWeight: 700, color: "#374151", display: "block", marginBottom: 4 } }, "Instru\u00e7\u00f5es (opcional)"),
+    React.createElement("textarea", {
+      className: "inp", placeholder: "Orienta\u00e7\u00f5es para os atletas...",
+      value: avulsaNote, onChange: e => setAvulsaNote(e.target.value),
+      style: { minHeight: 60, resize: "vertical" }
+    }),
+    React.createElement("div", { style: { display: "flex", gap: 8, marginTop: 8 } },
+      React.createElement("button", { onClick: () => setModalAvulsa(null), style: { ...btn("#e5e7eb"), flex: 1, padding: "11px 0" } }, "Cancelar"),
+      React.createElement("button", {
+        onClick: dispararAvulsa,
+        disabled: !avulsaType || enviandoAvulsa,
+        style: { flex: 2, padding: "11px 0", borderRadius: 10, border: "none", background: avulsaType ? "linear-gradient(135deg,#6d28d9,#7c3aed)" : "#e5e7eb", color: avulsaType ? "#fff" : "#9ca3af", fontWeight: 700, fontSize: 14, cursor: avulsaType ? "pointer" : "default" }
+      }, enviandoAvulsa ? "Disparando..." : "\ud83d\ude80 Disparar agora")
+    )
+  )), confirmApagar && React.createElement("div", {
     style: {
       position: "fixed",
       inset: 0,
@@ -3375,6 +3431,9 @@ function GruposTab({
         boxShadow: "0 4px 12px rgba(109,40,217,.3)"
       }
     }, "🚀 Tarefas do grupo"), React.createElement("button", {
+      onClick: () => { setModalAvulsa(g); setAvulsaType(""); setAvulsaNote(""); },
+      style: { ...btn("#cffafe"), flex: 1, padding: "11px 0", color: "#0891b2" }
+    }, "➕ Avulsa"), React.createElement("button", {
       onClick: () => setConfirmApagar(g),
       style: {
         ...btn("#fee2e2"),
@@ -6225,45 +6284,6 @@ function PatientApp({
         fontWeight: 700
       }
     }, "Responder →")));
-  })), done.length > 0 && React.createElement(React.Fragment, null, React.createElement("h2", {
-    style: {
-      ...h2s,
-      marginTop: 20
-    }
-  }, "✅ Concluídas (", done.length, ")"), done.map(task => {
-    const ti = getTypeInfo(task.type);
-    return React.createElement("div", {
-      key: task.id,
-      onClick: () => setViewTask(task),
-      style: {
-        background: "#fff",
-        borderRadius: 16,
-        padding: 14,
-        marginBottom: 8,
-        boxShadow: "0 2px 8px rgba(0,0,0,.05)",
-        borderLeft: `4px solid ${ti.color || "#888"}`,
-        opacity: .85,
-        cursor: "pointer"
-      }
-    }, React.createElement("span", {
-      style: {
-        fontSize: 11,
-        color: ti.color,
-        fontWeight: 700
-      }
-    }, ti.label || task.type), React.createElement("div", {
-      style: {
-        fontWeight: 600,
-        color: "#374151",
-        marginTop: 4
-      }
-    }, task.title), React.createElement("div", {
-      style: {
-        fontSize: 11,
-        color: "#9ca3af",
-        marginTop: 4
-      }
-    }, "Respondida em ", task.answeredAt));
   }))), tab === "diario" && React.createElement(DiarioTab, {
     patientId: patientId
   }), tab === "baralhos" && React.createElement(BaralhosTab, null), tab === "config" && React.createElement(ConfigTab, {
