@@ -111,6 +111,10 @@ const TASK_TYPES = [{
   label: "🎯 Teste de Atenção Visual",
   color: "#d97706"
 }, {
+  id: "cancelamento",
+  label: "✂️ Teste de Cancelamento",
+  color: "#0891b2"
+}, {
   id: "experimento",
   label: "🔬 Experimento Comportamental",
   color: "#059669"
@@ -2739,7 +2743,7 @@ const TASK_CATEGORIES = [
     label: "🧠 Testes Cognitivos",
     color: "#7c3aed",
     bg: "#ede9fe",
-    ids: ["tr", "gonogo", "flanker", "stroop", "tmt", "nback", "atencao", "matrizes", "memoria_lista"]
+    ids: ["tr", "gonogo", "flanker", "stroop", "tmt", "nback", "atencao", "cancelamento", "matrizes", "memoria_lista"]
   },
   {
     id: "escalas",
@@ -4846,7 +4850,7 @@ function RespostasRecentesTab({ patients, onVerPaciente }) {
   function getTypeIcon(type) {
     const icons = {
       tr: "⚡", stroop: "🎨", tmt: "🔢", nback: "🧩", gonogo: "🚦",
-      flanker: "➡️", atencao: "🎯", matrizes: "🧩", memoria_lista: "🧠",
+      flanker: "➡️", atencao: "🎯", cancelamento: "✂️", matrizes: "🧩", memoria_lista: "🧠",
       csai2r: "😰", sas: "📋", hama: "📊", acsi28: "💪", teosq: "🎯",
       siq: "🧘", resiliencia: "🛡️", suporte_social: "🤝",
       pensamentos: "💭", experimento: "🔬", escala: "📊"
@@ -4866,6 +4870,7 @@ function RespostasRecentesTab({ patients, onVerPaciente }) {
     if (r.type === "tmt") return `Parte A: ${resp.tempoA}s · Parte B: ${resp.tempoB}s`;
     if (r.type === "atencao") return `${resp.acertos} acertos · ${resp.precisao}% precisão`;
     if (r.type === "matrizes") return `${resp.acertos}/20 · ${resp.nivel}`;
+    if (r.type === "cancelamento") return `${resp.totalAcertos}/${resp.totalAlvos} alvos · ${resp.totalOmissoes} omissões`;
     if (r.type === "memoria_lista") return `${resp.acertos}/10 palavras · ${resp.nivel}`;
     if (r.type === "hama") {
       const total = (resp.totais?.ansiedade_psiquica || 0) + (resp.totais?.ansiedade_somatica || 0);
@@ -5266,6 +5271,7 @@ function ModoTeste({ patient, onClose }) {
 
         testeAtivo.type === "pensamentos"   && React.createElement(PensamentosForm,   { color: ti.color, onSubmit: handleResult }),
         testeAtivo.type === "atencao"       && React.createElement(AtencaoForm,       { color: ti.color, onSubmit: handleResult }),
+        testeAtivo.type === "cancelamento"   && React.createElement(CancelamentoForm,  { color: ti.color, onSubmit: handleResult }),
         testeAtivo.type === "experimento"   && React.createElement(ExperimentoForm,   { color: ti.color, onSubmit: handleResult }),
         testeAtivo.type === "escala"        && React.createElement(EscalaForm,        { color: ti.color, onSubmit: handleResult }),
         ["csai2r","sas","acsi28","teosq","siq","resiliencia","suporte_social","hama"].includes(testeAtivo.type) &&
@@ -5331,7 +5337,7 @@ function ModoTeste({ patient, onClose }) {
               React.createElement("span", { style: { fontSize: 18 } },
                 t.id === "tr" ? "⚡" : t.id === "gonogo" ? "🚦" : t.id === "flanker" ? "➡️" :
                 t.id === "stroop" ? "🎨" : t.id === "tmt" ? "🔢" : t.id === "nback" ? "🧩" :
-                t.id === "atencao" ? "🎯" : t.id === "matrizes" ? "🧩" : t.id === "memoria_lista" ? "🧠" :
+                t.id === "atencao" ? "🎯" : t.id === "cancelamento" ? "✂️" : t.id === "matrizes" ? "🧩" : t.id === "memoria_lista" ? "🧠" :
                 t.id === "csai2r" ? "😰" : t.id === "sas" ? "📋" : t.id === "hama" ? "📊" :
                 t.id === "acsi28" ? "💪" : t.id === "teosq" ? "🎯" : t.id === "siq" ? "🧘" :
                 t.id === "resiliencia" ? "🛡️" : t.id === "suporte_social" ? "🤝" :
@@ -8669,6 +8675,9 @@ function TaskForm({
   }), task.type === "atencao" && React.createElement(AtencaoForm, {
     color: ti.color,
     onSubmit: onSubmit
+  }), task.type === "cancelamento" && React.createElement(CancelamentoForm, {
+    color: ti.color,
+    onSubmit: onSubmit
   }), task.type === "experimento" && React.createElement(ExperimentoForm, {
     color: ti.color,
     onSubmit: onSubmit
@@ -8984,6 +8993,211 @@ function ExperimentoForm({
     }
   }, "Enviar"));
 }
+// ── Teste de Cancelamento (formato clássico em linhas) ─────────────────────
+function CancelamentoForm({ color, onSubmit }) {
+  const SHAPES = ["quadrado", "circulo", "triangulo", "losango", "estrela", "cruz", "hexagono"];
+  const COLORS = ["#374151"]; // monocromático — foco só na forma, como testes clássicos de cancelamento
+
+  function drawShape(type, fill, size) {
+    const s = size;
+    if (type === "quadrado") return `<rect x="3" y="3" width="${s - 6}" height="${s - 6}" rx="2" fill="none" stroke="${fill}" stroke-width="2"/>`;
+    if (type === "circulo") return `<circle cx="${s / 2}" cy="${s / 2}" r="${s / 2 - 3}" fill="none" stroke="${fill}" stroke-width="2"/>`;
+    if (type === "triangulo") return `<polygon points="${s / 2},3 ${s - 3},${s - 3} 3,${s - 3}" fill="none" stroke="${fill}" stroke-width="2"/>`;
+    if (type === "losango") return `<polygon points="${s / 2},3 ${s - 3},${s / 2} ${s / 2},${s - 3} 3,${s / 2}" fill="none" stroke="${fill}" stroke-width="2"/>`;
+    if (type === "cruz") return `<path d="M${s * 0.4},3 L${s * 0.6},3 L${s * 0.6},${s * 0.4} L${s - 3},${s * 0.4} L${s - 3},${s * 0.6} L${s * 0.6},${s * 0.6} L${s * 0.6},${s - 3} L${s * 0.4},${s - 3} L${s * 0.4},${s * 0.6} L3,${s * 0.6} L3,${s * 0.4} L${s * 0.4},${s * 0.4} Z" fill="none" stroke="${fill}" stroke-width="2"/>`;
+    if (type === "hexagono") {
+      const cx = s / 2, cy = s / 2, r = s / 2 - 3;
+      let pts = "";
+      for (let i = 0; i < 6; i++) { const a = Math.PI / 3 * i - Math.PI / 2; pts += `${cx + r * Math.cos(a)},${cy + r * Math.sin(a)} `; }
+      return `<polygon points="${pts}" fill="none" stroke="${fill}" stroke-width="2"/>`;
+    }
+    // estrela
+    const cx = s / 2, cy = s / 2, r1 = s / 2 - 3, r2 = s / 4.2;
+    let pts = "";
+    for (let i = 0; i < 10; i++) { const a = Math.PI / 5 * i - Math.PI / 2, r = i % 2 === 0 ? r1 : r2; pts += `${cx + r * Math.cos(a)},${cy + r * Math.sin(a)} `; }
+    return `<polygon points="${pts}" fill="none" stroke="${fill}" stroke-width="2"/>`;
+  }
+
+  const [fase, setFase] = useState("intro"); // intro | fase1 | transicao | fase2 | resultado
+  const [alvos1] = useState(() => ["quadrado"]);
+  const [alvos2] = useState(() => ["quadrado", "estrela"]);
+  const [grid1, setGrid1] = useState([]);
+  const [grid2, setGrid2] = useState([]);
+  const [timeLeft, setTimeLeft] = useState(45);
+  const [res1, setRes1] = useState(null);
+  const [resFinal, setResFinal] = useState(null);
+  const timerRef = useRef(null);
+  const timeRef = useRef(45);
+  const clickedRef = useRef(new Set());
+  const hitsRef = useRef(0);
+  const errosRef = useRef(0);
+
+  const ROWS = 8, COLS = 12;
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 480;
+  const SIZE = isMobile ? 38 : 46;
+
+  function buildGrid(alvos) {
+    const total = ROWS * COLS;
+    const nAlvos = Math.max(10, Math.floor(total * 0.28));
+    const arr = [];
+    for (let i = 0; i < nAlvos; i++) arr.push(alvos[i % alvos.length]);
+    const distratores = SHAPES.filter(s => !alvos.includes(s));
+    while (arr.length < total) arr.push(distratores[Math.floor(Math.random() * distratores.length)]);
+    arr.sort(() => Math.random() - 0.5);
+    return arr.map((type, i) => ({ type, i, state: "idle", isTarget: alvos.includes(type) }));
+  }
+
+  function iniciarFase(numFase) {
+    clickedRef.current = new Set();
+    hitsRef.current = 0;
+    errosRef.current = 0;
+    const alvos = numFase === 1 ? alvos1 : alvos2;
+    const grid = buildGrid(alvos);
+    if (numFase === 1) { setGrid1(grid); setFase("fase1"); timeRef.current = 45; setTimeLeft(45); }
+    else { setGrid2(grid); setFase("fase2"); timeRef.current = 60; setTimeLeft(60); }
+    clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      timeRef.current--;
+      setTimeLeft(timeRef.current);
+      if (timeRef.current <= 0) finalizarFase(numFase);
+    }, 1000);
+  }
+
+  function handleClick(numFase, idx) {
+    if (clickedRef.current.has(idx)) return;
+    clickedRef.current.add(idx);
+    const setGrid = numFase === 1 ? setGrid1 : setGrid2;
+    setGrid(prev => prev.map((it, i) => {
+      if (i !== idx) return it;
+      if (it.isTarget) { hitsRef.current++; return { ...it, state: "correct" }; }
+      errosRef.current++; return { ...it, state: "wrong" };
+    }));
+  }
+
+  function finalizarFase(numFase) {
+    clearInterval(timerRef.current);
+    const grid = numFase === 1 ? grid1 : grid2;
+    const totalAlvos = grid.filter(it => it.isTarget).length;
+    const acertados = [...clickedRef.current].filter(i => grid[i]?.isTarget).length;
+    const omissoes = totalAlvos - acertados;
+    const stats = {
+      totalAlvos, acertos: hitsRef.current, erros: errosRef.current, omissoes: Math.max(0, omissoes),
+      tempoUsado: (numFase === 1 ? 45 : 60) - timeRef.current
+    };
+    if (numFase === 1) { setRes1(stats); setFase("transicao"); }
+    else {
+      const final = {
+        fase1: res1, fase2: stats,
+        totalAcertos: (res1?.acertos || 0) + stats.acertos,
+        totalOmissoes: (res1?.omissoes || 0) + stats.omissoes,
+        totalErros: (res1?.erros || 0) + stats.erros,
+        totalAlvos: (res1?.totalAlvos || 0) + stats.totalAlvos,
+        tipo: "cancelamento"
+      };
+      setResFinal(final);
+      setFase("resultado");
+    }
+  }
+
+  useEffect(() => () => clearInterval(timerRef.current), []);
+
+  function GridSVG({ grid, numFase }) {
+    return React.createElement("div", {
+      style: { display: "grid", gridTemplateColumns: `repeat(${COLS},1fr)`, gap: 4 }
+    }, grid.map((it, idx) => React.createElement("button", {
+      key: idx,
+      onClick: () => handleClick(numFase, idx),
+      style: {
+        background: it.state === "correct" ? "#d1fae5" : it.state === "wrong" ? "#fee2e2" : "transparent",
+        border: "none", cursor: "pointer", padding: 2, borderRadius: 6, aspectRatio: "1"
+      }
+    }, React.createElement("div", {
+      style: { width: SIZE, height: SIZE },
+      dangerouslySetInnerHTML: { __html: `<svg width="${SIZE}" height="${SIZE}" xmlns="http://www.w3.org/2000/svg">${drawShape(it.type, "#374151", SIZE)}</svg>` }
+    }))));
+  }
+
+  function LegendaShape({ type }) {
+    return React.createElement("div", {
+      style: { width: 40, height: 40 },
+      dangerouslySetInnerHTML: { __html: `<svg width="40" height="40" xmlns="http://www.w3.org/2000/svg">${drawShape(type, color, 40)}</svg>` }
+    });
+  }
+
+  if (fase === "intro") return React.createElement("div", { style: { ...crd, textAlign: "center" } },
+    React.createElement("div", { style: { fontSize: 52, marginBottom: 12 } }, "✂️"),
+    React.createElement("h3", { style: { fontSize: 18, fontWeight: 800, color: "#1f2937", marginBottom: 8 } }, "Teste de Cancelamento"),
+    React.createElement("p", { style: { fontSize: 13, color: "#6b7280", marginBottom: 16, lineHeight: 1.7 } },
+      "O teste tem 2 fases. Na primeira, toque em todos os ", React.createElement("strong", null, "quadrados"), " que encontrar. Na segunda, toque em ", React.createElement("strong", null, "quadrados"), " e ", React.createElement("strong", null, "estrelas"), "."
+    ),
+    React.createElement("div", { style: { display: "flex", justifyContent: "center", gap: 20, marginBottom: 16 } },
+      React.createElement("div", null, React.createElement(LegendaShape, { type: "quadrado" }), React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: "#6b7280", marginTop: 4 } }, "Fase 1 e 2")),
+      React.createElement("div", null, React.createElement(LegendaShape, { type: "estrela" }), React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: "#6b7280", marginTop: 4 } }, "Só Fase 2"))
+    ),
+    React.createElement("div", { style: { background: "#fef3c7", borderRadius: 10, padding: 12, marginBottom: 20, fontSize: 13, color: "#92400e", fontWeight: 600 } },
+      "⏱ Fase 1: 45s · Fase 2: 60s"
+    ),
+    React.createElement("button", { className: "btn-main", style: { background: color }, onClick: () => iniciarFase(1) }, "Começar Fase 1")
+  );
+
+  if (fase === "transicao") return React.createElement("div", { style: { ...crd, textAlign: "center" } },
+    React.createElement("div", { style: { fontSize: 48, marginBottom: 8 } }, "✅"),
+    React.createElement("h3", { style: { fontSize: 16, fontWeight: 800, color: "#1f2937", marginBottom: 4 } }, "Fase 1 concluída!"),
+    React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 16, marginTop: 12 } },
+      [[res1?.acertos, "Acertos", "#059669"], [res1?.omissoes, "Omissões", "#d97706"], [res1?.erros, "Erros", "#e11d48"], [res1?.tempoUsado + "s", "Tempo", color]].map(([v, l, c]) =>
+        React.createElement("div", { key: l, style: { background: "#f9fafb", borderRadius: 12, padding: 10 } },
+          React.createElement("div", { style: { fontSize: 18, fontWeight: 900, color: c } }, v),
+          React.createElement("div", { style: { fontSize: 10, color: "#9ca3af" } }, l)
+        ))
+    ),
+    React.createElement("p", { style: { fontSize: 13, color: "#6b7280", marginBottom: 16 } },
+      "Agora a Fase 2: toque em ", React.createElement("strong", null, "quadrados"), " e ", React.createElement("strong", null, "estrelas"), "."
+    ),
+    React.createElement("button", { className: "btn-main", style: { background: color }, onClick: () => iniciarFase(2) }, "Começar Fase 2")
+  );
+
+  if (fase === "resultado") {
+    const r = resFinal;
+    const pct = r.totalAlvos ? Math.round(r.totalAcertos / r.totalAlvos * 100) : 0;
+    return React.createElement("div", { style: crd },
+      React.createElement("div", { style: { textAlign: "center", marginBottom: 16 } },
+        React.createElement("div", { style: { fontSize: 48, marginBottom: 8 } }, pct >= 80 ? "🏆" : pct >= 60 ? "🎯" : "💪"),
+        React.createElement("h3", { style: { fontSize: 18, fontWeight: 800, color: "#1f2937" } }, `${r.totalAcertos}/${r.totalAlvos} alvos — ${pct}%`)
+      ),
+      React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 } },
+        [[r.totalAcertos, "Acertos", "#059669"], [r.totalOmissoes, "Omissões", "#d97706"], [r.totalErros, "Erros (falsos)", "#e11d48"], [`${pct}%`, "Precisão", color]].map(([v, l, c]) =>
+          React.createElement("div", { key: l, style: { background: "#f9fafb", borderRadius: 12, padding: 10, textAlign: "center" } },
+            React.createElement("div", { style: { fontSize: 20, fontWeight: 900, color: c } }, v),
+            React.createElement("div", { style: { fontSize: 10, color: "#9ca3af" } }, l)
+          ))
+      ),
+      React.createElement("div", { style: { marginBottom: 14 } },
+        React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 6 } }, "Por fase:"),
+        [["Fase 1 (1 alvo)", r.fase1], ["Fase 2 (2 alvos)", r.fase2]].map(([label, f]) => React.createElement("div", { key: label, style: { fontSize: 12, color: "#6b7280", background: "#f9fafb", borderRadius: 8, padding: "6px 10px", marginBottom: 4 } },
+          React.createElement("strong", { style: { color: "#374151" } }, label + ": "), `${f.acertos}/${f.totalAlvos} acertos, ${f.omissoes} omissões, ${f.erros} erros, ${f.tempoUsado}s`
+        ))
+      ),
+      React.createElement("button", { className: "btn-main", style: { background: color }, onClick: () => onSubmit(r) }, "Salvar resultado")
+    );
+  }
+
+  const grid = fase === "fase1" ? grid1 : grid2;
+  const alvos = fase === "fase1" ? alvos1 : alvos2;
+  const urgent = timeLeft <= 10;
+
+  return React.createElement("div", null,
+    React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 } },
+      React.createElement("span", { style: { fontSize: 13, fontWeight: 800, color } }, fase === "fase1" ? "Fase 1" : "Fase 2"),
+      React.createElement("span", { style: { fontSize: 22, fontWeight: 900, color: urgent ? "#e11d48" : color } }, timeLeft, "s")
+    ),
+    React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10, background: "#ede9fe", borderRadius: 10, padding: "8px 12px", marginBottom: 10 } },
+      React.createElement("span", { style: { fontSize: 12, fontWeight: 700, color: "#5b21b6" } }, "Toque em:"),
+      ...alvos.map(a => React.createElement(LegendaShape, { key: a, type: a }))
+    ),
+    React.createElement(GridSVG, { grid, numFase: fase === "fase1" ? 1 : 2 })
+  );
+}
+
 function AtencaoForm({
   color,
   onSubmit
@@ -9392,6 +9606,7 @@ function ResponseView({
   if (type === "pensamentos") items.push(["Situação", response.situacao], ["Pensamento", response.pensamento], ["Emoção", response.emocao], ["Intensidade", `${response.intensidade}/10`], ["Alternativo", response.pensamentoAlternativo]);
   if (type === "atencao") items.push(["Páginas", response.paginas], ["Acertos", response.acertos], ["Erros", response.erros], ["Precisão", `${response.precisao}%`]);
   if (type === "matrizes") items.push(["Acertos", `${response.acertos}/${response.total}`], ["Percentual", `${response.pct}%`], ["Nível", response.nivel]);
+  if (type === "cancelamento") items.push(["Total de acertos", `${response.totalAcertos}/${response.totalAlvos}`], ["Omissões", response.totalOmissoes], ["Erros (falsos)", response.totalErros], ["Fase 1", `${response.fase1?.acertos}/${response.fase1?.totalAlvos} em ${response.fase1?.tempoUsado}s`], ["Fase 2", `${response.fase2?.acertos}/${response.fase2?.totalAlvos} em ${response.fase2?.tempoUsado}s`]);
   if (type === "memoria_lista") items.push(["Palavras recordadas", `${response.acertos}/${response.total}`], ["Percentual", `${response.pct}%`], ["Intrusões", response.intrusions], ["Nível", response.nivel]);
   if (type === "experimento") items.push(["Hipótese", response.hipotese], ["Ação", response.acao], ["Resultado", response.resultado], ["Aprendizado", response.aprendizado]);
   if (type === "escala") {
