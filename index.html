@@ -89,6 +89,22 @@ const {
   useEffect,
   useRef
 } = React;
+function parseDataBR(str) {
+  if (!str) return null;
+  const partes = str.split("/");
+  if (partes.length !== 3) return null;
+  const [d, m, y] = partes;
+  const dt = new Date(`${y}-${m}-${d}T00:00:00`);
+  return isNaN(dt.getTime()) ? null : dt;
+}
+async function arquivarRespostaSeExistir(patientId, task) {
+  if (!task.response) return;
+  const id = task.id || ("arq" + Date.now() + Math.random().toString(36).slice(2, 5));
+  await fbSet(`patients/${patientId}/respostas_arquivadas/${id}`, {
+    ...task,
+    arquivadoEm: new Date().toLocaleDateString("pt-BR")
+  });
+}
 async function fbGet(p) {
   const s = await window._get(window._ref(window._db, p));
   return s.exists() ? s.val() : null;
@@ -3063,6 +3079,7 @@ function GruposTab({
       const tasks = pData?.tasks ? Object.values(pData.tasks) : [];
       for (const task of tasks) {
         if (task.fromGroup === g.nome) {
+          await arquivarRespostaSeExistir(pid, task);
           await fbSet(`patients/${pid}/tasks/${task.id}`, null);
           total++;
         }
@@ -5014,6 +5031,26 @@ function TherapistApp({
     return () => u();
   }, []);
 
+  // Limpeza automática: apaga tarefas não respondidas há mais de 2 dias.
+  const limpezaFeitaRef = useRef(false);
+  useEffect(() => {
+    if (!patients || limpezaFeitaRef.current) return;
+    limpezaFeitaRef.current = true;
+    const limite = Date.now() - 2 * 24 * 60 * 60 * 1000;
+    (async () => {
+      for (const p of patients) {
+        const tasks = p.tasks ? Object.values(p.tasks) : [];
+        for (const t of tasks) {
+          if (t.response) continue; // respondidas nunca são apagadas automaticamente
+          const criada = parseDataBR(t.createdAt);
+          if (criada && criada.getTime() < limite) {
+            await fbSet(`patients/${p.id}/tasks/${t.id}`, null);
+          }
+        }
+      }
+    })();
+  }, [patients]);
+
   async function savePatient(name, pass) {
     if (!name.trim()) return;
     const all = await fbGet("patients");
@@ -5391,6 +5428,8 @@ function PatientDetail({
     setShowAdd(false);
   }
   async function deleteTask(tid) {
+    const task = tasks.find(t => t.id === tid);
+    if (task) await arquivarRespostaSeExistir(patient.id, task);
     await fbSet(`patients/${patient.id}/tasks/${tid}`, null);
     setConfirmDel(null);
     setViewTask(null);
