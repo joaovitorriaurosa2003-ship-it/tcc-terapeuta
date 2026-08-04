@@ -3830,11 +3830,120 @@ function csvPaciente(p) {
   if (suporteResp) {
     csv += "SUPORTE SOCIAL PERCEBIDO\n" + toCSV([["Subescala", "Pontuação", "Máximo", "%"], ["Suporte da Família", suporteResp.familia, 16, Math.round(suporteResp.familia / 16 * 100)], ["Suporte do Treinador", suporteResp.treinador, 16, Math.round(suporteResp.treinador / 16 * 100)], ["Suporte dos Colegas", suporteResp.colegas, 16, Math.round(suporteResp.colegas / 16 * 100)]]) + "\n\n";
   }
+
+  // ── Testes Cognitivos ──────────────────────────────────────────────────
+  const trResps = tasks.filter(t => t.type === "tr" && t.response);
+  if (trResps.length) {
+    const r = trResps[trResps.length - 1].response;
+    csv += "TEMPO DE REAÇÃO\n" + toCSV([
+      ["Métrica", "Valor"],
+      ["TR médio (ms)", r.media], ["Desvio padrão (ms)", r.desvio],
+      ["Acertos", r.acertos], ["Falsos positivos", r.falsosPos], ["Omissões", r.omissoes], ["Score", r.score]
+    ]) + "\n\n";
+  }
+  const stroopResps = tasks.filter(t => t.type === "stroop" && t.response);
+  if (stroopResps.length) {
+    const r = stroopResps[stroopResps.length - 1].response;
+    csv += "TESTE DE STROOP\n" + toCSV([
+      ["Métrica", "Valor"],
+      ["Acertos", r.acertos], ["Erros", r.erros], ["Total de itens", r.total], ["TR médio (ms)", r.media]
+    ]) + "\n\n";
+  }
+  const tmtResps = tasks.filter(t => t.type === "tmt" && t.response);
+  if (tmtResps.length) {
+    const r = tmtResps[tmtResps.length - 1].response;
+    csv += "TRAIL MAKING TEST\n" + toCSV([
+      ["Métrica", "Valor"],
+      ["Tempo Parte A (s)", r.tempoA], ["Tempo Parte B (s)", r.tempoB],
+      ["Diferença B-A (s)", (r.tempoB || 0) - (r.tempoA || 0)], ["Erros", r.erros]
+    ]) + "\n\n";
+  }
+  const nbackResps = tasks.filter(t => t.type === "nback" && t.response);
+  if (nbackResps.length) {
+    const r = nbackResps[nbackResps.length - 1].response;
+    csv += "N-BACK (2-BACK)\n" + toCSV([
+      ["Métrica", "Valor"],
+      ["Acertos", r.acertos], ["Erros", r.erros], ["Omissões", r.omissoes], ["Total de itens", r.total]
+    ]) + "\n\n";
+  }
+  const gonogoResps = tasks.filter(t => t.type === "gonogo" && t.response);
+  if (gonogoResps.length) {
+    const r = gonogoResps[gonogoResps.length - 1].response;
+    csv += "GO / NO-GO\n" + toCSV([
+      ["Métrica", "Valor"],
+      ["Acertos", r.acertos], ["Falsos alarmes", r.falsosGo], ["Omissões", r.omissoes], ["TR médio (ms)", r.mediaTempos], ["Total de itens", r.total]
+    ]) + "\n\n";
+  }
+  const flankerResps = tasks.filter(t => t.type === "flanker" && t.response);
+  if (flankerResps.length) {
+    const r = flankerResps[flankerResps.length - 1].response;
+    const tCong = (r.tempos?.congruente || []); const tIncong = (r.tempos?.incongruente || []);
+    const mCong = tCong.length ? Math.round(tCong.reduce((a,b)=>a+b,0)/tCong.length) : 0;
+    const mIncong = tIncong.length ? Math.round(tIncong.reduce((a,b)=>a+b,0)/tIncong.length) : 0;
+    csv += "TESTE DE FLANKER\n" + toCSV([
+      ["Métrica", "Valor"],
+      ["Acertos", r.acertos], ["Erros", r.erros], ["Total de itens", r.total],
+      ["TR médio congruente (ms)", mCong], ["TR médio incongruente (ms)", mIncong], ["Efeito Flanker (ms)", mIncong - mCong]
+    ]) + "\n\n";
+  }
+  const matrizesResps = tasks.filter(t => t.type === "matrizes" && t.response);
+  if (matrizesResps.length) {
+    const r = matrizesResps[matrizesResps.length - 1].response;
+    csv += "MATRIZES PROGRESSIVAS\n" + toCSV([
+      ["Métrica", "Valor"],
+      ["Acertos", `${r.acertos}/${r.total}`], ["Percentual", `${r.pct}%`], ["Nível", r.nivel],
+      ...(r.porNivel || []).map(n => [`Nível: ${n.label}`, `${n.acertos}/${n.total}`])
+    ]) + "\n\n";
+  }
+  const memResps = tasks.filter(t => t.type === "memoria_lista" && t.response);
+  if (memResps.length) {
+    const r = memResps[memResps.length - 1].response;
+    csv += "MEMÓRIA DE LISTA DE PALAVRAS\n" + toCSV([
+      ["Métrica", "Valor"],
+      ["Palavras recordadas", `${r.acertos}/${r.total}`], ["Percentual", `${r.pct}%`], ["Intrusões", r.intrusions], ["Nível", r.nivel]
+    ]) + "\n\n";
+  }
+  const cancResps = tasks.filter(t => t.type === "cancelamento" && t.response);
+  if (cancResps.length) {
+    const r = cancResps[cancResps.length - 1].response;
+    csv += "TESTE DE CANCELAMENTO\n" + toCSV([
+      ["Métrica", "Valor"],
+      ["Total de acertos", `${r.totalAcertos}/${r.totalAlvos}`], ["Omissões", r.totalOmissoes], ["Erros (falsos)", r.totalErros],
+      ["Fase 1 — acertos", `${r.fase1?.acertos}/${r.fase1?.totalAlvos}`], ["Fase 1 — tempo (s)", r.fase1?.tempoUsado],
+      ["Fase 2 — acertos", `${r.fase2?.acertos}/${r.fase2?.totalAlvos}`], ["Fase 2 — tempo (s)", r.fase2?.tempoUsado]
+    ]) + "\n\n";
+  }
+  const atencaoResps = tasks.filter(t => t.type === "atencao" && t.response);
+  if (atencaoResps.length) {
+    const r = atencaoResps[atencaoResps.length - 1].response;
+    csv += "TESTE DE ATENÇÃO VISUAL\n" + toCSV([
+      ["Métrica", "Valor"],
+      ["Páginas", r.paginas], ["Acertos", r.acertos], ["Erros", r.erros], ["Precisão", `${r.precisao}%`]
+    ]) + "\n\n";
+  }
+
+  // ── Técnicas TCC ─────────────────────────────────────────────────────────
+  const pensResps = tasks.filter(t => t.type === "pensamentos" && t.response);
+  if (pensResps.length) {
+    csv += "REGISTRO ABC — PENSAMENTOS AUTOMÁTICOS\n" + toCSV([
+      ["Data", "Situação", "Pensamento", "Emoção", "Intensidade", "Pensamento Alternativo"],
+      ...pensResps.map(t => [t.answeredAt || "—", t.response.situacao, t.response.pensamento, t.response.emocao, `${t.response.intensidade}/10`, t.response.pensamentoAlternativo || "—"])
+    ]) + "\n\n";
+  }
+  const expResps = tasks.filter(t => t.type === "experimento" && t.response);
+  if (expResps.length) {
+    csv += "EXPERIMENTO COMPORTAMENTAL\n" + toCSV([
+      ["Data", "Hipótese", "Ação", "Resultado", "Aprendizado"],
+      ...expResps.map(t => [t.answeredAt || "—", t.response.hipotese, t.response.acao, t.response.resultado || "—", t.response.aprendizado || "—"])
+    ]) + "\n\n";
+  }
+
   if (diarios.length) {
     csv += "DIÁRIO\n" + toCSV([["Emoção", "Intensidade", "Data", "Hora", "Contexto"], ...diarios.map(d => [d.emocao, d.intensidade, d.data || "—", d.hora || "—", d.contexto || "—"])]);
   }
   return csv;
 }
+
 function exportarSelecionados(ps) {
   if (ps.length === 1) {
     downloadCSV(`MeuPsi_${ps[0].name.replace(/\s+/g, "_")}.csv`, csvPaciente(ps[0]));
@@ -6712,10 +6821,7 @@ function MiniScoreBar({
     }
   })));
 }
-function TRForm({
-  color,
-  onSubmit
-}) {
+function TRForm({ color, onSubmit }) {
   const TOTAL = 20;
   const [fase, setFase] = useState("intro");
   const [trial, setTrial] = useState(0);
@@ -6726,8 +6832,8 @@ function TRForm({
   const [feedback, setFeedback] = useState(null);
   const [tempoIni, setTempoIni] = useState(null);
   const [ultimoTR, setUltimoTR] = useState(null);
-  const tRef = useRef(null),
-    aRef = useRef(null);
+  const tRef = useRef(null), aRef = useRef(null);
+
   function comecar() {
     setFase("espera");
     setAlvoVis(false);
@@ -6746,13 +6852,13 @@ function TRForm({
       }, 1500);
     }, e);
   }
+
   function prox() {
     const n = trial + 1;
-    if (n >= TOTAL) setFase("resultado");else {
-      setTrial(n);
-      comecar();
-    }
+    if (n >= TOTAL) setFase("resultado");
+    else { setTrial(n); comecar(); }
   }
+
   function click() {
     if (fase === "espera") {
       clearTimeout(tRef.current);
@@ -6771,232 +6877,95 @@ function TRForm({
       setTimeout(() => prox(), 800);
     }
   }
-  useEffect(() => () => {
-    clearTimeout(tRef.current);
-    clearTimeout(aRef.current);
-  }, []);
-  if (fase === "intro") return React.createElement("div", {
-    style: {
-      ...crd,
-      textAlign: "center"
-    }
-  }, React.createElement("div", {
-    style: {
-      fontSize: 52,
-      marginBottom: 12
-    }
-  }, "⚡"), React.createElement("h3", {
-    style: {
-      fontSize: 18,
-      fontWeight: 800,
-      color: "#1f2937",
-      marginBottom: 8
-    }
-  }, "Tempo de Reação"), React.createElement("p", {
-    style: {
-      fontSize: 13,
-      color: "#6b7280",
-      marginBottom: 20,
-      lineHeight: 1.6
-    }
-  }, "Toque quando aparecer o círculo verde. ", React.createElement("strong", null, "Não toque antes!")), React.createElement("button", {
-    className: "btn-main",
-    style: {
-      background: color
-    },
-    onClick: () => {
-      setTrial(0);
-      setTempos([]);
-      setFalsosPos(0);
-      setOmissoes(0);
-      comecar();
-    }
-  }, "Começar"));
+
+  useEffect(() => () => { clearTimeout(tRef.current); clearTimeout(aRef.current); }, []);
+
+  if (fase === "intro") return React.createElement("div", { style: { ...crd, textAlign: "center" } },
+    React.createElement("div", { style: { fontSize: 52, marginBottom: 12 } }, "⚡"),
+    React.createElement("h3", { style: { fontSize: 18, fontWeight: 800, color: "#1f2937", marginBottom: 8 } }, "Tempo de Reação"),
+    React.createElement("p", { style: { fontSize: 13, color: "#6b7280", marginBottom: 20, lineHeight: 1.6 } },
+      "Toque em qualquer lugar da tela quando aparecer o círculo verde. ", React.createElement("strong", null, "Não toque antes!")
+    ),
+    React.createElement("button", {
+      className: "btn-main", style: { background: color },
+      onClick: () => { setTrial(0); setTempos([]); setFalsosPos(0); setOmissoes(0); comecar(); }
+    }, "Começar")
+  );
+
   if (fase === "resultado") {
     const media = tempos.length ? Math.round(tempos.reduce((a, b) => a + b, 0) / tempos.length) : 0;
     const desvio = tempos.length > 1 ? Math.round(Math.sqrt(tempos.reduce((a, b) => a + (b - media) ** 2, 0) / tempos.length)) : 0;
     const score = Math.max(0, 100 - Math.round((media - 200) / 5) - falsosPos * 5 - omissoes * 3);
-    return React.createElement("div", {
-      style: crd
-    }, React.createElement("div", {
-      style: {
-        textAlign: "center",
-        marginBottom: 16
-      }
-    }, React.createElement("div", {
-      style: {
-        fontSize: 48,
-        marginBottom: 8
-      }
-    }, score >= 75 ? "🏆" : score >= 50 ? "🎯" : "💪"), React.createElement("h3", {
-      style: {
-        fontSize: 18,
-        fontWeight: 800,
-        color: "#1f2937"
-      }
-    }, score >= 75 ? "Excelente!" : score >= 50 ? "Muito bem!" : "Continue!")), React.createElement("div", {
-      style: {
-        display: "grid",
-        gridTemplateColumns: "1fr 1fr",
-        gap: 8,
-        marginBottom: 14
-      }
-    }, [[media + "ms", "TR Médio", color], [desvio + "ms", "Desvio", color], [tempos.length, "Acertos", "#059669"], [falsosPos, "Falsos", "#e11d48"]].map(([v, l, c]) => React.createElement("div", {
-      key: l,
-      style: {
-        background: "#f9fafb",
-        borderRadius: 12,
-        padding: 10,
-        textAlign: "center"
-      }
-    }, React.createElement("div", {
-      style: {
-        fontSize: 18,
-        fontWeight: 900,
-        color: c
-      }
-    }, v), React.createElement("div", {
-      style: {
-        fontSize: 10,
-        color: "#9ca3af"
-      }
-    }, l)))), React.createElement("button", {
-      className: "btn-main",
-      style: {
-        background: color
-      },
-      onClick: () => onSubmit({
-        media,
-        desvio,
-        acertos: tempos.length,
-        falsosPos,
-        omissoes,
-        score,
-        tipo: "tr"
-      })
-    }, "Salvar resultado"));
+    return React.createElement("div", { style: crd },
+      React.createElement("div", { style: { textAlign: "center", marginBottom: 16 } },
+        React.createElement("div", { style: { fontSize: 48, marginBottom: 8 } }, score >= 75 ? "🏆" : score >= 50 ? "🎯" : "💪"),
+        React.createElement("h3", { style: { fontSize: 18, fontWeight: 800, color: "#1f2937" } }, score >= 75 ? "Excelente!" : score >= 50 ? "Muito bem!" : "Continue!")
+      ),
+      React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 } },
+        [[media + "ms", "TR Médio", color], [desvio + "ms", "Desvio", color], [tempos.length, "Acertos", "#059669"], [falsosPos, "Falsos", "#e11d48"]].map(([v, l, c]) =>
+          React.createElement("div", { key: l, style: { background: "#f9fafb", borderRadius: 12, padding: 10, textAlign: "center" } },
+            React.createElement("div", { style: { fontSize: 18, fontWeight: 900, color: c } }, v),
+            React.createElement("div", { style: { fontSize: 10, color: "#9ca3af" } }, l)
+          ))
+      ),
+      React.createElement("button", {
+        className: "btn-main", style: { background: color },
+        onClick: () => onSubmit({ media, desvio, acertos: tempos.length, falsosPos, omissoes, score, tipo: "tr" })
+      }, "Salvar resultado")
+    );
   }
+
+  // ── Fases de jogo: tela cheia ──────────────────────────────────────────
   const bg = feedback === "certo" ? "#d1fae5" : feedback === "falso" ? "#fee2e2" : feedback === "omissao" ? "#fef3c7" : alvoVis ? "#d1fae5" : "#f9fafb";
   const pct = Math.round(trial / TOTAL * 100);
+
   return React.createElement("div", {
-    onClick: click
-  }, React.createElement("div", {
+    onClick: click,
     style: {
-      display: "flex",
-      justifyContent: "space-between",
-      marginBottom: 8
+      position: "fixed", inset: 0, zIndex: 300,
+      background: bg, display: "flex", flexDirection: "column",
+      alignItems: "center", justifyContent: "center",
+      transition: "background .15s", cursor: "pointer"
     }
-  }, React.createElement("span", {
-    style: {
-      fontSize: 12,
-      fontWeight: 700,
-      color: "#374151"
-    }
-  }, trial + 1, "/", TOTAL), React.createElement("span", {
-    style: {
-      fontSize: 12,
-      fontWeight: 700,
-      color
-    }
-  }, pct, "%")), React.createElement("div", {
-    style: {
-      background: "#f3f4f6",
-      borderRadius: 20,
-      height: 8,
-      overflow: "hidden",
-      marginBottom: 14
-    }
-  }, React.createElement("div", {
-    style: {
-      width: `${pct}%`,
-      background: color,
-      height: "100%",
-      borderRadius: 20
-    }
-  })), React.createElement("div", {
-    style: {
-      background: bg,
-      borderRadius: 16,
-      padding: 40,
-      textAlign: "center",
-      minHeight: 240,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      transition: "background .15s",
-      marginBottom: 12
-    }
-  }, alvoVis && React.createElement("div", {
-    style: {
-      width: 130,
-      height: 130,
-      borderRadius: "50%",
-      background: "linear-gradient(135deg,#059669,#34d399)",
-      boxShadow: "0 0 40px rgba(5,150,105,.6)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      fontSize: 44
-    }
-  }, "👆"), !alvoVis && !feedback && React.createElement("div", {
-    style: {
-      textAlign: "center"
-    }
-  }, React.createElement("div", {
-    style: {
-      fontSize: 48,
-      marginBottom: 8
-    }
-  }, "⏳"), React.createElement("p", {
-    style: {
-      fontSize: 14,
-      color: "#9ca3af",
-      fontWeight: 700
-    }
-  }, "Aguarde...")), feedback === "certo" && React.createElement("div", {
-    style: {
-      textAlign: "center"
-    }
-  }, React.createElement("div", {
-    style: {
-      fontSize: 52
-    }
-  }, "✅"), React.createElement("div", {
-    style: {
-      fontSize: 22,
-      fontWeight: 900,
-      color: "#059669"
-    }
-  }, ultimoTR, "ms")), feedback === "falso" && React.createElement("div", {
-    style: {
-      textAlign: "center"
-    }
-  }, React.createElement("div", {
-    style: {
-      fontSize: 52
-    }
-  }, "⚠️"), React.createElement("div", {
-    style: {
-      fontSize: 16,
-      fontWeight: 800,
-      color: "#e11d48"
-    }
-  }, "Muito cedo!")), feedback === "omissao" && React.createElement("div", {
-    style: {
-      textAlign: "center"
-    }
-  }, React.createElement("div", {
-    style: {
-      fontSize: 52
-    }
-  }, "😴"), React.createElement("div", {
-    style: {
-      fontSize: 16,
-      fontWeight: 800,
-      color: "#d97706"
-    }
-  }, "Perdeu!"))));
+  },
+    // Barra de progresso no topo
+    React.createElement("div", { style: { position: "absolute", top: 0, left: 0, right: 0, padding: "16px 20px" } },
+      React.createElement("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: 8 } },
+        React.createElement("span", { style: { fontSize: 13, fontWeight: 700, color: "#374151" } }, trial + 1, "/", TOTAL),
+        React.createElement("span", { style: { fontSize: 13, fontWeight: 700, color } }, pct, "%")
+      ),
+      React.createElement("div", { style: { background: "rgba(0,0,0,.08)", borderRadius: 20, height: 8, overflow: "hidden" } },
+        React.createElement("div", { style: { width: `${pct}%`, background: color, height: "100%", borderRadius: 20 } })
+      )
+    ),
+    // Conteúdo central
+    alvoVis && React.createElement("div", {
+      style: {
+        width: 180, height: 180, borderRadius: "50%",
+        background: "linear-gradient(135deg,#059669,#34d399)",
+        boxShadow: "0 0 60px rgba(5,150,105,.6)",
+        display: "flex", alignItems: "center", justifyContent: "center", fontSize: 64
+      }
+    }, "👆"),
+    !alvoVis && !feedback && React.createElement("div", { style: { textAlign: "center" } },
+      React.createElement("div", { style: { fontSize: 64, marginBottom: 10 } }, "⏳"),
+      React.createElement("p", { style: { fontSize: 16, color: "#9ca3af", fontWeight: 700 } }, "Aguarde...")
+    ),
+    feedback === "certo" && React.createElement("div", { style: { textAlign: "center" } },
+      React.createElement("div", { style: { fontSize: 72 } }, "✅"),
+      React.createElement("div", { style: { fontSize: 28, fontWeight: 900, color: "#059669" } }, ultimoTR, "ms")
+    ),
+    feedback === "falso" && React.createElement("div", { style: { textAlign: "center" } },
+      React.createElement("div", { style: { fontSize: 72 } }, "⚠️"),
+      React.createElement("div", { style: { fontSize: 20, fontWeight: 800, color: "#e11d48" } }, "Muito cedo!")
+    ),
+    feedback === "omissao" && React.createElement("div", { style: { textAlign: "center" } },
+      React.createElement("div", { style: { fontSize: 72 } }, "😴"),
+      React.createElement("div", { style: { fontSize: 20, fontWeight: 800, color: "#d97706" } }, "Perdeu!")
+    )
+  );
 }
+
 function StroopForm({
   color,
   onSubmit
@@ -7031,6 +7000,7 @@ function StroopForm({
       setFase("fim");
       return;
     }
+    setFase("jogo");
     setFeedback(null);
     setTrial(t);
     setItem(gerar());
@@ -7787,6 +7757,7 @@ function GoNoGoForm({
       setFase("fim");
       return;
     }
+    setFase("jogo");
     setFeedback(null);
     const isGo = Math.random() < .7;
     setStim(isGo ? "🟢" : "🔴");
@@ -8078,6 +8049,7 @@ function FlankerForm({
       setFase("fim");
       return;
     }
+    setFase("jogo");
     setFeedback(null);
     setTrial(t);
     setItem(gerar());
