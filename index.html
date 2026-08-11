@@ -4309,11 +4309,11 @@ function ModoTeste({ patient, onClose }) {
   async function handleResult(response) {
     setSalvando(true);
     const id = "t" + Date.now();
-    const ti = getTypeInfo(testeAtivo.type);
+    const ti = getTypeInfo(testeAtivo.id);
     await fbSet(`patients/${patient.id}/tasks/${id}`, {
       id,
-      type: testeAtivo.type,
-      title: ti.label || testeAtivo.type,
+      type: testeAtivo.id,
+      title: ti.label || testeAtivo.id,
       note: "Aplicado em sessão (Modo Teste)",
       response,
       createdAt: new Date().toLocaleDateString("pt-BR"),
@@ -4328,7 +4328,7 @@ function ModoTeste({ patient, onClose }) {
 
   // Se um teste está ativo, renderiza ele em tela cheia
   if (testeAtivo) {
-    const ti = getTypeInfo(testeAtivo.type);
+    const ti = getTypeInfo(testeAtivo.id);
     return React.createElement("div", { style: aw },
       React.createElement(Header, {
         title: ti.label,
@@ -4341,21 +4341,21 @@ function ModoTeste({ patient, onClose }) {
           style: { background: "#fef3c7", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 12, color: "#92400e", fontWeight: 600 }
         }, "🧪 Modo Teste — o resultado será salvo automaticamente no prontuário do paciente"),
 
-        testeAtivo.type === "pensamentos"   && React.createElement(PensamentosForm,   { color: ti.color, onSubmit: handleResult }),
-        testeAtivo.type === "atencao"       && React.createElement(AtencaoForm,       { color: ti.color, onSubmit: handleResult }),
-        testeAtivo.type === "cancelamento"   && React.createElement(CancelamentoForm,  { color: ti.color, onSubmit: handleResult }),
-        testeAtivo.type === "experimento"   && React.createElement(ExperimentoForm,   { color: ti.color, onSubmit: handleResult }),
-        testeAtivo.type === "escala"        && React.createElement(EscalaForm,        { color: ti.color, onSubmit: handleResult }),
-        ["csai2r","sas","acsi28","teosq","siq","resiliencia","suporte_social","hama"].includes(testeAtivo.type) &&
-          React.createElement(EscalaPsiForm, { tipo: testeAtivo.type, color: ti.color, onSubmit: handleResult }),
-        testeAtivo.type === "tr"            && React.createElement(TRForm,            { color: ti.color, onSubmit: handleResult }),
-        testeAtivo.type === "stroop"        && React.createElement(StroopForm,        { color: ti.color, onSubmit: handleResult }),
-        testeAtivo.type === "tmt"           && React.createElement(TMTForm,           { color: ti.color, onSubmit: handleResult }),
-        testeAtivo.type === "nback"         && React.createElement(NBackForm,         { color: ti.color, onSubmit: handleResult }),
-        testeAtivo.type === "gonogo"        && React.createElement(GoNoGoForm,        { color: ti.color, onSubmit: handleResult }),
-        testeAtivo.type === "flanker"       && React.createElement(FlankerForm,       { color: ti.color, onSubmit: handleResult }),
-        testeAtivo.type === "matrizes"      && React.createElement(MatrizesForm,      { color: ti.color, onSubmit: handleResult }),
-        testeAtivo.type === "memoria_lista" && React.createElement(MemoriaListaForm,  { color: ti.color, onSubmit: handleResult })
+        testeAtivo.id === "pensamentos"   && React.createElement(PensamentosForm,   { color: ti.color, onSubmit: handleResult }),
+        testeAtivo.id === "atencao"       && React.createElement(AtencaoForm,       { color: ti.color, onSubmit: handleResult }),
+        testeAtivo.id === "cancelamento"   && React.createElement(CancelamentoForm,  { color: ti.color, onSubmit: handleResult }),
+        testeAtivo.id === "experimento"   && React.createElement(ExperimentoForm,   { color: ti.color, onSubmit: handleResult }),
+        testeAtivo.id === "escala"        && React.createElement(EscalaForm,        { color: ti.color, onSubmit: handleResult }),
+        ["csai2r","sas","acsi28","teosq","siq","resiliencia","suporte_social","hama"].includes(testeAtivo.id) &&
+          React.createElement(EscalaPsiForm, { tipo: testeAtivo.id, color: ti.color, onSubmit: handleResult }),
+        testeAtivo.id === "tr"            && React.createElement(TRForm,            { color: ti.color, onSubmit: handleResult }),
+        testeAtivo.id === "stroop"        && React.createElement(StroopForm,        { color: ti.color, onSubmit: handleResult }),
+        testeAtivo.id === "tmt"           && React.createElement(TMTForm,           { color: ti.color, onSubmit: handleResult }),
+        testeAtivo.id === "nback"         && React.createElement(NBackForm,         { color: ti.color, onSubmit: handleResult }),
+        testeAtivo.id === "gonogo"        && React.createElement(GoNoGoForm,        { color: ti.color, onSubmit: handleResult }),
+        testeAtivo.id === "flanker"       && React.createElement(FlankerForm,       { color: ti.color, onSubmit: handleResult }),
+        testeAtivo.id === "matrizes"      && React.createElement(MatrizesForm,      { color: ti.color, onSubmit: handleResult }),
+        testeAtivo.id === "memoria_lista" && React.createElement(MemoriaListaForm,  { color: ti.color, onSubmit: handleResult })
       )
     );
   }
@@ -8004,12 +8004,20 @@ function CancelamentoForm({ color, onSubmit }) {
   function handleClick(numFase, idx) {
     if (clickedRef.current.has(idx)) return;
     clickedRef.current.add(idx);
+    const grid = numFase === 1 ? grid1 : grid2;
     const setGrid = numFase === 1 ? setGrid1 : setGrid2;
     setGrid(prev => prev.map((it, i) => {
       if (i !== idx) return it;
       if (it.isTarget) { hitsRef.current++; return { ...it, state: "correct" }; }
       errosRef.current++; return { ...it, state: "wrong" };
     }));
+    // Avança automaticamente assim que TODOS os alvos da fase forem encontrados
+    const totalAlvos = grid.filter(it => it.isTarget).length;
+    const encontrados = [...clickedRef.current].filter(i => grid[i]?.isTarget).length;
+    if (totalAlvos > 0 && encontrados >= totalAlvos) {
+      clearInterval(timerRef.current);
+      setTimeout(() => finalizarFase(numFase), 400);
+    }
   }
 
   function finalizarFase(numFase) {
@@ -8239,7 +8247,7 @@ function AtencaoForm({
         const it = items[i];
         return it && TARGETS.includes(it.type);
       }).length;
-      if (pa + 1 >= pageTargetsRef.current) setTimeout(() => doPageTurn(), 300);
+      if (pa >= pageTargetsRef.current) setTimeout(() => doPageTurn(), 300);
     } else {
       missesRef.current++;
       setTotalMisses(missesRef.current);
