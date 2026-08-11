@@ -89,6 +89,14 @@ const {
   useEffect,
   useRef
 } = React;
+function seededRandom(seed) {
+  let s = seed % 2147483647;
+  if (s <= 0) s += 2147483646;
+  return function () {
+    s = (s * 16807) % 2147483647;
+    return (s - 1) / 2147483646;
+  };
+}
 function parseDataBR(str) {
   if (!str) return null;
   const partes = str.split("/");
@@ -201,6 +209,14 @@ const TASK_TYPES = [{
 }, {
   id: "memoria_lista",
   label: "🧠 Memória de Lista",
+  color: "#0891b2"
+}, {
+  id: "digit_span",
+  label: "🔢 Span de Dígitos",
+  color: "#7c3aed"
+}, {
+  id: "estado_dia",
+  label: "📋 Estado do Dia",
   color: "#0891b2"
 }];
 function getTypeInfo(id) {
@@ -2040,7 +2056,7 @@ const TASK_CATEGORIES = [
     label: "🧠 Testes Cognitivos",
     color: "#7c3aed",
     bg: "#ede9fe",
-    ids: ["tr", "gonogo", "flanker", "stroop", "tmt", "nback", "atencao", "cancelamento", "matrizes", "memoria_lista"]
+    ids: ["tr", "gonogo", "flanker", "stroop", "tmt", "nback", "atencao", "cancelamento", "matrizes", "memoria_lista", "digit_span"]
   },
   {
     id: "escalas",
@@ -2061,7 +2077,7 @@ const TASK_CATEGORIES = [
     label: "📊 Bem-Estar",
     color: "#d97706",
     bg: "#fef3c7",
-    ids: ["escala"]
+    ids: ["escala", "estado_dia"]
   }
 ];
 
@@ -3062,148 +3078,93 @@ function Badge({
     }
   }, children);
 }
+function historicoCSV(titulo, resps, colunas) {
+  if (!resps.length) return "";
+  return titulo + "\n" + toCSV([
+    ["Data", ...colunas.map(c => c[0])],
+    ...resps.map(t => [t.answeredAt || "—", ...colunas.map(c => c[1](t.response))])
+  ]) + "\n\n";
+}
+
 function csvPaciente(p) {
   const tasks = p.tasks ? Object.values(p.tasks) : [];
   const diarios = p.diarios ? Object.values(p.diarios) : [];
-  const escResp = tasks.filter(t => t.type === "escala" && t.response).slice(-1)[0]?.response || null;
-  const csaiResp = tasks.filter(t => t.type === "csai2r" && t.response?.totais).slice(-1)[0]?.response?.totais || null;
-  const sasResp = tasks.filter(t => t.type === "sas" && t.response?.totais).slice(-1)[0]?.response?.totais || null;
-  const acsiResp = tasks.filter(t => t.type === "acsi28" && t.response?.totais).slice(-1)[0]?.response?.totais || null;
-  const teosqResp = tasks.filter(t => t.type === "teosq" && t.response?.totais).slice(-1)[0]?.response?.totais || null;
-  const siqResp = tasks.filter(t => t.type === "siq" && t.response?.totais).slice(-1)[0]?.response?.totais || null;
-  const resilResp = tasks.filter(t => t.type === "resiliencia" && t.response?.totais).slice(-1)[0]?.response?.totais || null;
-  const suporteResp = tasks.filter(t => t.type === "suporte_social" && t.response?.totais).slice(-1)[0]?.response?.totais || null;
-  const hamaResp = tasks.filter(t => t.type === "hama" && t.response?.totais).slice(-1)[0]?.response?.totais || null;
   let csv = "";
   csv += "RESUMO\n" + toCSV([["Campo", "Valor"], ["Paciente", p.name], ["Grupo", p._grupo || "—"], ["Data", new Date().toLocaleDateString("pt-BR")], ["Registros no diário", diarios.length], ["Total de tarefas", tasks.length], ["Tarefas respondidas", tasks.filter(t => t.response).length]]) + "\n\n";
-  if (escResp) {
-    csv += "ESCALA DE BEM-ESTAR\n" + toCSV([["Dimensão", "Valor (%)"], ["Humor", escResp.humor], ["Ansiedade", escResp.ansiedade], ["Sono", escResp.sono], ["Estresse", escResp.estresse], ["Tristeza", escResp.tristeza]]) + "\n\n";
-  }
-  if (csaiResp) {
-    csv += "CSAI-2R\n" + toCSV([["Subescala", "Pontuação", "Máximo", "%"], ["Ans. Cognitiva", csaiResp.cognitiva, 32, Math.round(csaiResp.cognitiva / 32 * 100)], ["Ans. Somática", csaiResp.somatica, 28, Math.round(csaiResp.somatica / 28 * 100)], ["Autoconfiança", csaiResp.autoconfianca, 20, Math.round(csaiResp.autoconfianca / 20 * 100)]]) + "\n\n";
-  }
-  if (sasResp) {
-    csv += "SAS\n" + toCSV([["Subescala", "Pontuação", "Máximo", "%"], ["Somática", sasResp.somatica, 28, Math.round(sasResp.somatica / 28 * 100)], ["Preocupação", sasResp.preocupacao, 28, Math.round(sasResp.preocupacao / 28 * 100)], ["Concentração", sasResp.concentracao, 28, Math.round(sasResp.concentracao / 28 * 100)]]) + "\n\n";
-  }
-  if (acsiResp) {
-    csv += "ACSI-28\n" + toCSV([["Subescala", "Pontuação", "Máximo", "%"], ["Adversidade", acsiResp.adversidade, 16, Math.round(acsiResp.adversidade / 16 * 100)], ["Pressão", acsiResp.pressao, 16, Math.round(acsiResp.pressao / 16 * 100)], ["Metas", acsiResp.metas, 16, Math.round(acsiResp.metas / 16 * 100)], ["Concentração", acsiResp.concentracao, 16, Math.round(acsiResp.concentracao / 16 * 100)], ["Preocupação", acsiResp.preocupacao, 16, Math.round(acsiResp.preocupacao / 16 * 100)], ["Confiança", acsiResp.confianca, 16, Math.round(acsiResp.confianca / 16 * 100)], ["Treinabilidade", acsiResp.treinabilidade, 16, Math.round(acsiResp.treinabilidade / 16 * 100)]]) + "\n\n";
-  }
-  if (teosqResp) {
-    csv += "TEOSQ\n" + toCSV([["Subescala", "Pontuação", "Máximo", "%"], ["Orientação à Tarefa", teosqResp.tarefa, 28, Math.round(teosqResp.tarefa / 28 * 100)], ["Orientação ao Ego", teosqResp.ego, 24, Math.round(teosqResp.ego / 24 * 100)]]) + "\n\n";
-  }
-  if (siqResp) {
-    csv += "SIQ — IMAGEM MENTAL\n" + toCSV([["Subescala", "Pontuação", "Máximo", "%"], ["Imagem Cognitiva", siqResp.cognitiva, 16, Math.round(siqResp.cognitiva / 16 * 100)], ["Imagem Motivacional", siqResp.motivacional, 16, Math.round(siqResp.motivacional / 16 * 100)], ["Controle Emocional", siqResp.controle, 16, Math.round(siqResp.controle / 16 * 100)]]) + "\n\n";
-  }
-  if (resilResp) {
-    csv += "RESILIÊNCIA ESPORTIVA\n" + toCSV([["Subescala", "Pontuação", "Máximo", "%"], ["Recuperação de Adversidades", resilResp.recuperacao, 20, Math.round(resilResp.recuperacao / 20 * 100)], ["Persistência e Adaptação", resilResp.adaptacao, 20, Math.round(resilResp.adaptacao / 20 * 100)]]) + "\n\n";
-  }
-  if (hamaResp) {
-    const hamaTotal = (hamaResp.ansiedade_psiquica || 0) + (hamaResp.ansiedade_somatica || 0);
-    const hamaNivel = hamaTotal <= 17 ? "Leve" : hamaTotal <= 24 ? "Moderada" : hamaTotal <= 30 ? "Grave" : "Muito Grave";
-    csv += "HAM-A\n" + toCSV([
-      ["Subescala", "Pontuação", "Máximo", "%"],
-      ["Ansiedade Psíquica", hamaResp.ansiedade_psiquica || 0, 24, Math.round(((hamaResp.ansiedade_psiquica || 0) / 24) * 100)],
-      ["Ansiedade Somática", hamaResp.ansiedade_somatica || 0, 32, Math.round(((hamaResp.ansiedade_somatica || 0) / 32) * 100)],
-      ["Pontuação Total", hamaTotal, 56, Math.round((hamaTotal / 56) * 100)],
-      ["Nível de Ansiedade", hamaNivel, "", ""]
-    ]) + "\n\n";
-  }
-  if (suporteResp) {
-    csv += "SUPORTE SOCIAL PERCEBIDO\n" + toCSV([["Subescala", "Pontuação", "Máximo", "%"], ["Suporte da Família", suporteResp.familia, 16, Math.round(suporteResp.familia / 16 * 100)], ["Suporte do Treinador", suporteResp.treinador, 16, Math.round(suporteResp.treinador / 16 * 100)], ["Suporte dos Colegas", suporteResp.colegas, 16, Math.round(suporteResp.colegas / 16 * 100)]]) + "\n\n";
-  }
 
-  // ── Testes Cognitivos ──────────────────────────────────────────────────
-  const trResps = tasks.filter(t => t.type === "tr" && t.response);
-  if (trResps.length) {
-    const r = trResps[trResps.length - 1].response;
-    csv += "TEMPO DE REAÇÃO\n" + toCSV([
-      ["Métrica", "Valor"],
-      ["TR médio (ms)", r.media], ["Desvio padrão (ms)", r.desvio],
-      ["Acertos", r.acertos], ["Falsos positivos", r.falsosPos], ["Omissões", r.omissoes], ["Score", r.score]
-    ]) + "\n\n";
-  }
-  const stroopResps = tasks.filter(t => t.type === "stroop" && t.response);
-  if (stroopResps.length) {
-    const r = stroopResps[stroopResps.length - 1].response;
-    csv += "TESTE DE STROOP\n" + toCSV([
-      ["Métrica", "Valor"],
-      ["Acertos", r.acertos], ["Erros", r.erros], ["Total de itens", r.total], ["TR médio (ms)", r.media]
-    ]) + "\n\n";
-  }
-  const tmtResps = tasks.filter(t => t.type === "tmt" && t.response);
-  if (tmtResps.length) {
-    const r = tmtResps[tmtResps.length - 1].response;
-    csv += "TRAIL MAKING TEST\n" + toCSV([
-      ["Métrica", "Valor"],
-      ["Tempo Parte A (s)", r.tempoA], ["Tempo Parte B (s)", r.tempoB],
-      ["Diferença B-A (s)", (r.tempoB || 0) - (r.tempoA || 0)], ["Erros", r.erros]
-    ]) + "\n\n";
-  }
-  const nbackResps = tasks.filter(t => t.type === "nback" && t.response);
-  if (nbackResps.length) {
-    const r = nbackResps[nbackResps.length - 1].response;
-    csv += "N-BACK (2-BACK)\n" + toCSV([
-      ["Métrica", "Valor"],
-      ["Acertos", r.acertos], ["Erros", r.erros], ["Omissões", r.omissoes], ["Total de itens", r.total]
-    ]) + "\n\n";
-  }
-  const gonogoResps = tasks.filter(t => t.type === "gonogo" && t.response);
-  if (gonogoResps.length) {
-    const r = gonogoResps[gonogoResps.length - 1].response;
-    csv += "GO / NO-GO\n" + toCSV([
-      ["Métrica", "Valor"],
-      ["Acertos", r.acertos], ["Falsos alarmes", r.falsosGo], ["Omissões", r.omissoes], ["TR médio (ms)", r.mediaTempos], ["Total de itens", r.total]
-    ]) + "\n\n";
-  }
-  const flankerResps = tasks.filter(t => t.type === "flanker" && t.response);
-  if (flankerResps.length) {
-    const r = flankerResps[flankerResps.length - 1].response;
-    const tCong = (r.tempos?.congruente || []); const tIncong = (r.tempos?.incongruente || []);
-    const mCong = tCong.length ? Math.round(tCong.reduce((a,b)=>a+b,0)/tCong.length) : 0;
-    const mIncong = tIncong.length ? Math.round(tIncong.reduce((a,b)=>a+b,0)/tIncong.length) : 0;
-    csv += "TESTE DE FLANKER\n" + toCSV([
-      ["Métrica", "Valor"],
-      ["Acertos", r.acertos], ["Erros", r.erros], ["Total de itens", r.total],
-      ["TR médio congruente (ms)", mCong], ["TR médio incongruente (ms)", mIncong], ["Efeito Flanker (ms)", mIncong - mCong]
-    ]) + "\n\n";
-  }
-  const matrizesResps = tasks.filter(t => t.type === "matrizes" && t.response);
-  if (matrizesResps.length) {
-    const r = matrizesResps[matrizesResps.length - 1].response;
-    csv += "MATRIZES PROGRESSIVAS\n" + toCSV([
-      ["Métrica", "Valor"],
-      ["Acertos", `${r.acertos}/${r.total}`], ["Percentual", `${r.pct}%`], ["Nível", r.nivel],
-      ...(r.porNivel || []).map(n => [`Nível: ${n.label}`, `${n.acertos}/${n.total}`])
-    ]) + "\n\n";
-  }
-  const memResps = tasks.filter(t => t.type === "memoria_lista" && t.response);
-  if (memResps.length) {
-    const r = memResps[memResps.length - 1].response;
-    csv += "MEMÓRIA DE LISTA DE PALAVRAS\n" + toCSV([
-      ["Métrica", "Valor"],
-      ["Palavras recordadas", `${r.acertos}/${r.total}`], ["Percentual", `${r.pct}%`], ["Intrusões", r.intrusions], ["Nível", r.nivel]
-    ]) + "\n\n";
-  }
-  const cancResps = tasks.filter(t => t.type === "cancelamento" && t.response);
-  if (cancResps.length) {
-    const r = cancResps[cancResps.length - 1].response;
-    csv += "TESTE DE CANCELAMENTO\n" + toCSV([
-      ["Métrica", "Valor"],
-      ["Total de acertos", `${r.totalAcertos}/${r.totalAlvos}`], ["Omissões", r.totalOmissoes], ["Erros (falsos)", r.totalErros],
-      ["Fase 1 — acertos", `${r.fase1?.acertos}/${r.fase1?.totalAlvos}`], ["Fase 1 — tempo (s)", r.fase1?.tempoUsado],
-      ["Fase 2 — acertos", `${r.fase2?.acertos}/${r.fase2?.totalAlvos}`], ["Fase 2 — tempo (s)", r.fase2?.tempoUsado]
-    ]) + "\n\n";
-  }
-  const atencaoResps = tasks.filter(t => t.type === "atencao" && t.response);
-  if (atencaoResps.length) {
-    const r = atencaoResps[atencaoResps.length - 1].response;
-    csv += "TESTE DE ATENÇÃO VISUAL\n" + toCSV([
-      ["Métrica", "Valor"],
-      ["Páginas", r.paginas], ["Acertos", r.acertos], ["Erros", r.erros], ["Precisão", `${r.precisao}%`]
-    ]) + "\n\n";
-  }
+  // ── Escalas psicológicas — histórico completo de todas as aplicações ────
+  csv += historicoCSV("ESCALA DE BEM-ESTAR (HISTÓRICO)", tasks.filter(t => t.type === "escala" && t.response), [
+    ["Humor", r => r.humor], ["Ansiedade", r => r.ansiedade], ["Sono", r => r.sono], ["Estresse", r => r.estresse], ["Tristeza", r => r.tristeza]
+  ]);
+  csv += historicoCSV("CSAI-2R (HISTÓRICO)", tasks.filter(t => t.type === "csai2r" && t.response?.totais), [
+    ["Ans. Cognitiva", r => r.totais.cognitiva], ["Ans. Somática", r => r.totais.somatica], ["Autoconfiança", r => r.totais.autoconfianca]
+  ]);
+  csv += historicoCSV("SAS (HISTÓRICO)", tasks.filter(t => t.type === "sas" && t.response?.totais), [
+    ["Somática", r => r.totais.somatica], ["Preocupação", r => r.totais.preocupacao], ["Concentração", r => r.totais.concentracao]
+  ]);
+  csv += historicoCSV("ACSI-28 (HISTÓRICO)", tasks.filter(t => t.type === "acsi28" && t.response?.totais), [
+    ["Adversidade", r => r.totais.adversidade], ["Pressão", r => r.totais.pressao], ["Metas", r => r.totais.metas],
+    ["Concentração", r => r.totais.concentracao], ["Preocupação", r => r.totais.preocupacao], ["Confiança", r => r.totais.confianca], ["Treinabilidade", r => r.totais.treinabilidade]
+  ]);
+  csv += historicoCSV("TEOSQ (HISTÓRICO)", tasks.filter(t => t.type === "teosq" && t.response?.totais), [
+    ["Orientação à Tarefa", r => r.totais.tarefa], ["Orientação ao Ego", r => r.totais.ego]
+  ]);
+  csv += historicoCSV("SIQ — IMAGEM MENTAL (HISTÓRICO)", tasks.filter(t => t.type === "siq" && t.response?.totais), [
+    ["Imagem Cognitiva", r => r.totais.cognitiva], ["Imagem Motivacional", r => r.totais.motivacional], ["Controle Emocional", r => r.totais.controle]
+  ]);
+  csv += historicoCSV("RESILIÊNCIA ESPORTIVA (HISTÓRICO)", tasks.filter(t => t.type === "resiliencia" && t.response?.totais), [
+    ["Recuperação de Adversidades", r => r.totais.recuperacao], ["Persistência e Adaptação", r => r.totais.adaptacao]
+  ]);
+  csv += historicoCSV("HAM-A (HISTÓRICO)", tasks.filter(t => t.type === "hama" && t.response?.totais), [
+    ["Ansiedade Psíquica", r => r.totais.ansiedade_psiquica || 0], ["Ansiedade Somática", r => r.totais.ansiedade_somatica || 0],
+    ["Total", r => (r.totais.ansiedade_psiquica || 0) + (r.totais.ansiedade_somatica || 0)],
+    ["Nível", r => { const t = (r.totais.ansiedade_psiquica || 0) + (r.totais.ansiedade_somatica || 0); return t <= 17 ? "Leve" : t <= 24 ? "Moderada" : t <= 30 ? "Grave" : "Muito Grave"; }]
+  ]);
+  csv += historicoCSV("SUPORTE SOCIAL PERCEBIDO (HISTÓRICO)", tasks.filter(t => t.type === "suporte_social" && t.response?.totais), [
+    ["Suporte da Família", r => r.totais.familia], ["Suporte do Treinador", r => r.totais.treinador], ["Suporte dos Colegas", r => r.totais.colegas]
+  ]);
 
-  // ── Técnicas TCC ─────────────────────────────────────────────────────────
+  // ── Testes Cognitivos — histórico completo ──────────────────────────────
+  csv += historicoCSV("TEMPO DE REAÇÃO (HISTÓRICO)", tasks.filter(t => t.type === "tr" && t.response), [
+    ["TR médio (ms)", r => r.media], ["Desvio padrão (ms)", r => r.desvio], ["Acertos", r => r.acertos], ["Falsos positivos", r => r.falsosPos], ["Omissões", r => r.omissoes], ["Score", r => r.score]
+  ]);
+  csv += historicoCSV("TESTE DE STROOP (HISTÓRICO)", tasks.filter(t => t.type === "stroop" && t.response), [
+    ["Forma", r => r.forma || "—"], ["Acertos", r => r.acertos], ["Erros", r => r.erros], ["TR médio (ms)", r => r.media],
+    ["TR congruente (ms)", r => r.mediaCongruente], ["TR incongruente (ms)", r => r.mediaIncongruente], ["Custo interferência (ms)", r => r.custoInterferencia]
+  ]);
+  csv += historicoCSV("TRAIL MAKING TEST (HISTÓRICO)", tasks.filter(t => t.type === "tmt" && t.response), [
+    ["Tempo Parte A (s)", r => r.tempoA], ["Tempo Parte B (s)", r => r.tempoB], ["Diferença B-A (s)", r => (r.tempoB || 0) - (r.tempoA || 0)], ["Erros", r => r.erros]
+  ]);
+  csv += historicoCSV("N-BACK — 2-BACK (HISTÓRICO)", tasks.filter(t => t.type === "nback" && t.response), [
+    ["Acertos", r => r.acertos], ["Erros", r => r.erros], ["Omissões", r => r.omissoes], ["Total de itens", r => r.total]
+  ]);
+  csv += historicoCSV("GO / NO-GO (HISTÓRICO)", tasks.filter(t => t.type === "gonogo" && t.response), [
+    ["Forma", r => r.forma || "—"], ["Acertos", r => r.acertos], ["Falsos alarmes", r => r.falsosGo], ["Omissões", r => r.omissoes],
+    ["TR médio (ms)", r => r.mediaTempos], ["Variabilidade TR - DP (ms)", r => r.variabilidadeTR]
+  ]);
+  csv += historicoCSV("TESTE DE FLANKER (HISTÓRICO)", tasks.filter(t => t.type === "flanker" && t.response), [
+    ["Acertos", r => r.acertos], ["Erros", r => r.erros], ["Total de itens", r => r.total]
+  ]);
+  csv += historicoCSV("MATRIZES PROGRESSIVAS (HISTÓRICO)", tasks.filter(t => t.type === "matrizes" && t.response), [
+    ["Acertos", r => `${r.acertos}/${r.total}`], ["Percentual", r => `${r.pct}%`], ["Nível", r => r.nivel]
+  ]);
+  csv += historicoCSV("MEMÓRIA DE LISTA DE PALAVRAS (HISTÓRICO)", tasks.filter(t => t.type === "memoria_lista" && t.response), [
+    ["Palavras recordadas", r => `${r.acertos}/${r.total}`], ["Percentual", r => `${r.pct}%`], ["Intrusões", r => r.intrusions], ["Nível", r => r.nivel]
+  ]);
+  csv += historicoCSV("TESTE DE CANCELAMENTO (HISTÓRICO)", tasks.filter(t => t.type === "cancelamento" && t.response), [
+    ["Forma", r => r.forma || "—"], ["Total de acertos", r => `${r.totalAcertos}/${r.totalAlvos}`], ["Omissões", r => r.totalOmissoes], ["Erros", r => r.totalErros]
+  ]);
+  csv += historicoCSV("TESTE DE ATENÇÃO VISUAL (HISTÓRICO)", tasks.filter(t => t.type === "atencao" && t.response), [
+    ["Páginas", r => r.paginas], ["Acertos", r => r.acertos], ["Erros", r => r.erros], ["Precisão", r => `${r.precisao}%`]
+  ]);
+  csv += historicoCSV("SPAN DE DÍGITOS (HISTÓRICO)", tasks.filter(t => t.type === "digit_span" && t.response), [
+    ["Span Direto", r => r.spanDireto], ["Span Inverso", r => r.spanInverso], ["Span Total", r => r.spanTotal], ["Nível", r => r.nivel]
+  ]);
+
+  // ── Técnicas TCC e autorrelatos — já eram histórico completo ────────────
+  csv += historicoCSV("ESTADO DO DIA (HISTÓRICO)", tasks.filter(t => t.type === "estado_dia" && t.response), [
+    ["Foco", r => `${r.foco}/10`], ["Cansaço", r => `${r.cansaco}/10`], ["Sono", r => `${r.sono}/10`], ["Humor", r => `${r.humor}/10`]
+  ]);
   const pensResps = tasks.filter(t => t.type === "pensamentos" && t.response);
   if (pensResps.length) {
     csv += "REGISTRO ABC — PENSAMENTOS AUTOMÁTICOS\n" + toCSV([
@@ -3270,29 +3231,29 @@ function exportarGrupoNome(grupoNome, patients) {
   });
   downloadCSV(`MeuPsi_Grupo_${grupoNome.replace(/\s+/g, "_")}_${new Date().toLocaleDateString("pt-BR").replace(/\//g, "-")}.csv`, csv);
 }
-function ExportarScreen({
-  patients,
-  grupos,
-  onClose
-}) {
+function ExportarScreen({ patients, grupos, onClose }) {
+  const isDesktop = useIsDesktop();
   const gruposNomes = [...new Set(grupos.map(g => g.nome))];
   const patientsComGrupo = patients.map(p => {
     const g = grupos.find(g => { const m = g.membros ? (Array.isArray(g.membros) ? g.membros : Object.values(g.membros)) : []; return m.includes(p.id); });
-    return {
-      ...p,
-      _grupo: g?.nome || "—"
-    };
+    return { ...p, _grupo: g?.nome || "—" };
   });
   const [modo, setModo] = useState("pacientes");
+  const [busca, setBusca] = useState("");
   const [selecionados, setSelecionados] = useState([]);
   const [grupoSel, setGrupoSel] = useState(gruposNomes[0] || "");
   const [exportando, setExportando] = useState(false);
   const [sucesso, setSucesso] = useState("");
+
+  const patientsFiltrados = busca.trim()
+    ? patientsComGrupo.filter(p => p.name.toLowerCase().includes(busca.trim().toLowerCase()))
+    : patientsComGrupo;
+
   function togglePaciente(id) {
     setSelecionados(s => s.includes(id) ? s.filter(x => x !== id) : [...s, id]);
   }
   function selecionarTodos() {
-    setSelecionados(patientsComGrupo.map(p => p.id));
+    setSelecionados(patientsFiltrados.map(p => p.id));
   }
   function limparSelecao() {
     setSelecionados([]);
@@ -3317,359 +3278,133 @@ function ExportarScreen({
     }
   }
   const podeExportar = modo === "pacientes" ? selecionados.length > 0 : !!grupoSel;
-  const grupoPatients = patientsComGrupo.filter(p => p._grupo === grupoSel);
-  return React.createElement("div", {
-    style: {
-      background: "#f5f5f7",
-      minHeight: "100vh",
-      maxWidth: 480,
-      margin: "0 auto",
-      fontFamily: "-apple-system,sans-serif",
-      display: "flex",
-      flexDirection: "column"
-    }
-  }, React.createElement("div", {
-    style: {
-      background: "linear-gradient(135deg,#6d28d9,#4f46e5,#0ea5e9)",
-      padding: "18px 20px",
-      boxShadow: "0 4px 20px rgba(109,40,217,.3)",
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center"
-    }
-  }, React.createElement("div", null, React.createElement("div", {
-    style: {
-      color: "#fff",
-      fontWeight: 800,
-      fontSize: 18
-    }
-  }, "📊 Exportar Dados"), React.createElement("div", {
-    style: {
-      color: "rgba(255,255,255,.75)",
-      fontSize: 12,
-      marginTop: 2
-    }
-  }, "Selecione pacientes ou grupo")), React.createElement("button", {
-    onClick: onClose,
-    style: {
-      background: "rgba(255,255,255,.18)",
-      border: "1px solid rgba(255,255,255,.25)",
-      color: "#fff",
-      padding: "7px 14px",
-      borderRadius: 10,
-      cursor: "pointer",
-      fontSize: 12,
-      fontWeight: 600
-    }
-  }, "← Voltar")), React.createElement("div", {
-    style: {
-      padding: "16px 16px 40px",
-      flex: 1,
-      overflowY: "auto"
-    }
-  }, sucesso && React.createElement("div", {
-    style: {
-      background: "#d1fae5",
-      borderRadius: 12,
-      padding: 14,
-      marginBottom: 14,
-      color: "#065f46",
-      fontWeight: 700,
-      fontSize: 14,
-      textAlign: "center"
-    }
-  }, sucesso), React.createElement("div", {
-    style: {
-      display: "flex",
-      background: "#fff",
-      borderRadius: 14,
-      padding: 4,
-      gap: 4,
-      marginBottom: 16,
-      boxShadow: "0 2px 8px rgba(0,0,0,.05)"
-    }
-  }, [["pacientes", "👤 Por paciente"], ["grupo", "👥 Por grupo"]].map(([id, label]) => React.createElement("button", {
-    key: id,
-    onClick: () => {
-      setModo(id);
-      setSelecionados([]);
-    },
-    style: {
-      flex: 1,
-      padding: "10px 4px",
-      border: "none",
-      cursor: "pointer",
-      fontWeight: 700,
-      fontSize: 13,
-      borderRadius: 10,
-      background: modo === id ? "#6d28d9" : "transparent",
-      color: modo === id ? "#fff" : "#9ca3af",
-      transition: "all .2s"
-    }
-  }, label))), modo === "pacientes" && React.createElement(React.Fragment, null, React.createElement("div", {
-    style: {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginBottom: 12
-    }
-  }, React.createElement("div", {
-    style: {
-      fontSize: 13,
-      fontWeight: 700,
-      color: "#374151"
-    }
-  }, selecionados.length, " selecionado(s)"), React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 8
-    }
-  }, React.createElement("button", {
-    onClick: selecionarTodos,
-    style: {
-      fontSize: 12,
-      fontWeight: 700,
-      color: "#6d28d9",
-      background: "#ede9fe",
-      border: "none",
-      borderRadius: 8,
-      padding: "5px 12px",
-      cursor: "pointer"
-    }
-  }, "Todos"), selecionados.length > 0 && React.createElement("button", {
-    onClick: limparSelecao,
-    style: {
-      fontSize: 12,
-      fontWeight: 700,
-      color: "#9ca3af",
-      background: "#f3f4f6",
-      border: "none",
-      borderRadius: 8,
-      padding: "5px 12px",
-      cursor: "pointer"
-    }
-  }, "Limpar"))), React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 8,
-      marginBottom: 16
-    }
-  }, patientsComGrupo.map(p => {
-    const sel = selecionados.includes(p.id);
-    const tasks = p.tasks ? Object.values(p.tasks) : [];
-    const escResp = tasks.filter(t => t.type === "escala" && t.response).slice(-1)[0]?.response || null;
-    const humor = escResp?.humor || 0;
-    const hColor = humor >= 60 ? "#059669" : humor >= 40 ? "#d97706" : "#e11d48";
-    return React.createElement("div", {
-      key: p.id,
-      onClick: () => togglePaciente(p.id),
-      style: {
-        background: "#fff",
-        borderRadius: 14,
-        padding: "14px 16px",
-        cursor: "pointer",
-        boxShadow: "0 2px 8px rgba(0,0,0,.06)",
-        border: `1.5px solid ${sel ? "#6d28d9" : "#f0f0f0"}`,
-        display: "flex",
-        alignItems: "center",
-        gap: 12,
-        transition: "all .15s"
-      }
-    }, React.createElement("div", {
-      style: {
-        width: 36,
-        height: 36,
-        borderRadius: 10,
-        background: sel ? "#6d28d9" : "#f3f4f6",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        flexShrink: 0,
-        fontSize: sel ? 18 : 16,
-        color: sel ? "#fff" : "#9ca3af",
-        fontWeight: 800,
-        transition: "all .2s"
-      }
-    }, sel ? "✓" : "○"), React.createElement("div", {
-      style: {
-        flex: 1
-      }
-    }, React.createElement("div", {
-      style: {
-        fontWeight: 700,
-        color: sel ? "#6d28d9" : "#1f2937",
-        fontSize: 14
-      }
-    }, p.name), React.createElement("div", {
-      style: {
-        display: "flex",
-        gap: 6,
-        marginTop: 4,
-        flexWrap: "wrap"
-      }
-    }, p._grupo !== "—" && React.createElement(Badge, {
-      color: "#6d28d9"
-    }, p._grupo), React.createElement(Badge, {
-      color: hColor
-    }, "Humor: ", humor, "%"), React.createElement(Badge, {
-      color: "#9ca3af"
-    }, Object.values(p.diarios || {}).length, " diários"))));
-  })), selecionados.length > 0 && React.createElement("div", {
-    style: {
-      background: "#ede9fe",
-      borderRadius: 14,
-      padding: 16,
-      marginBottom: 14
-    }
-  }, React.createElement("div", {
-    style: {
-      fontSize: 13,
-      fontWeight: 800,
-      color: "#6d28d9",
-      marginBottom: 8
-    }
-  }, "📋 O que será exportado:"), React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 4
-    }
-  }, selecionados.map(id => {
-    const p = patientsComGrupo.find(x => x.id === id);
-    return p ? React.createElement("div", {
-      key: id,
-      style: {
-        fontSize: 12,
-        color: "#4c1d95",
-        fontWeight: 600
-      }
-    }, "• ", p.name, " — Bem-Estar, CSAI-2R, SAS, ACSI-28, Diário") : null;
-  })), selecionados.length > 1 && React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "#7c3aed",
-      marginTop: 8,
-      fontStyle: "italic"
-    }
-  }, "Arquivo único com todos os pacientes selecionados"))), modo === "grupo" && React.createElement(React.Fragment, null, gruposNomes.length === 0 && React.createElement(EmptyState, {
-    icon: "👥",
-    text: "Nenhum grupo criado ainda. Crie grupos na aba Grupos."
-  }), React.createElement("div", {
-    style: {
-      fontSize: 12,
-      fontWeight: 700,
-      color: "#9ca3af",
-      marginBottom: 8,
-      textTransform: "uppercase",
-      letterSpacing: ".5px"
-    }
-  }, "Selecione o grupo"), React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 8,
-      marginBottom: 16
-    }
-  }, gruposNomes.map(g => {
-    const ps = patientsComGrupo.filter(p => p._grupo === g);
-    const sel = grupoSel === g;
-    return React.createElement("div", {
-      key: g,
-      onClick: () => setGrupoSel(g),
-      style: {
-        background: "#fff",
-        borderRadius: 14,
-        padding: 16,
-        cursor: "pointer",
-        boxShadow: "0 2px 8px rgba(0,0,0,.06)",
-        border: `1.5px solid ${sel ? "#6d28d9" : "#f0f0f0"}`,
-        transition: "all .15s"
-      }
-    }, React.createElement("div", {
-      style: {
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginBottom: 8
-      }
-    }, React.createElement("div", {
-      style: {
-        fontWeight: 800,
-        color: sel ? "#6d28d9" : "#1f2937",
-        fontSize: 15
-      }
-    }, sel ? "✓ " : "", g), React.createElement(Badge, {
-      color: "#6d28d9"
-    }, ps.length, " paciente(s)")), React.createElement("div", {
-      style: {
-        display: "flex",
-        flexWrap: "wrap",
-        gap: 6
-      }
-    }, ps.map(p => React.createElement("span", {
-      key: p.id,
-      style: {
-        fontSize: 11,
-        background: "#f3f4f6",
-        color: "#374151",
-        padding: "3px 8px",
-        borderRadius: 20,
-        fontWeight: 600
-      }
-    }, p.name))));
-  })), grupoSel && React.createElement("div", {
-    style: {
-      background: "#d1fae5",
-      borderRadius: 14,
-      padding: 16,
-      marginBottom: 14
-    }
-  }, React.createElement("div", {
-    style: {
-      fontSize: 13,
-      fontWeight: 800,
-      color: "#065f46",
-      marginBottom: 8
-    }
-  }, "📋 O que será exportado:"), React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 4
-    }
-  }, ["Médias do grupo — Escala de Bem-Estar", "Médias do grupo — CSAI-2R", "Dados individuais de cada paciente", "Diários de emoções de cada paciente"].map(t => React.createElement("div", {
-    key: t,
-    style: {
-      fontSize: 12,
-      color: "#065f46",
-      fontWeight: 600
-    }
-  }, "• ", t))), React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "#059669",
-      marginTop: 8,
-      fontStyle: "italic"
-    }
-  }, "Arquivo: MeuPsi_Grupo_", grupoSel.replace(/\s+/g, "_"), ".csv"))), React.createElement("button", {
-    onClick: handleExport,
-    disabled: !podeExportar || exportando,
-    style: {
-      width: "100%",
-      padding: "14px 0",
-      borderRadius: 12,
-      border: "none",
-      background: podeExportar ? "linear-gradient(135deg,#059669,#34d399)" : "#e5e7eb",
-      color: podeExportar ? "#fff" : "#9ca3af",
-      fontWeight: 700,
-      fontSize: 15,
-      cursor: podeExportar ? "pointer" : "default",
-      boxShadow: podeExportar ? "0 4px 12px rgba(5,150,105,.3)" : "none",
-      transition: "all .2s"
-    }
-  }, exportando ? "⏳ Gerando arquivo..." : modo === "pacientes" ? selecionados.length === 0 ? "Selecione ao menos 1 paciente" : `📥 Exportar ${selecionados.length} paciente(s)` : `📥 Exportar grupo "${grupoSel}"`)));
+
+  return React.createElement("div", { style: { background: "#f5f5f7", minHeight: "100vh", fontFamily: "-apple-system,sans-serif", display: "flex", flexDirection: "column" } },
+    React.createElement("div", { style: { background: "linear-gradient(135deg,#6d28d9,#4f46e5,#0ea5e9)", padding: isDesktop ? "20px 32px" : "18px 20px", boxShadow: "0 4px 20px rgba(109,40,217,.3)", display: "flex", justifyContent: "space-between", alignItems: "center" } },
+      React.createElement("div", null,
+        React.createElement("div", { style: { color: "#fff", fontWeight: 800, fontSize: 18 } }, "📊 Exportar Dados"),
+        React.createElement("div", { style: { color: "rgba(255,255,255,.75)", fontSize: 12, marginTop: 2 } }, "Selecione pacientes ou grupo")
+      ),
+      React.createElement("button", {
+        onClick: onClose,
+        style: { background: "rgba(255,255,255,.18)", border: "1px solid rgba(255,255,255,.25)", color: "#fff", padding: "7px 14px", borderRadius: 10, cursor: "pointer", fontSize: 12, fontWeight: 600 }
+      }, "← Voltar")
+    ),
+
+    React.createElement("div", { style: { padding: isDesktop ? "24px 32px 48px" : "16px 16px 40px", flex: 1, overflowY: "auto", maxWidth: isDesktop ? 1100 : "none", width: "100%", margin: "0 auto" } },
+
+      sucesso && React.createElement("div", { style: { background: "#d1fae5", borderRadius: 12, padding: 14, marginBottom: 14, color: "#065f46", fontWeight: 700, fontSize: 14, textAlign: "center" } }, sucesso),
+
+      React.createElement("div", { style: { display: "flex", background: "#fff", borderRadius: 14, padding: 4, gap: 4, marginBottom: 16, boxShadow: "0 2px 8px rgba(0,0,0,.05)", maxWidth: isDesktop ? 400 : "none" } },
+        [["pacientes", "👤 Por paciente"], ["grupo", "👥 Por grupo"]].map(([id, label]) => React.createElement("button", {
+          key: id, onClick: () => { setModo(id); setSelecionados([]); },
+          style: { flex: 1, padding: "10px 4px", border: "none", cursor: "pointer", fontWeight: 700, fontSize: 13, borderRadius: 10, background: modo === id ? "#6d28d9" : "transparent", color: modo === id ? "#fff" : "#9ca3af", transition: "all .2s" }
+        }, label))
+      ),
+
+      modo === "pacientes" && React.createElement(React.Fragment, null,
+        // Busca
+        React.createElement("div", { style: { position: "relative", marginBottom: 14 } },
+          React.createElement("input", {
+            className: "inp", value: busca, onChange: e => setBusca(e.target.value),
+            placeholder: "🔍 Buscar atleta pelo nome...", style: { marginBottom: 0, paddingLeft: 16 }
+          })
+        ),
+        React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 } },
+          React.createElement("div", { style: { fontSize: 13, fontWeight: 700, color: "#374151" } },
+            selecionados.length, " selecionado(s)", busca.trim() ? ` · ${patientsFiltrados.length} encontrado(s)` : ""
+          ),
+          React.createElement("div", { style: { display: "flex", gap: 8 } },
+            React.createElement("button", { onClick: selecionarTodos, style: { fontSize: 12, fontWeight: 700, color: "#6d28d9", background: "#ede9fe", border: "none", borderRadius: 8, padding: "5px 12px", cursor: "pointer" } },
+              busca.trim() ? "Selecionar filtrados" : "Todos"
+            ),
+            selecionados.length > 0 && React.createElement("button", { onClick: limparSelecao, style: { fontSize: 12, fontWeight: 700, color: "#9ca3af", background: "#f3f4f6", border: "none", borderRadius: 8, padding: "5px 12px", cursor: "pointer" } }, "Limpar")
+          )
+        ),
+
+        patientsFiltrados.length === 0 && React.createElement(EmptyState, { icon: "🔍", text: `Nenhum atleta encontrado para "${busca}".` }),
+
+        React.createElement("div", { className: isDesktop ? "patients-grid" : "", style: { display: isDesktop ? undefined : "flex", flexDirection: isDesktop ? undefined : "column", gap: 8, marginBottom: 16 } },
+          patientsFiltrados.map(p => {
+            const sel = selecionados.includes(p.id);
+            const tasks = p.tasks ? Object.values(p.tasks) : [];
+            const escResp = tasks.filter(t => t.type === "escala" && t.response).slice(-1)[0]?.response || null;
+            const humor = escResp?.humor || 0;
+            const hColor = humor >= 60 ? "#059669" : humor >= 40 ? "#d97706" : "#e11d48";
+            return React.createElement("div", {
+              key: p.id, onClick: () => togglePaciente(p.id),
+              style: { background: "#fff", borderRadius: 14, padding: "14px 16px", cursor: "pointer", boxShadow: "0 2px 8px rgba(0,0,0,.06)", border: `1.5px solid ${sel ? "#6d28d9" : "#f0f0f0"}`, display: "flex", alignItems: "center", gap: 12, transition: "all .15s" }
+            },
+              React.createElement("div", { style: { width: 36, height: 36, borderRadius: 10, background: sel ? "#6d28d9" : "#f3f4f6", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: sel ? 18 : 16, color: sel ? "#fff" : "#9ca3af", fontWeight: 800, transition: "all .2s" } }, sel ? "✓" : "○"),
+              React.createElement("div", { style: { flex: 1, minWidth: 0 } },
+                React.createElement("div", { style: { fontWeight: 700, color: sel ? "#6d28d9" : "#1f2937", fontSize: 14 } }, p.name),
+                React.createElement("div", { style: { display: "flex", gap: 6, marginTop: 4, flexWrap: "wrap" } },
+                  p._grupo !== "—" && React.createElement(Badge, { color: "#6d28d9" }, p._grupo),
+                  React.createElement(Badge, { color: hColor }, "Humor: ", humor, "%"),
+                  React.createElement(Badge, { color: "#9ca3af" }, Object.values(p.diarios || {}).length, " diários")
+                )
+              )
+            );
+          })
+        ),
+
+        selecionados.length > 0 && React.createElement("div", { style: { background: "#ede9fe", borderRadius: 14, padding: 16, marginBottom: 14 } },
+          React.createElement("div", { style: { fontSize: 13, fontWeight: 800, color: "#6d28d9", marginBottom: 8 } }, "📋 O que será exportado:"),
+          React.createElement("div", { className: isDesktop ? "desktop-two-col" : "", style: { display: "flex", flexDirection: "column", gap: 4 } },
+            selecionados.map(id => {
+              const p = patientsComGrupo.find(x => x.id === id);
+              return p ? React.createElement("div", { key: id, style: { fontSize: 12, color: "#4c1d95", fontWeight: 600 } }, "• ", p.name, " — todos os testes, escalas, diário e prontuário") : null;
+            })
+          ),
+          selecionados.length > 1 && React.createElement("div", { style: { fontSize: 11, color: "#7c3aed", marginTop: 8, fontStyle: "italic" } }, "Arquivo único com todos os pacientes selecionados")
+        )
+      ),
+
+      modo === "grupo" && React.createElement(React.Fragment, null,
+        gruposNomes.length === 0 && React.createElement(EmptyState, { icon: "👥", text: "Nenhum grupo criado ainda. Crie grupos na aba Grupos." }),
+        React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "#9ca3af", marginBottom: 8, textTransform: "uppercase", letterSpacing: ".5px" } }, "Selecione o grupo"),
+        React.createElement("div", { className: isDesktop ? "desktop-two-col" : "", style: { display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 } },
+          gruposNomes.map(g => {
+            const ps = patientsComGrupo.filter(p => p._grupo === g);
+            const sel = grupoSel === g;
+            return React.createElement("div", {
+              key: g, onClick: () => setGrupoSel(g),
+              style: { background: "#fff", borderRadius: 14, padding: 16, cursor: "pointer", boxShadow: "0 2px 8px rgba(0,0,0,.06)", border: `1.5px solid ${sel ? "#6d28d9" : "#f0f0f0"}`, transition: "all .15s" }
+            },
+              React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 } },
+                React.createElement("div", { style: { fontWeight: 800, color: sel ? "#6d28d9" : "#1f2937", fontSize: 15 } }, sel ? "✓ " : "", g),
+                React.createElement(Badge, { color: "#6d28d9" }, ps.length, " paciente(s)")
+              ),
+              React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: 6 } },
+                ps.map(p => React.createElement("span", { key: p.id, style: { fontSize: 11, background: "#f3f4f6", color: "#374151", padding: "3px 8px", borderRadius: 20, fontWeight: 600 } }, p.name))
+              )
+            );
+          })
+        ),
+        grupoSel && React.createElement("div", { style: { background: "#d1fae5", borderRadius: 14, padding: 16, marginBottom: 14 } },
+          React.createElement("div", { style: { fontSize: 13, fontWeight: 800, color: "#065f46", marginBottom: 8 } }, "📋 O que será exportado:"),
+          React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 4 } },
+            ["Médias do grupo — Escala de Bem-Estar", "Médias do grupo — CSAI-2R", "Dados individuais de cada paciente (todos os testes)", "Diários de emoções de cada paciente"].map(t =>
+              React.createElement("div", { key: t, style: { fontSize: 12, color: "#065f46", fontWeight: 600 } }, "• ", t))
+          ),
+          React.createElement("div", { style: { fontSize: 11, color: "#059669", marginTop: 8, fontStyle: "italic" } }, "Arquivo: MeuPsi_Grupo_", grupoSel.replace(/\s+/g, "_"), ".csv")
+        )
+      ),
+
+      React.createElement("button", {
+        onClick: handleExport, disabled: !podeExportar || exportando,
+        style: {
+          width: "100%", maxWidth: isDesktop ? 400 : "none", padding: "14px 0", borderRadius: 12, border: "none",
+          background: podeExportar ? "linear-gradient(135deg,#059669,#34d399)" : "#e5e7eb",
+          color: podeExportar ? "#fff" : "#9ca3af", fontWeight: 700, fontSize: 15,
+          cursor: podeExportar ? "pointer" : "default",
+          boxShadow: podeExportar ? "0 4px 12px rgba(5,150,105,.3)" : "none", transition: "all .2s"
+        }
+      }, exportando ? "⏳ Gerando arquivo..." : modo === "pacientes" ? (selecionados.length === 0 ? "Selecione ao menos 1 paciente" : `📥 Exportar ${selecionados.length} paciente(s)`) : `📥 Exportar grupo "${grupoSel}"`)
+    )
+  );
 }
+
 function LoginScreen({
   onLogin
 }) {
@@ -4344,6 +4079,8 @@ function ModoTeste({ patient, onClose }) {
         testeAtivo.id === "pensamentos"   && React.createElement(PensamentosForm,   { color: ti.color, onSubmit: handleResult }),
         testeAtivo.id === "atencao"       && React.createElement(AtencaoForm,       { color: ti.color, onSubmit: handleResult }),
         testeAtivo.id === "cancelamento"   && React.createElement(CancelamentoForm,  { color: ti.color, onSubmit: handleResult }),
+        testeAtivo.id === "digit_span"      && React.createElement(DigitSpanForm,    { color: ti.color, onSubmit: handleResult }),
+        testeAtivo.id === "estado_dia"      && React.createElement(EstadoDiaForm,    { color: ti.color, onSubmit: handleResult }),
         testeAtivo.id === "experimento"   && React.createElement(ExperimentoForm,   { color: ti.color, onSubmit: handleResult }),
         testeAtivo.id === "escala"        && React.createElement(EscalaForm,        { color: ti.color, onSubmit: handleResult }),
         ["csai2r","sas","acsi28","teosq","siq","resiliencia","suporte_social","hama"].includes(testeAtivo.id) &&
@@ -5892,41 +5629,51 @@ function TRForm({ color, onSubmit }) {
   );
 }
 
-function StroopForm({
-  color,
-  onSubmit
-}) {
+function StroopForm({ color, onSubmit }) {
   const TOTAL = 24;
   const [fase, setFase] = useState("intro");
+  const [forma, setForma] = useState("A");
   const [trial, setTrial] = useState(0);
   const [item, setItem] = useState(null);
   const [acertos, setAcertos] = useState(0);
   const [erros, setErros] = useState(0);
-  const [tempos, setTempos] = useState([]);
+  const [tempos, setTempos] = useState({ congruente: [], incongruente: [] });
   const [feedback, setFeedback] = useState(null);
-  const tRef = useRef(null);
+  const [treinoRestante, setTreinoRestante] = useState(60);
+  const rngRef = useRef(null);
+  const treinandoRef = useRef(false);
+  const treinoFimRef = useRef(0);
+  const treinoTickRef = useRef(null);
+
   function gerar() {
-    const p = CORES_STROOP[Math.floor(Math.random() * 4)];
-    const c = CORES_STROOP[Math.floor(Math.random() * 4)];
-    return {
-      palavra: p,
-      cor: c,
-      inicio: Date.now()
-    };
+    const rnd = rngRef.current;
+    const p = CORES_STROOP[Math.floor(rnd() * 4)];
+    const c = CORES_STROOP[Math.floor(rnd() * 4)];
+    return { palavra: p, cor: c, congruente: p === c, inicio: Date.now() };
   }
   function prox(t, a, e, ts) {
-    if (t >= TOTAL) {
+    const emTreino = treinandoRef.current;
+    const acabou = emTreino ? Date.now() >= treinoFimRef.current : t >= TOTAL;
+    if (acabou) {
+      clearInterval(treinoTickRef.current);
+      if (emTreino) {
+        treinandoRef.current = false;
+        setFase("pronto");
+        return;
+      }
+      const mC = ts.congruente.length ? Math.round(ts.congruente.reduce((x, y) => x + y, 0) / ts.congruente.length) : 0;
+      const mI = ts.incongruente.length ? Math.round(ts.incongruente.reduce((x, y) => x + y, 0) / ts.incongruente.length) : 0;
+      const todos = [...ts.congruente, ...ts.incongruente];
       onSubmit({
-        acertos: a,
-        erros: e,
-        media: ts.length ? Math.round(ts.reduce((x, y) => x + y, 0) / ts.length) : 0,
-        total: TOTAL,
-        tipo: "stroop"
+        acertos: a, erros: e,
+        media: todos.length ? Math.round(todos.reduce((x, y) => x + y, 0) / todos.length) : 0,
+        mediaCongruente: mC, mediaIncongruente: mI, custoInterferencia: mI - mC,
+        forma, total: TOTAL, tipo: "stroop"
       });
       setFase("fim");
       return;
     }
-    setFase("jogo");
+    setFase(emTreino ? "treino" : "jogo");
     setFeedback(null);
     setTrial(t);
     setItem(gerar());
@@ -5935,7 +5682,7 @@ function StroopForm({
     const tr = Date.now() - item.inicio;
     if (c === item.cor) {
       setAcertos(a => {
-        const nt = [...tempos, tr];
+        const nt = { ...tempos, [item.congruente ? "congruente" : "incongruente"]: [...tempos[item.congruente ? "congruente" : "incongruente"], tr] };
         setTempos(nt);
         setFeedback("certo");
         setTimeout(() => prox(trial + 1, a + 1, erros, nt), 500);
@@ -5949,174 +5696,88 @@ function StroopForm({
       });
     }
   }
-  if (fase === "fim") return React.createElement("div", {
-    style: {
-      ...crd,
-      textAlign: "center"
-    }
-  }, React.createElement("div", {
-    style: {
-      fontSize: 48,
-      marginBottom: 8
-    }
-  }, "✅"), React.createElement("p", {
-    style: {
-      fontSize: 15,
-      fontWeight: 700,
-      color: "#6b7280"
-    }
-  }, "Respostas enviadas ao terapeuta."));
-  if (fase === "intro") return React.createElement("div", {
-    style: {
-      ...crd,
-      textAlign: "center"
-    }
-  }, React.createElement("div", {
-    style: {
-      fontSize: 52,
-      marginBottom: 12
-    }
-  }, "🎨"), React.createElement("h3", {
-    style: {
-      fontSize: 18,
-      fontWeight: 800,
-      color: "#1f2937",
-      marginBottom: 8
-    }
-  }, "Teste de Stroop"), React.createElement("p", {
-    style: {
-      fontSize: 13,
-      color: "#6b7280",
-      marginBottom: 16,
-      lineHeight: 1.6
-    }
-  }, "Selecione a ", React.createElement("strong", null, "COR DA TINTA"), ", ignorando o significado da palavra."), React.createElement("div", {
-    style: {
-      background: "#ede9fe",
-      borderRadius: 12,
-      padding: 14,
-      marginBottom: 20
-    }
-  }, React.createElement("p", {
-    style: {
-      fontSize: 28,
-      fontWeight: 900,
-      color: "#ef4444",
-      marginBottom: 6
-    }
-  }, "AZUL"), React.createElement("p", {
-    style: {
-      fontSize: 13,
-      color: "#6d28d9"
-    }
-  }, "Resposta: ", React.createElement("strong", null, "Vermelho"))), React.createElement("button", {
-    className: "btn-main",
-    style: {
-      background: color
-    },
-    onClick: () => prox(0, 0, 0, [])
-  }, "Começar"));
-  const pct = Math.round(trial / TOTAL * 100);
+  function iniciarTreino() {
+    treinandoRef.current = true;
+    treinoFimRef.current = Date.now() + 60000;
+    setTreinoRestante(60);
+    treinoTickRef.current = setInterval(() => {
+      setTreinoRestante(Math.max(0, Math.round((treinoFimRef.current - Date.now()) / 1000)));
+    }, 1000);
+    prox(0, 0, 0, { congruente: [], incongruente: [] });
+  }
+  function iniciarReal() {
+    setAcertos(0); setErros(0); setTempos({ congruente: [], incongruente: [] });
+    prox(0, 0, 0, { congruente: [], incongruente: [] });
+  }
+  useEffect(() => () => clearInterval(treinoTickRef.current), []);
+
+  if (fase === "fim") return React.createElement("div", { style: { ...crd, textAlign: "center" } },
+    React.createElement("div", { style: { fontSize: 48, marginBottom: 8 } }, "✅"),
+    React.createElement("p", { style: { fontSize: 15, fontWeight: 700, color: "#6b7280" } }, "Respostas enviadas ao terapeuta.")
+  );
+
+  if (fase === "pronto") return React.createElement("div", { style: { ...crd, textAlign: "center" } },
+    React.createElement("div", { style: { fontSize: 48, marginBottom: 8 } }, "✅"),
+    React.createElement("h3", { style: { fontSize: 16, fontWeight: 800, color: "#1f2937", marginBottom: 8 } }, "Treino concluído!"),
+    React.createElement("p", { style: { fontSize: 13, color: "#6b7280", marginBottom: 16 } }, "Agora vamos começar a coleta real."),
+    React.createElement("button", { className: "btn-main", style: { background: color }, onClick: iniciarReal }, "Iniciar teste")
+  );
+
+  if (fase === "intro") return React.createElement("div", { style: { ...crd, textAlign: "center" } },
+    React.createElement("div", { style: { fontSize: 52, marginBottom: 12 } }, "🎨"),
+    React.createElement("h3", { style: { fontSize: 18, fontWeight: 800, color: "#1f2937", marginBottom: 8 } }, "Teste de Stroop"),
+    React.createElement("p", { style: { fontSize: 13, color: "#6b7280", marginBottom: 16, lineHeight: 1.6 } },
+      "Selecione a ", React.createElement("strong", null, "COR DA TINTA"), ", ignorando o significado da palavra."
+    ),
+    React.createElement("div", { style: { background: "#ede9fe", borderRadius: 12, padding: 14, marginBottom: 14 } },
+      React.createElement("p", { style: { fontSize: 28, fontWeight: 900, color: "#ef4444", marginBottom: 6 } }, "AZUL"),
+      React.createElement("p", { style: { fontSize: 13, color: "#6d28d9" } }, "Resposta: ", React.createElement("strong", null, "Vermelho"))
+    ),
+    React.createElement("div", { style: { background: "#fef3c7", borderRadius: 10, padding: 10, marginBottom: 16, fontSize: 12, color: "#92400e", fontWeight: 600 } },
+      "⏱ 1 minuto de treino (não conta) antes da coleta real"
+    ),
+    React.createElement("div", { style: { display: "flex", justifyContent: "center", gap: 8, marginBottom: 20 } },
+      ["A", "B"].map(f => React.createElement("button", {
+        key: f, onClick: () => setForma(f),
+        style: { padding: "6px 18px", borderRadius: 20, border: `2px solid ${forma === f ? color : "#e5e7eb"}`, background: forma === f ? `${color}15` : "#fff", color: forma === f ? color : "#9ca3af", fontWeight: 800, fontSize: 13, cursor: "pointer" }
+      }, "Forma ", f))
+    ),
+    React.createElement("button", {
+      className: "btn-main", style: { background: color },
+      onClick: () => { rngRef.current = seededRandom(forma === "A" ? 20231 : 20232); iniciarTreino(); }
+    }, "Começar treino")
+  );
+
+  const emTreino = fase === "treino";
+  const pct = emTreino ? Math.round((60 - treinoRestante) / 60 * 100) : Math.round(trial / TOTAL * 100);
   const bg = feedback === "certo" ? "#d1fae5" : feedback === "errado" ? "#fee2e2" : "#f9fafb";
-  return React.createElement("div", null, React.createElement("div", {
-    style: {
-      display: "flex",
-      justifyContent: "space-between",
-      marginBottom: 6
-    }
-  }, React.createElement("span", {
-    style: {
-      fontSize: 12,
-      fontWeight: 700,
-      color: "#374151"
-    }
-  }, trial + 1, "/", TOTAL), React.createElement("span", {
-    style: {
-      fontSize: 12,
-      fontWeight: 700,
-      color
-    }
-  }, pct, "%")), React.createElement("div", {
-    style: {
-      background: "#f3f4f6",
-      borderRadius: 20,
-      height: 8,
-      overflow: "hidden",
-      marginBottom: 14
-    }
-  }, React.createElement("div", {
-    style: {
-      width: `${pct}%`,
-      background: color,
-      height: "100%",
-      borderRadius: 20
-    }
-  })), React.createElement("div", {
-    style: {
-      background: bg,
-      borderRadius: 16,
-      padding: 32,
-      textAlign: "center",
-      marginBottom: 14,
-      minHeight: 100,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      transition: "background .15s"
-    }
-  }, item && React.createElement("div", {
-    style: {
-      fontSize: 52,
-      fontWeight: 900,
-      color: CORES_CSS[item.cor]
-    }
-  }, item.palavra.toUpperCase())), React.createElement("p", {
-    style: {
-      textAlign: "center",
-      fontSize: 13,
-      fontWeight: 700,
-      color: "#9ca3af",
-      marginBottom: 10
-    }
-  }, "Cor da tinta:"), React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: "1fr 1fr",
-      gap: 8
-    }
-  }, CORES_STROOP.map(c => React.createElement("button", {
-    key: c,
-    onClick: () => responder(c),
-    style: {
-      padding: "12px 0",
-      borderRadius: 10,
-      border: `2px solid ${CORES_CSS[c]}`,
-      background: `${CORES_CSS[c]}15`,
-      color: CORES_CSS[c],
-      fontWeight: 800,
-      fontSize: 14,
-      cursor: "pointer"
-    }
-  }, c.charAt(0).toUpperCase() + c.slice(1)))), React.createElement("div", {
-    style: {
-      display: "flex",
-      justifyContent: "space-around",
-      marginTop: 10
-    }
-  }, React.createElement("span", {
-    style: {
-      fontSize: 12,
-      color: "#059669",
-      fontWeight: 700
-    }
-  }, "✓ ", acertos), React.createElement("span", {
-    style: {
-      fontSize: 12,
-      color: "#e11d48",
-      fontWeight: 700
-    }
-  }, "✗ ", erros)));
+  return React.createElement("div", null,
+    React.createElement("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: 6 } },
+      React.createElement("span", { style: { fontSize: 12, fontWeight: 700, color: emTreino ? "#d97706" : "#374151" } },
+        emTreino ? `🧪 Treino · ${treinoRestante}s` : `Forma ${forma} · ${trial + 1}/${TOTAL}`
+      ),
+      React.createElement("span", { style: { fontSize: 12, fontWeight: 700, color } }, pct, "%")
+    ),
+    React.createElement("div", { style: { background: "#f3f4f6", borderRadius: 20, height: 8, overflow: "hidden", marginBottom: 14 } },
+      React.createElement("div", { style: { width: `${pct}%`, background: emTreino ? "#d97706" : color, height: "100%", borderRadius: 20 } })
+    ),
+    React.createElement("div", { style: { background: bg, borderRadius: 16, padding: 32, textAlign: "center", marginBottom: 14, minHeight: 100, display: "flex", alignItems: "center", justifyContent: "center", transition: "background .15s" } },
+      item && React.createElement("div", { style: { fontSize: 52, fontWeight: 900, color: CORES_CSS[item.cor] } }, item.palavra.toUpperCase())
+    ),
+    React.createElement("p", { style: { textAlign: "center", fontSize: 13, fontWeight: 700, color: "#9ca3af", marginBottom: 10 } }, "Cor da tinta:"),
+    React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 } },
+      CORES_STROOP.map(c => React.createElement("button", {
+        key: c, onClick: () => responder(c),
+        style: { padding: "12px 0", borderRadius: 10, border: `2px solid ${CORES_CSS[c]}`, background: `${CORES_CSS[c]}15`, color: CORES_CSS[c], fontWeight: 800, fontSize: 14, cursor: "pointer" }
+      }, c.charAt(0).toUpperCase() + c.slice(1)))
+    ),
+    React.createElement("div", { style: { display: "flex", justifyContent: "space-around", marginTop: 10 } },
+      React.createElement("span", { style: { fontSize: 12, color: "#059669", fontWeight: 700 } }, "✓ ", acertos),
+      React.createElement("span", { style: { fontSize: 12, color: "#e11d48", fontWeight: 700 } }, "✗ ", erros)
+    )
+  );
 }
+
 function TMTForm({
   color,
   onSubmit
@@ -6648,12 +6309,10 @@ function NBackForm({
     }
   }, "○", omissoes)));
 }
-function GoNoGoForm({
-  color,
-  onSubmit
-}) {
+function GoNoGoForm({ color, onSubmit }) {
   const TOTAL = 30;
   const [fase, setFase] = useState("intro");
+  const [forma, setForma] = useState("A");
   const [trial, setTrial] = useState(0);
   const [stim, setStim] = useState(null);
   const [acertos, setAcertos] = useState(0);
@@ -6661,42 +6320,38 @@ function GoNoGoForm({
   const [omissoes, setOmissoes] = useState(0);
   const [tempos, setTempos] = useState([]);
   const [feedback, setFeedback] = useState(null);
+  const [treinoRestante, setTreinoRestante] = useState(60);
   const tRef = useRef(null);
   const iniRef = useRef(null);
-  const stateRef = useRef({
-    trial: 0,
-    acertos: 0,
-    falsosGo: 0,
-    omissoes: 0,
-    tempos: []
-  });
+  const rngRef = useRef(null);
+  const treinandoRef = useRef(false);
+  const treinoFimRef = useRef(0);
+  const treinoTickRef = useRef(null);
+  const stateRef = useRef({ trial: 0, acertos: 0, falsosGo: 0, omissoes: 0, tempos: [] });
+
   function prox(t, a, fg, om, ts) {
-    if (t >= TOTAL) {
-      onSubmit({
-        acertos: a,
-        falsosGo: fg,
-        omissoes: om,
-        mediaTempos: ts.length ? Math.round(ts.reduce((x, y) => x + y, 0) / ts.length) : 0,
-        total: TOTAL,
-        tipo: "gonogo"
-      });
+    const emTreino = treinandoRef.current;
+    const acabou = emTreino ? Date.now() >= treinoFimRef.current : t >= TOTAL;
+    if (acabou) {
+      clearInterval(treinoTickRef.current);
+      if (emTreino) {
+        treinandoRef.current = false;
+        setFase("pronto");
+        return;
+      }
+      const media = ts.length ? Math.round(ts.reduce((x, y) => x + y, 0) / ts.length) : 0;
+      const dp = ts.length > 1 ? Math.round(Math.sqrt(ts.reduce((s, v) => s + (v - media) ** 2, 0) / ts.length)) : 0;
+      onSubmit({ acertos: a, falsosGo: fg, omissoes: om, mediaTempos: media, variabilidadeTR: dp, forma, total: TOTAL, tipo: "gonogo" });
       setFase("fim");
       return;
     }
-    setFase("jogo");
+    setFase(emTreino ? "treino" : "jogo");
     setFeedback(null);
-    const isGo = Math.random() < .7;
+    const isGo = rngRef.current() < .7;
     setStim(isGo ? "🟢" : "🔴");
     iniRef.current = Date.now();
     setTrial(t);
-    stateRef.current = {
-      trial: t,
-      acertos: a,
-      falsosGo: fg,
-      omissoes: om,
-      tempos: ts,
-      isGo
-    };
+    stateRef.current = { trial: t, acertos: a, falsosGo: fg, omissoes: om, tempos: ts, isGo };
     tRef.current = setTimeout(() => {
       if (isGo) {
         const no = om + 1;
@@ -6712,236 +6367,105 @@ function GoNoGoForm({
   }
   function responder() {
     clearTimeout(tRef.current);
-    const {
-      trial: t,
-      acertos: a,
-      falsosGo: fg,
-      omissoes: om,
-      tempos: ts,
-      isGo
-    } = stateRef.current;
+    const { trial: t, acertos: a, falsosGo: fg, omissoes: om, tempos: ts, isGo } = stateRef.current;
     const tr = Date.now() - iniRef.current;
     if (isGo) {
-      const na = a + 1,
-        nt = [...ts, tr];
+      const na = a + 1, nt = [...ts, tr];
       stateRef.current.acertos = na;
-      setAcertos(na);
-      setTempos(nt);
-      setFeedback("certo");
+      setAcertos(na); setTempos(nt); setFeedback("certo");
       setTimeout(() => prox(t + 1, na, fg, om, nt), 600);
     } else {
       const nf = fg + 1;
       stateRef.current.falsosGo = nf;
-      setFalsosGo(nf);
-      setFeedback("falso");
+      setFalsosGo(nf); setFeedback("falso");
       setTimeout(() => prox(t + 1, a, nf, om, ts), 600);
     }
   }
-  useEffect(() => () => clearTimeout(tRef.current), []);
-  if (fase === "fim") return React.createElement("div", {
-    style: {
-      ...crd,
-      textAlign: "center"
-    }
-  }, React.createElement("div", {
-    style: {
-      fontSize: 48,
-      marginBottom: 8
-    }
-  }, "✅"), React.createElement("p", {
-    style: {
-      fontSize: 15,
-      fontWeight: 700,
-      color: "#6b7280"
-    }
-  }, "Respostas enviadas ao terapeuta."));
-  if (fase === "intro") return React.createElement("div", {
-    style: {
-      ...crd,
-      textAlign: "center"
-    }
-  }, React.createElement("div", {
-    style: {
-      fontSize: 52,
-      marginBottom: 12
-    }
-  }, "🚦"), React.createElement("h3", {
-    style: {
-      fontSize: 18,
-      fontWeight: 800,
-      color: "#1f2937",
-      marginBottom: 8
-    }
-  }, "Go / No-Go"), React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 10,
-      marginBottom: 20
-    }
-  }, React.createElement("div", {
-    style: {
-      flex: 1,
-      background: "#d1fae5",
-      borderRadius: 12,
-      padding: 14
-    }
-  }, React.createElement("div", {
-    style: {
-      fontSize: 28
-    }
-  }, "🟢"), React.createElement("div", {
-    style: {
-      fontSize: 13,
-      fontWeight: 700,
-      color: "#065f46",
-      marginTop: 4
-    }
-  }, "GO — Toque!")), React.createElement("div", {
-    style: {
-      flex: 1,
-      background: "#fee2e2",
-      borderRadius: 12,
-      padding: 14
-    }
-  }, React.createElement("div", {
-    style: {
-      fontSize: 28
-    }
-  }, "🔴"), React.createElement("div", {
-    style: {
-      fontSize: 13,
-      fontWeight: 700,
-      color: "#991b1b",
-      marginTop: 4
-    }
-  }, "NO-GO — Aguarde!"))), React.createElement("button", {
-    className: "btn-main",
-    style: {
-      background: color
-    },
-    onClick: () => prox(0, 0, 0, 0, [])
-  }, "Começar"));
-  const pct = Math.round(trial / TOTAL * 100);
+  function iniciarTreino() {
+    treinandoRef.current = true;
+    treinoFimRef.current = Date.now() + 60000;
+    setTreinoRestante(60);
+    treinoTickRef.current = setInterval(() => {
+      const rest = Math.max(0, Math.round((treinoFimRef.current - Date.now()) / 1000));
+      setTreinoRestante(rest);
+    }, 1000);
+    prox(0, 0, 0, 0, []);
+  }
+  function iniciarReal() {
+    setAcertos(0); setFalsosGo(0); setOmissoes(0); setTempos([]);
+    prox(0, 0, 0, 0, []);
+  }
+  useEffect(() => () => { clearTimeout(tRef.current); clearInterval(treinoTickRef.current); }, []);
+
+  if (fase === "fim") return React.createElement("div", { style: { ...crd, textAlign: "center" } },
+    React.createElement("div", { style: { fontSize: 48, marginBottom: 8 } }, "✅"),
+    React.createElement("p", { style: { fontSize: 15, fontWeight: 700, color: "#6b7280" } }, "Respostas enviadas ao terapeuta.")
+  );
+
+  if (fase === "pronto") return React.createElement("div", { style: { ...crd, textAlign: "center" } },
+    React.createElement("div", { style: { fontSize: 48, marginBottom: 8 } }, "✅"),
+    React.createElement("h3", { style: { fontSize: 16, fontWeight: 800, color: "#1f2937", marginBottom: 8 } }, "Treino concluído!"),
+    React.createElement("p", { style: { fontSize: 13, color: "#6b7280", marginBottom: 16 } }, "Agora vamos começar a coleta real. Fique atento!"),
+    React.createElement("button", { className: "btn-main", style: { background: color }, onClick: iniciarReal }, "Iniciar teste")
+  );
+
+  if (fase === "intro") return React.createElement("div", { style: { ...crd, textAlign: "center" } },
+    React.createElement("div", { style: { fontSize: 52, marginBottom: 12 } }, "🚦"),
+    React.createElement("h3", { style: { fontSize: 18, fontWeight: 800, color: "#1f2937", marginBottom: 8 } }, "Go / No-Go"),
+    React.createElement("div", { style: { display: "flex", gap: 10, marginBottom: 16 } },
+      React.createElement("div", { style: { flex: 1, background: "#d1fae5", borderRadius: 12, padding: 14 } },
+        React.createElement("div", { style: { fontSize: 28 } }, "🟢"),
+        React.createElement("div", { style: { fontSize: 13, fontWeight: 700, color: "#065f46", marginTop: 4 } }, "GO — Toque!")
+      ),
+      React.createElement("div", { style: { flex: 1, background: "#fee2e2", borderRadius: 12, padding: 14 } },
+        React.createElement("div", { style: { fontSize: 28 } }, "🔴"),
+        React.createElement("div", { style: { fontSize: 13, fontWeight: 700, color: "#991b1b", marginTop: 4 } }, "NO-GO — Aguarde!")
+      )
+    ),
+    React.createElement("div", { style: { background: "#fef3c7", borderRadius: 10, padding: 10, marginBottom: 16, fontSize: 12, color: "#92400e", fontWeight: 600 } },
+      "⏱ 1 minuto de treino (não conta) antes da coleta real"
+    ),
+    React.createElement("div", { style: { display: "flex", justifyContent: "center", gap: 8, marginBottom: 20 } },
+      ["A", "B"].map(f => React.createElement("button", {
+        key: f, onClick: () => setForma(f),
+        style: { padding: "6px 18px", borderRadius: 20, border: `2px solid ${forma === f ? color : "#e5e7eb"}`, background: forma === f ? `${color}15` : "#fff", color: forma === f ? color : "#9ca3af", fontWeight: 800, fontSize: 13, cursor: "pointer" }
+      }, "Forma ", f))
+    ),
+    React.createElement("button", {
+      className: "btn-main", style: { background: color },
+      onClick: () => { rngRef.current = seededRandom(forma === "A" ? 30231 : 30232); iniciarTreino(); }
+    }, "Começar treino")
+  );
+
+  const emTreino = fase === "treino";
+  const pct = emTreino ? Math.round((60 - treinoRestante) / 60 * 100) : Math.round(trial / TOTAL * 100);
   const bg = feedback === "certo" ? "#d1fae5" : feedback === "falso" ? "#fee2e2" : feedback === "omissao" ? "#fef3c7" : feedback === "correto_nogo" ? "#d1fae5" : "#f9fafb";
-  return React.createElement("div", {
-    onClick: responder
-  }, React.createElement("div", {
-    style: {
-      display: "flex",
-      justifyContent: "space-between",
-      marginBottom: 6
-    }
-  }, React.createElement("span", {
-    style: {
-      fontSize: 12,
-      fontWeight: 700,
-      color: "#374151"
-    }
-  }, trial + 1, "/", TOTAL), React.createElement("span", {
-    style: {
-      fontSize: 12,
-      fontWeight: 700,
-      color
-    }
-  }, pct, "%")), React.createElement("div", {
-    style: {
-      background: "#f3f4f6",
-      borderRadius: 20,
-      height: 8,
-      overflow: "hidden",
-      marginBottom: 14
-    }
-  }, React.createElement("div", {
-    style: {
-      width: `${pct}%`,
-      background: color,
-      height: "100%",
-      borderRadius: 20
-    }
-  })), React.createElement("div", {
-    style: {
-      background: bg,
-      borderRadius: 16,
-      padding: 40,
-      textAlign: "center",
-      minHeight: 150,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      cursor: "pointer",
-      transition: "background .15s",
-      marginBottom: 10
-    }
-  }, stim && !feedback ? React.createElement("div", {
-    style: {
-      fontSize: 100
-    }
-  }, stim) : feedback === "certo" ? React.createElement("div", null, React.createElement("div", {
-    style: {
-      fontSize: 48
-    }
-  }, "✅"), React.createElement("div", {
-    style: {
-      fontWeight: 800,
-      color: "#059669"
-    }
-  }, "Ótimo!")) : feedback === "falso" ? React.createElement("div", null, React.createElement("div", {
-    style: {
-      fontSize: 48
-    }
-  }, "⚠️"), React.createElement("div", {
-    style: {
-      fontWeight: 800,
-      color: "#e11d48"
-    }
-  }, "Não era pra tocar!")) : feedback === "omissao" ? React.createElement("div", null, React.createElement("div", {
-    style: {
-      fontSize: 48
-    }
-  }, "😴"), React.createElement("div", {
-    style: {
-      fontWeight: 800,
-      color: "#d97706"
-    }
-  }, "Perdeu!")) : feedback === "correto_nogo" ? React.createElement("div", null, React.createElement("div", {
-    style: {
-      fontSize: 48
-    }
-  }, "🛑"), React.createElement("div", {
-    style: {
-      fontWeight: 800,
-      color: "#059669"
-    }
-  }, "Correto!")) : React.createElement("div", {
-    style: {
-      fontSize: 32,
-      color: "#d1d5db"
-    }
-  }, "⏳")), React.createElement("div", {
-    style: {
-      display: "flex",
-      justifyContent: "space-around"
-    }
-  }, React.createElement("span", {
-    style: {
-      fontSize: 12,
-      color: "#059669",
-      fontWeight: 700
-    }
-  }, "✓", acertos), React.createElement("span", {
-    style: {
-      fontSize: 12,
-      color: "#e11d48",
-      fontWeight: 700
-    }
-  }, "✗", falsosGo), React.createElement("span", {
-    style: {
-      fontSize: 12,
-      color: "#d97706",
-      fontWeight: 700
-    }
-  }, "○", omissoes)));
+  return React.createElement("div", { onClick: responder },
+    React.createElement("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: 6 } },
+      React.createElement("span", { style: { fontSize: 12, fontWeight: 700, color: emTreino ? "#d97706" : "#374151" } },
+        emTreino ? `🧪 Treino · ${treinoRestante}s` : `Forma ${forma} · ${trial + 1}/${TOTAL}`
+      ),
+      React.createElement("span", { style: { fontSize: 12, fontWeight: 700, color } }, pct, "%")
+    ),
+    React.createElement("div", { style: { background: "#f3f4f6", borderRadius: 20, height: 8, overflow: "hidden", marginBottom: 14 } },
+      React.createElement("div", { style: { width: `${pct}%`, background: emTreino ? "#d97706" : color, height: "100%", borderRadius: 20 } })
+    ),
+    React.createElement("div", { style: { background: bg, borderRadius: 16, padding: 40, textAlign: "center", minHeight: 150, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "background .15s", marginBottom: 10 } },
+      stim && !feedback ? React.createElement("div", { style: { fontSize: 100 } }, stim)
+        : feedback === "certo" ? React.createElement("div", null, React.createElement("div", { style: { fontSize: 48 } }, "✅"), React.createElement("div", { style: { fontWeight: 800, color: "#059669" } }, "Ótimo!"))
+        : feedback === "falso" ? React.createElement("div", null, React.createElement("div", { style: { fontSize: 48 } }, "⚠️"), React.createElement("div", { style: { fontWeight: 800, color: "#e11d48" } }, "Não era pra tocar!"))
+        : feedback === "omissao" ? React.createElement("div", null, React.createElement("div", { style: { fontSize: 48 } }, "😴"), React.createElement("div", { style: { fontWeight: 800, color: "#d97706" } }, "Perdeu!"))
+        : feedback === "correto_nogo" ? React.createElement("div", null, React.createElement("div", { style: { fontSize: 48 } }, "🛑"), React.createElement("div", { style: { fontWeight: 800, color: "#059669" } }, "Correto!"))
+        : React.createElement("div", { style: { fontSize: 32, color: "#d1d5db" } }, "⏳")
+    ),
+    React.createElement("div", { style: { display: "flex", justifyContent: "space-around" } },
+      React.createElement("span", { style: { fontSize: 12, color: "#059669", fontWeight: 700 } }, "✓", acertos),
+      React.createElement("span", { style: { fontSize: 12, color: "#e11d48", fontWeight: 700 } }, "✗", falsosGo),
+      React.createElement("span", { style: { fontSize: 12, color: "#d97706", fontWeight: 700 } }, "○", omissoes)
+    )
+  );
 }
+
 function FlankerForm({
   color,
   onSubmit
@@ -7578,6 +7102,184 @@ function MemoriaListaForm({ color, onSubmit }) {
 }
 
 
+function DigitSpanForm({ color, onSubmit }) {
+  const [fase, setFase] = useState("intro"); // intro | direto | pausa | inverso | resultado
+  const [nivel, setNivel] = useState(3);
+  const [sequencia, setSequencia] = useState([]);
+  const [mostrandoIdx, setMostrandoIdx] = useState(-1);
+  const [digitando, setDigitando] = useState(false);
+  const [resposta, setResposta] = useState("");
+  const [maiorDireto, setMaiorDireto] = useState(0);
+  const [erroDireto, setErroDireto] = useState(false);
+  const [maiorInverso, setMaiorInverso] = useState(0);
+  const [erroInverso, setErroInverso] = useState(false);
+  const [modo, setModo] = useState("direto"); // direto | inverso
+
+  function gerarSequencia(tam) {
+    const seq = [];
+    while (seq.length < tam) {
+      const d = Math.floor(Math.random() * 10);
+      if (seq.length === 0 || seq[seq.length - 1] !== d) seq.push(d);
+    }
+    return seq;
+  }
+
+  function iniciarNivel(m, tam) {
+    const seq = gerarSequencia(tam);
+    setSequencia(seq);
+    setModo(m);
+    setResposta("");
+    setDigitando(false);
+    setMostrandoIdx(-1);
+    setFase(m === "direto" ? "direto" : "inverso");
+    let i = 0;
+    const mostrar = () => {
+      setMostrandoIdx(i);
+      setTimeout(() => {
+        setMostrandoIdx(-1);
+        i++;
+        if (i < seq.length) setTimeout(mostrar, 350);
+        else setTimeout(() => setDigitando(true), 500);
+      }, 800);
+    };
+    setTimeout(mostrar, 400);
+  }
+
+  function confirmar() {
+    const digitado = resposta.split("").map(Number);
+    const alvo = modo === "direto" ? sequencia : [...sequencia].reverse();
+    const correto = digitado.length === alvo.length && digitado.every((d, i) => d === alvo[i]);
+    if (modo === "direto") {
+      if (correto) {
+        setMaiorDireto(sequencia.length);
+        setTimeout(() => iniciarNivel("direto", sequencia.length + 1), 600);
+      } else {
+        if (erroDireto) {
+          // Segunda falha consecutiva no direto -> passa para inverso
+          setFase("pausa");
+        } else {
+          setErroDireto(true);
+          setTimeout(() => iniciarNivel("direto", sequencia.length), 600); // repete mesmo tamanho
+        }
+      }
+    } else {
+      if (correto) {
+        setMaiorInverso(sequencia.length);
+        setTimeout(() => iniciarNivel("inverso", sequencia.length + 1), 600);
+      } else {
+        if (erroInverso) {
+          finalizarTeste();
+        } else {
+          setErroInverso(true);
+          setTimeout(() => iniciarNivel("inverso", sequencia.length), 600);
+        }
+      }
+    }
+    setResposta("");
+    setDigitando(false);
+  }
+
+  function finalizarTeste() {
+    setFase("resultado");
+  }
+
+  if (fase === "intro") return React.createElement("div", { style: { ...crd, textAlign: "center" } },
+    React.createElement("div", { style: { fontSize: 52, marginBottom: 12 } }, "🔢"),
+    React.createElement("h3", { style: { fontSize: 18, fontWeight: 800, color: "#1f2937", marginBottom: 8 } }, "Span de Dígitos"),
+    React.createElement("p", { style: { fontSize: 13, color: "#6b7280", marginBottom: 16, lineHeight: 1.7 } },
+      "Você verá uma sequência de números, um de cada vez. Primeiro repita ", React.createElement("strong", null, "na mesma ordem"), ". Depois repita ", React.createElement("strong", null, "de trás para frente"), "."
+    ),
+    React.createElement("div", { style: { background: "#fef3c7", borderRadius: 10, padding: 12, marginBottom: 20, fontSize: 13, color: "#92400e", fontWeight: 600 } },
+      "A sequência cresce a cada acerto. O teste termina quando errar 2 vezes seguidas em cada modo."
+    ),
+    React.createElement("button", { className: "btn-main", style: { background: color }, onClick: () => { setErroDireto(false); iniciarNivel("direto", 3); } }, "Começar")
+  );
+
+  if (fase === "pausa") return React.createElement("div", { style: { ...crd, textAlign: "center" } },
+    React.createElement("div", { style: { fontSize: 48, marginBottom: 8 } }, "🔄"),
+    React.createElement("h3", { style: { fontSize: 16, fontWeight: 800, color: "#1f2937", marginBottom: 4 } }, "Parte 1 concluída"),
+    React.createElement("p", { style: { fontSize: 13, color: "#6b7280", marginBottom: 16 } }, `Maior sequência direta: ${maiorDireto} dígitos`),
+    React.createElement("p", { style: { fontSize: 13, color: "#6b7280", marginBottom: 16 } }, "Agora repita as sequências ", React.createElement("strong", null, "de trás para frente"), "."),
+    React.createElement("button", { className: "btn-main", style: { background: color }, onClick: () => { setErroInverso(false); iniciarNivel("inverso", 2); } }, "Começar Parte 2")
+  );
+
+  if (fase === "resultado") {
+    const spanTotal = maiorDireto + maiorInverso;
+    const nivel2 = spanTotal >= 13 ? { label: "Excelente", cor: "#059669" } : spanTotal >= 10 ? { label: "Bom", cor: "#0891b2" } : spanTotal >= 7 ? { label: "Moderado", cor: "#d97706" } : { label: "Baixo", cor: "#e11d48" };
+    return React.createElement("div", { style: crd },
+      React.createElement("div", { style: { textAlign: "center", marginBottom: 16 } },
+        React.createElement("div", { style: { fontSize: 48, marginBottom: 8 } }, spanTotal >= 10 ? "🏆" : "🎯"),
+        React.createElement("h3", { style: { fontSize: 18, fontWeight: 800, color: "#1f2937" } }, "Span de Dígitos concluído"),
+        React.createElement("div", { style: { marginTop: 8, display: "inline-block", background: `${nivel2.cor}15`, color: nivel2.cor, padding: "4px 16px", borderRadius: 20, fontWeight: 800, fontSize: 14 } }, nivel2.label)
+      ),
+      React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 } },
+        [[maiorDireto, "Span Direto", "#0891b2"], [maiorInverso, "Span Inverso", "#7c3aed"]].map(([v, l, c]) =>
+          React.createElement("div", { key: l, style: { background: "#f9fafb", borderRadius: 12, padding: 12, textAlign: "center" } },
+            React.createElement("div", { style: { fontSize: 24, fontWeight: 900, color: c } }, v),
+            React.createElement("div", { style: { fontSize: 11, color: "#9ca3af" } }, l)
+          ))
+      ),
+      React.createElement("button", { className: "btn-main", style: { background: color },
+        onClick: () => onSubmit({ spanDireto: maiorDireto, spanInverso: maiorInverso, spanTotal, nivel: nivel2.label, tipo: "digit_span" })
+      }, "Salvar resultado")
+    );
+  }
+
+  // fase === "direto" ou "inverso" — mostra a sequência ou o campo de digitação
+  return React.createElement("div", { style: { ...crd, textAlign: "center" } },
+    React.createElement("div", { style: { fontSize: 13, fontWeight: 700, color: "#9ca3af", marginBottom: 4 } },
+      modo === "direto" ? "Ordem direta" : "Ordem inversa", " · ", sequencia.length, " dígitos"
+    ),
+    !digitando && React.createElement("div", { style: { fontSize: 72, fontWeight: 900, color, minHeight: 100, display: "flex", alignItems: "center", justifyContent: "center" } },
+      mostrandoIdx >= 0 ? sequencia[mostrandoIdx] : "···"
+    ),
+    digitando && React.createElement("div", { style: { marginTop: 12 } },
+      React.createElement("p", { style: { fontSize: 13, color: "#6b7280", marginBottom: 12 } },
+        modo === "direto" ? "Digite os números na mesma ordem:" : "Digite os números de trás para frente:"
+      ),
+      React.createElement("input", {
+        className: "inp", type: "tel", inputMode: "numeric", autoFocus: true,
+        value: resposta, onChange: e => setResposta(e.target.value.replace(/\D/g, "")),
+        style: { textAlign: "center", fontSize: 28, fontWeight: 800, letterSpacing: 6 },
+        placeholder: "•".repeat(sequencia.length)
+      }),
+      React.createElement("button", { className: "btn-main", style: { background: color }, onClick: confirmar, disabled: resposta.length !== sequencia.length }, "Confirmar")
+    )
+  );
+}
+
+function EstadoDiaForm({ color, onSubmit }) {
+  const [vals, setVals] = useState({ foco: 5, cansaco: 5, sono: 5, humor: 5 });
+  const ITENS = [
+    { id: "foco", label: "Nível de foco agora", emoji: "🎯" },
+    { id: "cansaco", label: "Nível de cansaço", emoji: "🔋" },
+    { id: "sono", label: "Qualidade do sono ontem à noite", emoji: "😴" },
+    { id: "humor", label: "Humor geral hoje", emoji: "🙂" }
+  ];
+  return React.createElement("div", { style: crd },
+    React.createElement("h3", { style: { color, fontSize: 16, marginBottom: 4 } }, "📋 Estado do Dia"),
+    React.createElement("p", { style: { fontSize: 12, color: "#9ca3af", marginBottom: 16 } }, "Responda rapidamente, de 0 a 10."),
+    ITENS.map(it => React.createElement("div", { key: it.id, style: { marginBottom: 18 } },
+      React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 } },
+        React.createElement("span", { style: { fontSize: 13, fontWeight: 700, color: "#374151" } }, it.emoji, " ", it.label),
+        React.createElement("span", { style: { fontSize: 18, fontWeight: 800, color } }, vals[it.id])
+      ),
+      React.createElement("div", { style: { background: "#f3f4f6", borderRadius: 20, height: 10, overflow: "hidden", marginBottom: 4 } },
+        React.createElement("div", { style: { width: `${vals[it.id] * 10}%`, background: color, height: "100%", borderRadius: 20, transition: "width .1s" } })
+      ),
+      React.createElement("input", {
+        type: "range", min: 0, max: 10, value: vals[it.id],
+        onChange: e => setVals({ ...vals, [it.id]: +e.target.value }),
+        style: { width: "100%", accentColor: color }
+      })
+    )),
+    React.createElement("button", {
+      className: "btn-main", style: { background: color },
+      onClick: () => onSubmit({ ...vals, tipo: "estado_dia" })
+    }, "Enviar")
+  );
+}
+
 function TaskForm({
   task,
   onSubmit,
@@ -7613,6 +7315,12 @@ function TaskForm({
     color: ti.color,
     onSubmit: onSubmit
   }), task.type === "cancelamento" && React.createElement(CancelamentoForm, {
+    color: ti.color,
+    onSubmit: onSubmit
+  }), task.type === "digit_span" && React.createElement(DigitSpanForm, {
+    color: ti.color,
+    onSubmit: onSubmit
+  }), task.type === "estado_dia" && React.createElement(EstadoDiaForm, {
     color: ti.color,
     onSubmit: onSubmit
   }), task.type === "experimento" && React.createElement(ExperimentoForm, {
@@ -7955,7 +7663,14 @@ function CancelamentoForm({ color, onSubmit }) {
     return `<polygon points="${pts}" fill="none" stroke="${fill}" stroke-width="2"/>`;
   }
 
-  const [fase, setFase] = useState("intro"); // intro | fase1 | transicao | fase2 | resultado
+  const [fase, setFase] = useState("intro"); // intro | treino | fase1 | transicao | fase2 | resultado
+  const [forma, setForma] = useState("A");
+  const rngRef = useRef(null);
+  const [treinoGrid, setTreinoGrid] = useState([]);
+  const [treinoRestante, setTreinoRestante] = useState(60);
+  const treinoFimRef = useRef(0);
+  const treinoTickRef = useRef(null);
+  const treinoClickedRef = useRef(new Set());
   const [alvos1] = useState(() => ["quadrado"]);
   const [alvos2] = useState(() => ["quadrado", "estrela"]);
   const [grid1, setGrid1] = useState([]);
@@ -7975,16 +7690,45 @@ function CancelamentoForm({ color, onSubmit }) {
   const SIZE = isMobile ? 34 : 46;
 
   function buildGrid(alvos) {
+    const rnd = rngRef.current || Math.random;
     const total = ROWS * COLS;
     const nAlvos = Math.max(10, Math.floor(total * 0.28));
     const arr = [];
     for (let i = 0; i < nAlvos; i++) arr.push(alvos[i % alvos.length]);
     const distratores = SHAPES.filter(s => !alvos.includes(s));
-    while (arr.length < total) arr.push(distratores[Math.floor(Math.random() * distratores.length)]);
-    arr.sort(() => Math.random() - 0.5);
+    while (arr.length < total) arr.push(distratores[Math.floor(rnd() * distratores.length)]);
+    arr.sort(() => rnd() - 0.5);
     return arr.map((type, i) => ({ type, i, state: "idle", isTarget: alvos.includes(type) }));
   }
 
+  function buildTreinoGrid() {
+    const total = 5 * 6;
+    const nAlvos = 8;
+    const arr = [];
+    for (let i = 0; i < nAlvos; i++) arr.push("quadrado");
+    const distratores = SHAPES.filter(s => s !== "quadrado");
+    while (arr.length < total) arr.push(distratores[Math.floor(Math.random() * distratores.length)]);
+    arr.sort(() => Math.random() - 0.5);
+    return arr.map((type, i) => ({ type, i, state: "idle", isTarget: type === "quadrado" }));
+  }
+  function iniciarTreino() {
+    treinoClickedRef.current = new Set();
+    setTreinoGrid(buildTreinoGrid());
+    treinoFimRef.current = Date.now() + 60000;
+    setTreinoRestante(60);
+    setFase("treino");
+    clearInterval(treinoTickRef.current);
+    treinoTickRef.current = setInterval(() => {
+      const rest = Math.max(0, Math.round((treinoFimRef.current - Date.now()) / 1000));
+      setTreinoRestante(rest);
+      if (rest <= 0) { clearInterval(treinoTickRef.current); setFase("pronto"); }
+    }, 1000);
+  }
+  function handleTreinoClick(idx) {
+    if (treinoClickedRef.current.has(idx)) return;
+    treinoClickedRef.current.add(idx);
+    setTreinoGrid(prev => prev.map((it, i) => i === idx ? { ...it, state: it.isTarget ? "correct" : "wrong" } : it));
+  }
   function iniciarFase(numFase) {
     clickedRef.current = new Set();
     hitsRef.current = 0;
@@ -8038,6 +7782,7 @@ function CancelamentoForm({ color, onSubmit }) {
         totalOmissoes: (res1?.omissoes || 0) + stats.omissoes,
         totalErros: (res1?.erros || 0) + stats.erros,
         totalAlvos: (res1?.totalAlvos || 0) + stats.totalAlvos,
+        forma,
         tipo: "cancelamento"
       };
       setResFinal(final);
@@ -8045,7 +7790,7 @@ function CancelamentoForm({ color, onSubmit }) {
     }
   }
 
-  useEffect(() => () => clearInterval(timerRef.current), []);
+  useEffect(() => () => { clearInterval(timerRef.current); clearInterval(treinoTickRef.current); }, []);
 
   function GridSVG({ grid, numFase }) {
     return React.createElement("div", {
@@ -8083,7 +7828,45 @@ function CancelamentoForm({ color, onSubmit }) {
     React.createElement("div", { style: { background: "#fef3c7", borderRadius: 10, padding: 12, marginBottom: 20, fontSize: 13, color: "#92400e", fontWeight: 600 } },
       "⏱ Fase 1: 45s · Fase 2: 60s"
     ),
-    React.createElement("button", { className: "btn-main", style: { background: color }, onClick: () => iniciarFase(1) }, "Começar Fase 1")
+    React.createElement("div", { style: { display: "flex", justifyContent: "center", gap: 8, marginBottom: 16 } },
+      ["A", "B"].map(f => React.createElement("button", {
+        key: f, onClick: () => setForma(f),
+        style: { padding: "6px 18px", borderRadius: 20, border: `2px solid ${forma === f ? color : "#e5e7eb"}`, background: forma === f ? `${color}15` : "#fff", color: forma === f ? color : "#9ca3af", fontWeight: 800, fontSize: 13, cursor: "pointer" }
+      }, "Forma ", f))
+    ),
+    React.createElement("div", { style: { background: "#fef3c7", borderRadius: 10, padding: 10, marginBottom: 14, fontSize: 12, color: "#92400e", fontWeight: 600 } },
+      "⏱ 1 minuto de treino (não conta) antes da coleta real"
+    ),
+    React.createElement("button", {
+      className: "btn-main", style: { background: color },
+      onClick: () => { rngRef.current = seededRandom(forma === "A" ? 40231 : 40232); iniciarTreino(); }
+    }, "Começar treino")
+  );
+
+  if (fase === "treino") return React.createElement("div", null,
+    React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 } },
+      React.createElement("span", { style: { fontSize: 13, fontWeight: 800, color: "#d97706" } }, "🧪 Treino"),
+      React.createElement("span", { style: { fontSize: 22, fontWeight: 900, color: treinoRestante <= 10 ? "#e11d48" : "#d97706" } }, treinoRestante, "s")
+    ),
+    React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10, background: "#fef3c7", borderRadius: 10, padding: "8px 12px", marginBottom: 10 } },
+      React.createElement("span", { style: { fontSize: 12, fontWeight: 700, color: "#92400e" } }, "Toque nos quadrados (só treino, não conta):")
+    ),
+    React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(6,1fr)", gap: 4 } },
+      treinoGrid.map((it, idx) => React.createElement("button", {
+        key: idx, onClick: () => handleTreinoClick(idx),
+        style: { background: it.state === "correct" ? "#d1fae5" : it.state === "wrong" ? "#fee2e2" : "transparent", border: "none", cursor: "pointer", padding: 2, borderRadius: 6, aspectRatio: "1" }
+      }, React.createElement("div", {
+        style: { width: isMobile ? 34 : 46, height: isMobile ? 34 : 46 },
+        dangerouslySetInnerHTML: { __html: `<svg width="${isMobile ? 34 : 46}" height="${isMobile ? 34 : 46}" xmlns="http://www.w3.org/2000/svg">${drawShape(it.type, "#374151", isMobile ? 34 : 46)}</svg>` }
+      })))
+    )
+  );
+
+  if (fase === "pronto") return React.createElement("div", { style: { ...crd, textAlign: "center" } },
+    React.createElement("div", { style: { fontSize: 48, marginBottom: 8 } }, "✅"),
+    React.createElement("h3", { style: { fontSize: 16, fontWeight: 800, color: "#1f2937", marginBottom: 8 } }, "Treino concluído!"),
+    React.createElement("p", { style: { fontSize: 13, color: "#6b7280", marginBottom: 16 } }, "Agora vamos começar a coleta real — Fase 1."),
+    React.createElement("button", { className: "btn-main", style: { background: color }, onClick: () => iniciarFase(1) }, "Iniciar Fase 1")
   );
 
   if (fase === "transicao") return React.createElement("div", { style: { ...crd, textAlign: "center" } },
@@ -8553,6 +8336,8 @@ function ResponseView({
   if (type === "atencao") items.push(["Páginas", response.paginas], ["Acertos", response.acertos], ["Erros", response.erros], ["Precisão", `${response.precisao}%`]);
   if (type === "matrizes") items.push(["Acertos", `${response.acertos}/${response.total}`], ["Percentual", `${response.pct}%`], ["Nível", response.nivel]);
   if (type === "cancelamento") items.push(["Total de acertos", `${response.totalAcertos}/${response.totalAlvos}`], ["Omissões", response.totalOmissoes], ["Erros (falsos)", response.totalErros], ["Fase 1", `${response.fase1?.acertos}/${response.fase1?.totalAlvos} em ${response.fase1?.tempoUsado}s`], ["Fase 2", `${response.fase2?.acertos}/${response.fase2?.totalAlvos} em ${response.fase2?.tempoUsado}s`]);
+  if (type === "digit_span") items.push(["Span Direto", response.spanDireto], ["Span Inverso", response.spanInverso], ["Span Total", response.spanTotal], ["Nível", response.nivel]);
+  if (type === "estado_dia") items.push(["Foco", `${response.foco}/10`], ["Cansaço", `${response.cansaco}/10`], ["Sono", `${response.sono}/10`], ["Humor", `${response.humor}/10`]);
   if (type === "memoria_lista") items.push(["Palavras recordadas", `${response.acertos}/${response.total}`], ["Percentual", `${response.pct}%`], ["Intrusões", response.intrusions], ["Nível", response.nivel]);
   if (type === "experimento") items.push(["Hipótese", response.hipotese], ["Ação", response.acao], ["Resultado", response.resultado], ["Aprendizado", response.aprendizado]);
   if (type === "escala") {
