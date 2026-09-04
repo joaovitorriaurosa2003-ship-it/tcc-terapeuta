@@ -3246,7 +3246,7 @@ function ExportarScreen({ patients, grupos, onClose }) {
   const [sucesso, setSucesso] = useState("");
 
   const patientsFiltrados = busca.trim()
-    ? patientsComGrupo.filter(p => p.name.toLowerCase().includes(busca.trim().toLowerCase()))
+    ? patientsComGrupo.filter(p => (p.name || "").toLowerCase().includes(busca.trim().toLowerCase()))
     : patientsComGrupo;
 
   function togglePaciente(id) {
@@ -3427,7 +3427,7 @@ function LoginScreen({
           setLoading(false);
           return;
         }
-        const found = Object.values(all).find(p => p.name.trim().toLowerCase() === pid.trim().toLowerCase());
+        const found = Object.values(all).find(p => (p.name || "").trim().toLowerCase() === pid.trim().toLowerCase());
         if (!found) {
           setErr("Paciente não encontrado.");
           setLoading(false);
@@ -3826,7 +3826,7 @@ function TherapistApp({
     if (!name.trim()) return;
     const all = await fbGet("patients");
     const list = all ? Object.values(all) : [];
-    if (!modal?.id && list.find(p => p.name.trim().toLowerCase() === name.trim().toLowerCase())) {
+    if (!modal?.id && list.find(p => (p.name || "").trim().toLowerCase() === name.trim().toLowerCase())) {
       alert(`Já existe um paciente com o nome "${name}".`);
       return;
     }
