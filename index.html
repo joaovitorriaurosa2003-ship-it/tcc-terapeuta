@@ -1975,7 +1975,8 @@ function ConfirmModal({
 function PatientModal({
   patient,
   onClose,
-  onSave
+  onSave,
+  erro
 }) {
   const isEdit = !!patient;
   const [name, setName] = useState(patient?.name || "");
@@ -2038,7 +2039,9 @@ function PatientModal({
     type: "date",
     value: dataNasc,
     onChange: e => setDataNasc(e.target.value)
-  }), React.createElement("div", {
+  }), erro && React.createElement("div", {
+    style: { background: "#fee2e2", color: "#991b1b", borderRadius: 10, padding: "10px 12px", fontSize: 12, fontWeight: 600, marginBottom: 12, marginTop: 4 }
+  }, "⚠️ ", erro), React.createElement("div", {
     style: {
       display: "flex",
       gap: 10,
@@ -2325,6 +2328,7 @@ function GruposTab({
   const [avulsaType, setAvulsaType] = useState("");
   const [avulsaNote, setAvulsaNote] = useState("");
   const [enviandoAvulsa, setEnviandoAvulsa] = useState(false);
+  const [buscaGrupo, setBuscaGrupo] = useState("");
   useEffect(() => {
     const u = fbListen("grupos", d => {
       setGrupos(d ? Object.values(d) : []);
@@ -2552,10 +2556,18 @@ function GruposTab({
       padding: "9px 16px",
       borderRadius: 10
     }
-  }, "+ Novo")), !loaded && React.createElement(Spinner, null), loaded && grupos.length === 0 && React.createElement(EmptyState, {
+  }, "+ Novo")),
+  grupos.length > 0 && React.createElement("input", {
+    className: "inp", value: buscaGrupo, onChange: e => setBuscaGrupo(e.target.value),
+    placeholder: "🔍 Buscar grupo pelo nome...", style: { marginBottom: 16 }
+  }),
+  !loaded && React.createElement(Spinner, null), loaded && grupos.length === 0 && React.createElement(EmptyState, {
     icon: "👥",
     text: "Nenhum grupo criado ainda."
-  }), grupos.map(g => {
+  }), loaded && grupos.length > 0 && grupos.filter(g => g.nome.toLowerCase().includes(buscaGrupo.trim().toLowerCase())).length === 0 && React.createElement(EmptyState, {
+    icon: "🔍",
+    text: `Nenhum grupo encontrado para "${buscaGrupo}".`
+  }), grupos.filter(g => g.nome.toLowerCase().includes(buscaGrupo.trim().toLowerCase())).map(g => {
     const membros = g.membros ? (Array.isArray(g.membros) ? g.membros : Object.values(g.membros)) : [];
     const tasks = g.tasks ? Object.values(g.tasks) : [];
     return React.createElement("div", {
@@ -3594,6 +3606,7 @@ const NAV_ITEMS = [
 
 function RespostasRecentesTab({ patients, onVerPaciente }) {
   const [filtro, setFiltro] = useState("todas"); // todas | hoje | semana | nao_vistas
+  const [buscaResp, setBuscaResp] = useState("");
   const [vistasPelo, setVistasPelo] = useState(() => {
     try { return JSON.parse(localStorage.getItem("meurhi_vistas") || "{}"); } catch { return {}; }
   });
@@ -3632,6 +3645,7 @@ function RespostasRecentesTab({ patients, onVerPaciente }) {
   const semanaAtras = new Date(hoje.getTime() - 7 * 24 * 60 * 60 * 1000);
 
   const filtradas = todas.filter(r => {
+    if (buscaResp.trim() && !r.pacienteNome.toLowerCase().includes(buscaResp.trim().toLowerCase())) return false;
     if (filtro === "hoje") return r.answeredAt === hojeStr;
     if (filtro === "semana") return parseDate(r.answeredAt) >= semanaAtras.getTime();
     if (filtro === "nao_vistas") return !vistasPelo[r.uid];
@@ -3708,6 +3722,12 @@ function RespostasRecentesTab({ patients, onVerPaciente }) {
         style: { fontSize: 12, fontWeight: 700, color: "#6d28d9", background: "#ede9fe", border: "none", borderRadius: 8, padding: "6px 12px", cursor: "pointer" }
       }, "Marcar todas como vistas")
     ),
+
+    // Busca por paciente
+    React.createElement("input", {
+      className: "inp", value: buscaResp, onChange: e => setBuscaResp(e.target.value),
+      placeholder: "🔍 Buscar por nome do paciente...", style: { marginBottom: 12 }
+    }),
 
     // Filtros
     React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" } },
@@ -3807,6 +3827,7 @@ function TherapistApp({
   const [grupos, setGrupos] = useState([]);
   const [sel, setSel] = useState(null);
   const [modal, setModal] = useState(null);
+  const [modalErr, setModalErr] = useState("");
   const [confirmDel, setConfirmDel] = useState(null);
   const [showExport, setShowExport] = useState(false);
   const [buscaPaciente, setBuscaPaciente] = useState("");
@@ -3844,24 +3865,29 @@ function TherapistApp({
 
   async function savePatient(name, pass, dataNasc) {
     if (!name.trim()) return;
-    const all = await fbGet("patients");
-    const list = all ? Object.values(all) : [];
-    if (!modal?.id && list.find(p => p.name.trim().toLowerCase() === name.trim().toLowerCase())) {
-      alert(`Já existe um paciente com o nome "${name}".`);
-      return;
+    setModalErr("");
+    try {
+      const all = await fbGet("patients");
+      const list = all ? Object.values(all) : [];
+      if (!modal?.id && list.find(p => p.name.trim().toLowerCase() === name.trim().toLowerCase())) {
+        alert(`Já existe um paciente com o nome "${name}".`);
+        return;
+      }
+      if (modal?.id) {
+        const updates = { name, dataNasc: dataNasc || "" };
+        if (pass) updates.password = pass;
+        await fbUpdate(`patients/${modal.id}`, updates);
+      } else {
+        const id = "p" + Date.now();
+        await fbSet(`patients/${id}`, {
+          id, name, password: pass || "1234", dataNasc: dataNasc || "", tasks: {},
+          prontuario: { identificacao: {}, demanda: {}, evolucao_reg: {}, encerramento: {}, historia: {}, evolucao: {} }
+        });
+      }
+      setModal(null);
+    } catch (e) {
+      setModalErr("Erro de conexão com o Firebase. Verifique sua internet e tente novamente. (" + (e?.message || "erro desconhecido") + ")");
     }
-    if (modal?.id) {
-      const updates = { name, dataNasc: dataNasc || "" };
-      if (pass) updates.password = pass;
-      await fbUpdate(`patients/${modal.id}`, updates);
-    } else {
-      const id = "p" + Date.now();
-      await fbSet(`patients/${id}`, {
-        id, name, password: pass || "1234", dataNasc: dataNasc || "", tasks: {},
-        prontuario: { identificacao: {}, demanda: {}, evolucao_reg: {}, encerramento: {}, historia: {}, evolucao: {} }
-      });
-    }
-    setModal(null);
   }
 
   async function deletePatient(id) {
@@ -3892,8 +3918,9 @@ function TherapistApp({
     }),
     modal && React.createElement(PatientModal, {
       patient: modal === "new" ? null : modal,
-      onClose: () => setModal(null),
-      onSave: savePatient
+      onClose: () => { setModal(null); setModalErr(""); },
+      onSave: savePatient,
+      erro: modalErr
     }),
 
     // Pacientes
@@ -8622,6 +8649,7 @@ function DashboardTab({
 }) {
   const [sel, setSel] = useState(0);
   const [subTab, setSubTab] = useState("radar");
+  const [buscaDash, setBuscaDash] = useState("");
   const isDesktop = useIsDesktop();
   const p = patients[sel];
   const tasks = p?.tasks ? Object.values(p.tasks) : [];
@@ -8665,8 +8693,13 @@ function DashboardTab({
   const patientSelector = React.createElement("div", null,
     React.createElement("div", { style: { marginBottom: 14 } },
       React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: "#9ca3af", marginBottom: 8, textTransform: "uppercase", letterSpacing: ".5px" } }, "Paciente"),
+      patients.length > 1 && React.createElement("input", {
+        className: "inp", value: buscaDash, onChange: e => setBuscaDash(e.target.value),
+        placeholder: "🔍 Buscar paciente...", style: { marginBottom: 10 }
+      }),
       React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } },
         patients.map((pt, i) => {
+          if (buscaDash.trim() && !pt.name.toLowerCase().includes(buscaDash.trim().toLowerCase())) return null;
           const ptTasks = pt.tasks ? Object.values(pt.tasks) : [];
           const humor = ptTasks.filter(t => t.type === "escala" && t.response).slice(-1)[0]?.response?.humor || null;
           const color = humor >= 60 ? "#059669" : humor >= 40 ? "#d97706" : "#e11d48";
