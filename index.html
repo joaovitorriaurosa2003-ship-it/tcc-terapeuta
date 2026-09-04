@@ -2807,6 +2807,7 @@ function GrupoForm({
   const [ttitle, setTtitle] = useState("");
   const [tnote, setTnote] = useState("");
   const [saving, setSaving] = useState(false);
+  const [buscaMembro, setBuscaMembro] = useState("");
   const EMOJIS = ["👥", "🏋️", "🧠", "🎯", "💪", "🌱", "⭐", "🔥", "🏆", "🌟", "💡", "🎨"];
   function toggleMembro(pid) {
     setMembros(m => m.includes(pid) ? m.filter(i => i !== pid) : [...m, pid]);
@@ -2920,13 +2921,21 @@ function GrupoForm({
       fontSize: 13,
       color: "#9ca3af"
     }
-  }, "Nenhum paciente cadastrado."), React.createElement("div", {
+  }, "Nenhum paciente cadastrado."), patients.length > 0 && React.createElement("input", {
+    className: "inp",
+    value: buscaMembro,
+    onChange: e => setBuscaMembro(e.target.value),
+    placeholder: "🔍 Buscar paciente...",
+    style: { marginBottom: 10 }
+  }), patients.length > 0 && patients.filter(p => (p.name || "").toLowerCase().includes(buscaMembro.trim().toLowerCase())).length === 0 && React.createElement("p", {
+    style: { fontSize: 13, color: "#9ca3af" }
+  }, `Nenhum paciente encontrado para "${buscaMembro}".`), React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
       gap: 8
     }
-  }, patients.map(p => {
+  }, patients.filter(p => (p.name || "").toLowerCase().includes(buscaMembro.trim().toLowerCase())).map(p => {
     const sel = membros.includes(p.id);
     return React.createElement("div", {
       key: p.id,
