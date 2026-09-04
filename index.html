@@ -3276,7 +3276,7 @@ function ExportarScreen({ patients, grupos, onClose }) {
   const [sucesso, setSucesso] = useState("");
 
   const patientsFiltrados = busca.trim()
-    ? patientsComGrupo.filter(p => p.name.toLowerCase().includes(busca.trim().toLowerCase()))
+    ? patientsComGrupo.filter(p => (p.name || "").toLowerCase().includes(busca.trim().toLowerCase()))
     : patientsComGrupo;
 
   function togglePaciente(id) {
@@ -3457,7 +3457,7 @@ function LoginScreen({
           setLoading(false);
           return;
         }
-        const found = Object.values(all).find(p => p.name.trim().toLowerCase() === pid.trim().toLowerCase());
+        const found = Object.values(all).find(p => (p.name || "").trim().toLowerCase() === pid.trim().toLowerCase());
         if (!found) {
           setErr("Paciente não encontrado.");
           setLoading(false);
@@ -3645,7 +3645,7 @@ function RespostasRecentesTab({ patients, onVerPaciente }) {
   const semanaAtras = new Date(hoje.getTime() - 7 * 24 * 60 * 60 * 1000);
 
   const filtradas = todas.filter(r => {
-    if (buscaResp.trim() && !r.pacienteNome.toLowerCase().includes(buscaResp.trim().toLowerCase())) return false;
+    if (buscaResp.trim() && !(r.pacienteNome || "").toLowerCase().includes(buscaResp.trim().toLowerCase())) return false;
     if (filtro === "hoje") return r.answeredAt === hojeStr;
     if (filtro === "semana") return parseDate(r.answeredAt) >= semanaAtras.getTime();
     if (filtro === "nao_vistas") return !vistasPelo[r.uid];
@@ -3869,7 +3869,7 @@ function TherapistApp({
     try {
       const all = await fbGet("patients");
       const list = all ? Object.values(all) : [];
-      if (!modal?.id && list.find(p => p.name.trim().toLowerCase() === name.trim().toLowerCase())) {
+      if (!modal?.id && list.find(p => (p.name || "").trim().toLowerCase() === name.trim().toLowerCase())) {
         alert(`Já existe um paciente com o nome "${name}".`);
         return;
       }
@@ -3942,15 +3942,15 @@ function TherapistApp({
       ),
       (() => {
         let lista = buscaPaciente.trim()
-          ? patients.filter(p => p.name.toLowerCase().includes(buscaPaciente.trim().toLowerCase()))
+          ? patients.filter(p => (p.name || "").toLowerCase().includes(buscaPaciente.trim().toLowerCase()))
           : patients;
         lista = [...lista];
         if (ordenacao === "nome") {
-          lista.sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+          lista.sort((a, b) => (a.name || "").localeCompare(b.name || "", "pt-BR"));
         } else {
           lista.sort((a, b) => {
             const ia = calcIdade(a.dataNasc), ib = calcIdade(b.dataNasc);
-            if (ia === null && ib === null) return a.name.localeCompare(b.name, "pt-BR");
+            if (ia === null && ib === null) return (a.name || "").localeCompare(b.name || "", "pt-BR");
             if (ia === null) return 1;
             if (ib === null) return -1;
             return ia - ib;
@@ -3970,7 +3970,7 @@ function TherapistApp({
                 React.createElement("div", { onClick: () => setSel(p.id), style: { flex: 1, display: "flex", alignItems: "center", gap: 12 } },
                   React.createElement("div", { style: { width: 42, height: 42, borderRadius: 14, background: "linear-gradient(135deg,#ede9fe,#dbeafe)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 } }, "👤"),
                   React.createElement("div", null,
-                    React.createElement("div", { style: { fontWeight: 700, color: "#1f2937", fontSize: 15 } }, p.name),
+                    React.createElement("div", { style: { fontWeight: 700, color: p.name ? "#1f2937" : "#e11d48", fontSize: 15 } }, p.name || "⚠️ Paciente sem nome (id: " + p.id + ")"),
                     React.createElement("div", { style: { fontSize: 12, color: "#9ca3af", marginTop: 2 } },
                       (p.tasks ? Object.keys(p.tasks).length : 0), " tarefa(s)",
                       idade !== null ? ` · ${idade} anos` : ""
@@ -4008,7 +4008,7 @@ function TherapistApp({
             style: { background: "#fff", borderRadius: 16, padding: 18, marginBottom: isDesktop ? 0 : 10, boxShadow: "0 2px 10px rgba(0,0,0,.06)" }
           },
             React.createElement("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: 8 } },
-              React.createElement("div", { style: { fontWeight: 700, color: "#1f2937" } }, p.name),
+              React.createElement("div", { style: { fontWeight: 700, color: p.name ? "#1f2937" : "#e11d48" } }, p.name || "⚠️ Sem nome (id: " + p.id + ")"),
               React.createElement("div", { style: { fontSize: 13, fontWeight: 700, color: "#6d28d9" } }, tasks.length ? Math.round(done / tasks.length * 100) : 0, "%")
             ),
             React.createElement("div", { style: { background: "#f3f4f6", borderRadius: 20, height: 8, overflow: "hidden" } },
@@ -8699,7 +8699,7 @@ function DashboardTab({
       }),
       React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } },
         patients.map((pt, i) => {
-          if (buscaDash.trim() && !pt.name.toLowerCase().includes(buscaDash.trim().toLowerCase())) return null;
+          if (buscaDash.trim() && !(pt.name || "").toLowerCase().includes(buscaDash.trim().toLowerCase())) return null;
           const ptTasks = pt.tasks ? Object.values(pt.tasks) : [];
           const humor = ptTasks.filter(t => t.type === "escala" && t.response).slice(-1)[0]?.response?.humor || null;
           const color = humor >= 60 ? "#059669" : humor >= 40 ? "#d97706" : "#e11d48";
