@@ -198,6 +198,18 @@ const TASK_TYPES = [{
   label: "📋 HAM-A (Ansiedade)",
   color: "#b45309"
 }, {
+  id: "tsci",
+  label: "🏆 TSCI (Confiança Traço)",
+  color: "#0d9488"
+}, {
+  id: "ssci",
+  label: "🏆 SSCI (Confiança Estado)",
+  color: "#0e7490"
+}, {
+  id: "trosci",
+  label: "🧱 TROSCI (Robustez da Confiança)",
+  color: "#9333ea"
+}, {
   id: "tr",
   label: "⚡ Tempo de Reação",
   color: "#7c3aed"
@@ -976,6 +988,75 @@ const HAMA_DATA = {
   ]
 };
 
+const CONFIANCA_ITENS_BASE = [
+  "Executar as habilidades técnicas necessárias.",
+  "Tomar as decisões corretas sob pressão.",
+  "Executar bem mesmo sob pressão.",
+  "Concentrar-se o suficiente para ter sucesso.",
+  "Executar as estratégias necessárias.",
+  "Se esforçar com afinco até o fim.",
+  "Alcançar suas metas de desempenho.",
+  "Adaptar-se a diferentes situações e ainda assim ter sucesso.",
+  "Ter sucesso de um modo geral.",
+  "Pensar e reagir com sucesso durante a competição/treino.",
+  "Manter a consistência do seu desempenho.",
+  "Retomar o foco rapidamente após cometer um erro.",
+  "Enfrentar desafios com determinação."
+];
+const CONFIANCA_ESCALA = ["Nada confiante", "", "", "", "Moderadamente confiante", "", "", "", "Totalmente confiante"];
+
+const TSCI_DATA = {
+  id: "tsci",
+  nome: "TSCI — Autoconfiança Esportiva (Traço)",
+  color: "#0d9488",
+  instrucao: "De um modo geral, compare sua confiança com a do atleta mais confiante que você já conheceu, em relação a:",
+  escala: CONFIANCA_ESCALA,
+  subescalas: {
+    confianca: { nome: "Confiança Esportiva (Traço)", cor: "#0d9488" }
+  },
+  itens: CONFIANCA_ITENS_BASE.map((texto, i) => ({ id: i + 1, texto, sub: "confianca" }))
+};
+
+const SSCI_DATA = {
+  id: "ssci",
+  nome: "SSCI — Autoconfiança Esportiva (Estado)",
+  color: "#0e7490",
+  instrucao: "Neste momento, antes desta competição/treino, compare sua confiança atual com a do atleta mais confiante que você já conheceu, em relação a:",
+  escala: CONFIANCA_ESCALA,
+  subescalas: {
+    confianca: { nome: "Confiança Esportiva (Estado)", cor: "#0e7490" }
+  },
+  itens: CONFIANCA_ITENS_BASE.map((texto, i) => ({ id: i + 1, texto, sub: "confianca" }))
+};
+
+const TROSCI_DATA = {
+  id: "trosci",
+  nome: "TROSCI — Robustez da Autoconfiança",
+  color: "#9333ea",
+  instrucao: "Avalie o quanto cada afirmação descreve a estabilidade da sua confiança esportiva:",
+  escala: ["Discordo totalmente", "Discordo", "Discordo um pouco", "Neutro", "Concordo um pouco", "Concordo", "Concordo totalmente"],
+  subescalas: {
+    estabilidade: { nome: "Estabilidade", cor: "#9333ea" },
+    recuperacao: { nome: "Recuperação após Erros", cor: "#7c3aed" },
+    resistencia_externa: { nome: "Resistência à Pressão Externa", cor: "#a855f7" }
+  },
+  itens: [
+    { id: 1, texto: "Minha confiança se mantém estável mesmo durante uma sequência de resultados ruins.", sub: "estabilidade" },
+    { id: 2, texto: "Um único erro não abala significativamente minha confiança.", sub: "estabilidade" },
+    { id: 3, texto: "Minha confiança não depende de estar \"no dia certo\".", sub: "estabilidade" },
+    { id: 4, texto: "Consigo manter minha confiança mesmo enfrentando um adversário mais forte.", sub: "estabilidade" },
+    { id: 5, texto: "Minha confiança permanece a mesma em treino e em competição.", sub: "estabilidade" },
+    { id: 6, texto: "Depois de um erro, recupero minha confiança rapidamente.", sub: "recuperacao" },
+    { id: 7, texto: "Quando cometo uma falha, consigo voltar a acreditar em mim já na jogada seguinte.", sub: "recuperacao" },
+    { id: 8, texto: "Um mau desempenho não compromete minha confiança para o restante do jogo.", sub: "recuperacao" },
+    { id: 9, texto: "Eu me recupero de uma derrota sem perder a confiança nas minhas capacidades.", sub: "recuperacao" },
+    { id: 10, texto: "Críticas de outras pessoas não abalam minha confiança.", sub: "resistencia_externa" },
+    { id: 11, texto: "Minha confiança não depende da opinião do técnico sobre meu desempenho.", sub: "resistencia_externa" },
+    { id: 12, texto: "Eu mantenho minha confiança mesmo quando a torcida ou os outros duvidam de mim.", sub: "resistencia_externa" },
+    { id: 13, texto: "Comparações com outros atletas não diminuem minha confiança em mim mesmo.", sub: "resistencia_externa" }
+  ]
+};
+
 function getEscalaData(id) {
   return {
     csai2r: CSAI2R_DATA,
@@ -985,7 +1066,10 @@ function getEscalaData(id) {
     siq: SIQ_DATA,
     resiliencia: RESILIENCIA_DATA,
     suporte_social: SUPORTE_SOCIAL_DATA,
-    hama: HAMA_DATA
+    hama: HAMA_DATA,
+    tsci: TSCI_DATA,
+    ssci: SSCI_DATA,
+    trosci: TROSCI_DATA
   }[id] || null;
 }
 function calcEscala(ed, resp) {
@@ -2093,7 +2177,7 @@ const TASK_CATEGORIES = [
     label: "📋 Escalas Psicológicas",
     color: "#0891b2",
     bg: "#cffafe",
-    ids: ["csai2r", "sas", "hama", "acsi28", "teosq", "siq", "resiliencia", "suporte_social"]
+    ids: ["csai2r", "sas", "hama", "acsi28", "teosq", "siq", "resiliencia", "suporte_social", "tsci", "ssci", "trosci"]
   },
   {
     id: "tcc",
@@ -3171,6 +3255,15 @@ function csvPaciente(p) {
   csv += historicoCSV("SUPORTE SOCIAL PERCEBIDO (HISTÓRICO)", tasks.filter(t => t.type === "suporte_social" && t.response?.totais), [
     ["Suporte da Família", r => r.totais.familia], ["Suporte do Treinador", r => r.totais.treinador], ["Suporte dos Colegas", r => r.totais.colegas]
   ]);
+  csv += historicoCSV("TSCI — AUTOCONFIANÇA TRAÇO (HISTÓRICO)", tasks.filter(t => t.type === "tsci" && t.response?.totais), [
+    ["Confiança (Traço)", r => r.totais.confianca], ["Máximo", () => 117]
+  ]);
+  csv += historicoCSV("SSCI — AUTOCONFIANÇA ESTADO (HISTÓRICO)", tasks.filter(t => t.type === "ssci" && t.response?.totais), [
+    ["Confiança (Estado)", r => r.totais.confianca], ["Máximo", () => 117]
+  ]);
+  csv += historicoCSV("TROSCI — ROBUSTEZ DA CONFIANÇA (HISTÓRICO)", tasks.filter(t => t.type === "trosci" && t.response?.totais), [
+    ["Estabilidade", r => r.totais.estabilidade], ["Recuperação após Erros", r => r.totais.recuperacao], ["Resistência à Pressão Externa", r => r.totais.resistencia_externa]
+  ]);
 
   // ── Testes Cognitivos — histórico completo ──────────────────────────────
   csv += historicoCSV("TEMPO DE REAÇÃO (HISTÓRICO)", tasks.filter(t => t.type === "tr" && t.response), [
@@ -3691,6 +3784,7 @@ function RespostasRecentesTab({ patients, onVerPaciente }) {
       flanker: "➡️", atencao: "🎯", cancelamento: "✂️", matrizes: "🧩", memoria_lista: "🧠",
       csai2r: "😰", sas: "📋", hama: "📊", acsi28: "💪", teosq: "🎯",
       siq: "🧘", resiliencia: "🛡️", suporte_social: "🤝",
+      tsci: "🏆", ssci: "🏆", trosci: "🧱",
       pensamentos: "💭", experimento: "🔬", escala: "📊"
     };
     return icons[type] || "📋";
@@ -3715,6 +3809,8 @@ function RespostasRecentesTab({ patients, onVerPaciente }) {
       const nivel = total <= 17 ? "Leve" : total <= 24 ? "Moderada" : total <= 30 ? "Grave" : "Muito Grave";
       return `Total ${total}/56 · ${nivel}`;
     }
+    if (r.type === "tsci" || r.type === "ssci") return `Confiança: ${resp.totais?.confianca || 0}/117`;
+    if (r.type === "trosci") return `Estabilidade ${resp.totais?.estabilidade || 0} · Recuperação ${resp.totais?.recuperacao || 0} · Resist. externa ${resp.totais?.resistencia_externa || 0}`;
     if (resp.totais) {
       const subs = Object.entries(resp.totais).slice(0, 2).map(([k, v]) => `${v}`).join(" / ");
       return `Subescalas: ${subs}...`;
@@ -4186,7 +4282,7 @@ function ModoTeste({ patient, onClose }) {
         testeAtivo.id === "estado_dia"      && React.createElement(EstadoDiaForm,    { color: ti.color, onSubmit: handleResult }),
         testeAtivo.id === "experimento"   && React.createElement(ExperimentoForm,   { color: ti.color, onSubmit: handleResult }),
         testeAtivo.id === "escala"        && React.createElement(EscalaForm,        { color: ti.color, onSubmit: handleResult }),
-        ["csai2r","sas","acsi28","teosq","siq","resiliencia","suporte_social","hama"].includes(testeAtivo.id) &&
+        ["csai2r","sas","acsi28","teosq","siq","resiliencia","suporte_social","hama","tsci","ssci","trosci"].includes(testeAtivo.id) &&
           React.createElement(EscalaPsiForm, { tipo: testeAtivo.id, color: ti.color, onSubmit: handleResult }),
         testeAtivo.id === "tr"            && React.createElement(TRForm,            { color: ti.color, onSubmit: handleResult }),
         testeAtivo.id === "stroop"        && React.createElement(StroopForm,        { color: ti.color, onSubmit: handleResult }),
@@ -4253,6 +4349,7 @@ function ModoTeste({ patient, onClose }) {
                 t.id === "csai2r" ? "😰" : t.id === "sas" ? "📋" : t.id === "hama" ? "📊" :
                 t.id === "acsi28" ? "💪" : t.id === "teosq" ? "🎯" : t.id === "siq" ? "🧘" :
                 t.id === "resiliencia" ? "🛡️" : t.id === "suporte_social" ? "🤝" :
+                t.id === "tsci" ? "🏆" : t.id === "ssci" ? "🏆" : t.id === "trosci" ? "🧱" :
                 t.id === "pensamentos" ? "💭" : t.id === "experimento" ? "🔬" : t.id === "escala" ? "📊" : "📋"
               ),
               React.createElement("span", { style: { fontSize: 11, fontWeight: 700, color: t.color, lineHeight: 1.3 } },
@@ -4962,7 +5059,18 @@ function EscalaPsiForm({
       color,
       marginBottom: 4
     }
-  }, ed.nome), React.createElement("p", {
+  }, ed.nome), ed.instrucao && React.createElement("p", {
+    style: {
+      fontSize: 13,
+      color: "#374151",
+      fontWeight: 600,
+      marginBottom: 10,
+      lineHeight: 1.5,
+      background: `${color}10`,
+      borderRadius: 10,
+      padding: 10
+    }
+  }, ed.instrucao), React.createElement("p", {
     style: {
       fontSize: 12,
       color: "#9ca3af",
@@ -7432,7 +7540,7 @@ function TaskForm({
   }), task.type === "escala" && React.createElement(EscalaForm, {
     color: ti.color,
     onSubmit: onSubmit
-  }), ["csai2r", "sas", "acsi28", "teosq", "siq", "resiliencia", "suporte_social", "hama"].includes(task.type) && React.createElement(EscalaPsiForm, {
+  }), ["csai2r", "sas", "acsi28", "teosq", "siq", "resiliencia", "suporte_social", "hama", "tsci", "ssci", "trosci"].includes(task.type) && React.createElement(EscalaPsiForm, {
     tipo: task.type,
     color: ti.color,
     onSubmit: onSubmit
@@ -8447,7 +8555,7 @@ function ResponseView({
     ESCALAS_DEF.forEach(s => items.push([s.nome, `${response[s.id]}%`]));
     if (response.obs) items.push(["Obs", response.obs]);
   }
-  if (["csai2r", "sas", "acsi28", "teosq", "siq", "resiliencia", "suporte_social", "hama"].includes(type) && response.totais) {
+  if (["csai2r", "sas", "acsi28", "teosq", "siq", "resiliencia", "suporte_social", "hama", "tsci", "ssci", "trosci"].includes(type) && response.totais) {
     const ed = getEscalaData(type);
     if (!ed) return null;
     return React.createElement("div", {
@@ -8681,6 +8789,9 @@ function DashboardTab({
   const resilResp = tasks.filter(t => t.type === "resiliencia" && t.response?.totais).slice(-1)[0]?.response?.totais || null;
   const suporteResp = tasks.filter(t => t.type === "suporte_social" && t.response?.totais).slice(-1)[0]?.response?.totais || null;
   const hamaResp = tasks.filter(t => t.type === "hama" && t.response?.totais).slice(-1)[0]?.response?.totais || null;
+  const tsciResp = tasks.filter(t => t.type === "tsci" && t.response?.totais).slice(-1)[0]?.response?.totais || null;
+  const ssciResp = tasks.filter(t => t.type === "ssci" && t.response?.totais).slice(-1)[0]?.response?.totais || null;
+  const trosciResp = tasks.filter(t => t.type === "trosci" && t.response?.totais).slice(-1)[0]?.response?.totais || null;
   const beValues = escResp ? [escResp.humor, escResp.ansiedade, escResp.sono, escResp.estresse, escResp.tristeza] : [0, 0, 0, 0, 0];
   const beColors = ["#f59e0b", "#8b5cf6", "#3b82f6", "#ef4444", "#60a5fa"];
   const csaiValues = csaiResp ? [Math.round(csaiResp.cognitiva / 32 * 100), Math.round(csaiResp.somatica / 28 * 100), Math.round(csaiResp.autoconfianca / 20 * 100)] : [0, 0, 0];
@@ -8697,6 +8808,7 @@ function DashboardTab({
   const siqValues = subValuesPct(SIQ_DATA, siqResp);
   const resilValues = subValuesPct(RESILIENCIA_DATA, resilResp);
   const suporteValues = subValuesPct(SUPORTE_SOCIAL_DATA, suporteResp);
+  const trosciValues = subValuesPct(TROSCI_DATA, trosciResp);
   const ECORES = {
     Alegria: "#f59e0b", Tristeza: "#3b82f6", Raiva: "#ef4444", Ansiedade: "#8b5cf6",
     Medo: "#6366f1", Nojo: "#10b981", Vergonha: "#f97316", Culpa: "#64748b",
@@ -8799,6 +8911,11 @@ function DashboardTab({
         React.createElement("div", { style: { fontSize: 14, fontWeight: 800, color: "#b45309", marginBottom: 2 } }, "📋 HAM-A"),
         React.createElement("div", { style: { fontSize: 12, color: "#9ca3af", marginBottom: 10 } }, "Ansiedade psíquica e somática — 14 itens"),
         hamaResp ? React.createElement(RadarChart, { labels: ["Psíquica", "Somática"], values: [Math.round(((hamaResp.ansiedade_psiquica||0)/24)*100), Math.round(((hamaResp.ansiedade_somatica||0)/32)*100)], colors: ["#b45309", "#d97706"], size: 180 }) : React.createElement(EmptyState, { icon: "📋", text: "HAM-A não respondido ainda." })
+      ),
+      React.createElement("div", { style: crd },
+        React.createElement("div", { style: { fontSize: 14, fontWeight: 800, color: "#9333ea", marginBottom: 2 } }, "🧱 TROSCI — Robustez da Confiança"),
+        React.createElement("div", { style: { fontSize: 12, color: "#9ca3af", marginBottom: 10 } }, "Estabilidade, recuperação e resistência a pressão externa"),
+        trosciResp ? React.createElement(RadarChart, { labels: ["Estabilidade", "Recuperação", "Resist. Externa"], values: trosciValues, colors: ["#9333ea", "#7c3aed", "#a855f7"], size: 200 }) : React.createElement(EmptyState, { icon: "🧱", text: "TROSCI não respondido ainda." })
       )
     ),
 
@@ -8862,6 +8979,32 @@ function DashboardTab({
             "Total: ", (hamaResp.ansiedade_psiquica || 0) + (hamaResp.ansiedade_somatica || 0), "/56 — ",
             (() => { const t = (hamaResp.ansiedade_psiquica||0)+(hamaResp.ansiedade_somatica||0); return t<=17?"Leve":t<=24?"Moderada":t<=30?"Grave":"Muito Grave"; })()
           )
+        ) : React.createElement("p", { style: { fontSize: 13, color: "#9ca3af" } }, "Nenhuma resposta ainda.")
+      ),
+      React.createElement("div", { style: { ...crd, marginBottom: isDesktop ? 0 : 14 } },
+        React.createElement("div", { style: { fontSize: 14, fontWeight: 800, color: "#0d9488", marginBottom: 12 } }, "🏆 TSCI — Confiança (Traço)"),
+        tsciResp ? React.createElement(React.Fragment, null,
+          React.createElement(MiniBar, { label: "Confiança Esportiva", value: tsciResp.confianca || 0, max: 117, color: "#0d9488" }),
+          React.createElement("div", { style: { marginTop: 4, fontSize: 11, color: "#9ca3af" } },
+            (() => { const p = Math.round(((tsciResp.confianca||0)/117)*100); return p>=70?"Confiança elevada":p>=40?"Confiança moderada":"Confiança baixa"; })()
+          )
+        ) : React.createElement("p", { style: { fontSize: 13, color: "#9ca3af" } }, "Nenhuma resposta ainda.")
+      ),
+      React.createElement("div", { style: { ...crd, marginBottom: isDesktop ? 0 : 14 } },
+        React.createElement("div", { style: { fontSize: 14, fontWeight: 800, color: "#0e7490", marginBottom: 12 } }, "🏆 SSCI — Confiança (Estado)"),
+        ssciResp ? React.createElement(React.Fragment, null,
+          React.createElement(MiniBar, { label: "Confiança Esportiva", value: ssciResp.confianca || 0, max: 117, color: "#0e7490" }),
+          React.createElement("div", { style: { marginTop: 4, fontSize: 11, color: "#9ca3af" } },
+            (() => { const p = Math.round(((ssciResp.confianca||0)/117)*100); return p>=70?"Confiança elevada":p>=40?"Confiança moderada":"Confiança baixa"; })()
+          )
+        ) : React.createElement("p", { style: { fontSize: 13, color: "#9ca3af" } }, "Nenhuma resposta ainda.")
+      ),
+      React.createElement("div", { style: crd },
+        React.createElement("div", { style: { fontSize: 14, fontWeight: 800, color: "#9333ea", marginBottom: 12 } }, "🧱 TROSCI — Robustez da Confiança"),
+        trosciResp ? React.createElement(React.Fragment, null,
+          React.createElement(MiniBar, { label: "Estabilidade", value: trosciResp.estabilidade || 0, max: 35, color: "#9333ea" }),
+          React.createElement(MiniBar, { label: "Recuperação após Erros", value: trosciResp.recuperacao || 0, max: 28, color: "#7c3aed" }),
+          React.createElement(MiniBar, { label: "Resistência à Pressão Externa", value: trosciResp.resistencia_externa || 0, max: 28, color: "#a855f7" })
         ) : React.createElement("p", { style: { fontSize: 13, color: "#9ca3af" } }, "Nenhuma resposta ainda.")
       )
     ),
