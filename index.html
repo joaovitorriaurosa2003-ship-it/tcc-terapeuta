@@ -2434,7 +2434,7 @@ function GruposTab({
   }
   async function disparar(g) {
     const tasks = g.tasks ? Object.values(g.tasks) : [];
-    const membros = g.membros ? (Array.isArray(g.membros) ? g.membros : Object.values(g.membros)) : [];
+    const membros = membrosAtivos(g, patients);
     if (!tasks.length) {
       alert("Adicione tarefas ao grupo primeiro.");
       return;
@@ -2461,7 +2461,7 @@ function GruposTab({
     setTimeout(() => setDispMsg(""), 3000);
   }
   async function dispararProtocolo(g, protocolo) {
-    const membros = g.membros ? (Array.isArray(g.membros) ? g.membros : Object.values(g.membros)) : [];
+    const membros = membrosAtivos(g, patients);
     if (!membros.length) { alert("Adicione pacientes ao grupo primeiro."); return; }
     setDispMsg("⏳ Disparando protocolo...");
     for (const pid of membros) {
@@ -2504,9 +2504,7 @@ function GruposTab({
   }
   async function dispararAvulsa() {
     if (!avulsaType || !modalAvulsa) return;
-    const membros = modalAvulsa.membros
-      ? (Array.isArray(modalAvulsa.membros) ? modalAvulsa.membros : Object.values(modalAvulsa.membros))
-      : [];
+    const membros = membrosAtivos(modalAvulsa, patients);
     if (!membros.length) { alert("Grupo sem membros."); return; }
     setEnviandoAvulsa(true);
     const ti = getTypeInfo(avulsaType);
@@ -3706,8 +3704,264 @@ function useIsDesktop() {
   return isDesktop;
 }
 
+// ── Alertas: quem está sem avaliação e quem está em alerta pelos resultados ──
+const ALERTA_RISCO = {
+  csai2r: ["cognitiva", "somatica"],
+  sas: ["somatica", "preocupacao", "concentracao"],
+  hama: ["ansiedade_psiquica", "ansiedade_somatica"]
+};
+const ALERTA_RECURSO = {
+  csai2r: ["autoconfianca"],
+  acsi28: ["adversidade", "pressao", "metas", "concentracao", "preocupacao", "confianca", "treinabilidade"],
+  resiliencia: ["recuperacao", "adaptacao"],
+  suporte_social: ["familia", "treinador", "colegas"],
+  tsci: ["confianca"],
+  ssci: ["confianca"],
+  trosci: ["estabilidade", "recuperacao", "resistencia_externa"]
+};
+const ALERTA_ESCALAS = ["csai2r", "sas", "acsi28", "siq", "resiliencia", "suporte_social", "hama", "tsci", "ssci", "trosci", "teosq"];
+function membrosDoGrupo(g) {
+  return g && g.membros ? (Array.isArray(g.membros) ? g.membros : Object.values(g.membros)) : [];
+}
+// Membros que ainda existem como paciente com nome (evita recriar registros de atletas excluídos)
+function membrosAtivos(g, patients) {
+  const m = membrosDoGrupo(g);
+  if (!patients || !patients.length) return m;
+  const ok = new Set(patients.filter(p => p && p.name && p.id).map(p => p.id));
+  return m.filter(pid => ok.has(pid));
+}
+async function limparMembrosDosGrupos(idsValidos) {
+  const all = await fbGet("grupos");
+  const lista = all ? Object.values(all) : [];
+  for (const g of lista) {
+    if (!g || !g.id) continue;
+    const atuais = membrosDoGrupo(g);
+    const novos = atuais.filter(pid => idsValidos.has(pid));
+    if (novos.length !== atuais.length) {
+      const obj = {};
+      novos.forEach((pid, i) => { obj[`m_${i}`] = pid; });
+      await fbSet(`grupos/${g.id}/membros`, obj);
+    }
+  }
+}
+function calcAlertas(patients, grupos, diasLimite) {
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  const DIA = 24 * 60 * 60 * 1000;
+  const grupoDe = {};
+  (grupos || []).forEach(g => membrosDoGrupo(g).forEach(pid => { (grupoDe[pid] = grupoDe[pid] || []).push(g.nome); }));
+  const quando = t => { const d = parseDataBR(t.answeredAt) || parseDataBR(t.createdAt); return d ? d.getTime() : 0; };
+  const dias = ms => ms ? Math.round((hoje.getTime() - ms) / DIA) : null;
+  const fmt = ms => ms ? new Date(ms).toLocaleDateString("pt-BR") : "";
+  const linhas = [];
+  const orfaos = [];
+  (patients || []).forEach(p => {
+    if (!p) return;
+    const tasks = p.tasks ? Object.values(p.tasks) : [];
+    const respondidas = tasks.filter(t => t && t.response);
+    if (!p.name) { orfaos.push({ id: p.id, tarefas: tasks.length, respondidas: respondidas.length, temDados: respondidas.length > 0 || !!p.diarios || !!p.respostas_arquivadas }); return; }
+    const escalas = respondidas.filter(t => ALERTA_ESCALAS.includes(t.type));
+    const ultAtividade = Math.max(0, ...respondidas.map(quando));
+    const ultEscala = Math.max(0, ...escalas.map(quando));
+    const recente = {};
+    escalas.forEach(t => { const d = quando(t); if (!recente[t.type] || d >= recente[t.type].d) recente[t.type] = { d, t }; });
+    const indicadores = [];
+    Object.keys(recente).forEach(type => {
+      const { d, t } = recente[type];
+      let ed = null;
+      try { ed = getEscalaData(type); } catch (e) { ed = null; }
+      if (!ed || !ed.itens || !ed.escala) return;
+      const resp = t.response.respostas || [];
+      const L = ed.escala.length;
+      const soma = {}, cont = {}, total = {};
+      ed.itens.forEach(it => {
+        total[it.sub] = (total[it.sub] || 0) + 1;
+        const v = resp[it.id];
+        if (v != null) {
+          soma[it.sub] = (soma[it.sub] || 0) + (it.inverso ? L + 1 - v : v);
+          cont[it.sub] = (cont[it.sub] || 0) + 1;
+        }
+      });
+      const checar = (sub, risco) => {
+        if (!cont[sub] || cont[sub] / total[sub] < 0.8) return;
+        const pct = Math.round((soma[sub] / cont[sub] - 1) / (L - 1) * 100);
+        const pega = risco ? pct >= 67 : pct <= 33;
+        if (!pega) return;
+        const nomeSub = ed.subescalas && ed.subescalas[sub] ? ed.subescalas[sub].nome : sub;
+        indicadores.push({ escala: ed.nome, dimensao: nomeSub, risco, pct, extremo: risco ? pct >= 83 : pct <= 17, data: fmt(d), dias: dias(d) });
+      };
+      (ALERTA_RISCO[type] || []).forEach(s => checar(s, true));
+      (ALERTA_RECURSO[type] || []).forEach(s => checar(s, false));
+    });
+    let nivel = null;
+    if (indicadores.length) nivel = (indicadores.length >= 2 || indicadores.some(i => i.extremo)) ? "vermelho" : "amarelo";
+    let situacao = null;
+    if (respondidas.length === 0) situacao = "nunca";
+    else if (escalas.length === 0) situacao = "so_testes";
+    else if (dias(ultEscala) > diasLimite) situacao = "antiga";
+    const menorDias = indicadores.length ? Math.min(...indicadores.map(i => i.dias == null ? 9999 : i.dias)) : null;
+    linhas.push({
+      id: p.id, nome: p.name.trim(), grupos: grupoDe[p.id] || [], dataNasc: p.dataNasc || "",
+      tarefas: tasks.length, respondidas: respondidas.length, pendentes: tasks.length - respondidas.length,
+      ultEscala: fmt(ultEscala), diasEscala: dias(ultEscala), ultAtividade: fmt(ultAtividade),
+      indicadores, nivel, situacao, alertaAntigo: menorDias != null && menorDias > diasLimite
+    });
+  });
+  // Possíveis duplicados: mesma data de nascimento e mesmo primeiro nome
+  const chave = {};
+  linhas.forEach(l => {
+    if (!l.dataNasc) return;
+    const k = l.dataNasc + "|" + l.nome.split(/\s+/)[0].toLowerCase();
+    (chave[k] = chave[k] || []).push(l);
+  });
+  const duplicados = Object.values(chave).filter(a => a.length > 1);
+  return { linhas, orfaos, duplicados, semGrupo: linhas.filter(l => !l.grupos.length) };
+}
+
+function AlertasTab({ patients, grupos, onVerPaciente }) {
+  const h = React.createElement;
+  const [secao, setSecao] = useState("resultados");
+  const [grupoSel, setGrupoSel] = useState("todos");
+  const [mostrarCriterio, setMostrarCriterio] = useState(false);
+  const [confirmLimpar, setConfirmLimpar] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [diasLimite, setDiasLimite] = useState(() => {
+    try { const v = parseInt(localStorage.getItem("meupsi_alerta_dias") || "60", 10); return [30, 60, 90].includes(v) ? v : 60; } catch (e) { return 60; }
+  });
+  function trocarDias(v) {
+    setDiasLimite(v);
+    try { localStorage.setItem("meupsi_alerta_dias", String(v)); } catch (e) {}
+  }
+  const info = calcAlertas(patients, grupos, diasLimite);
+  const noGrupo = l => grupoSel === "todos" ? true : grupoSel === "__sem" ? !l.grupos.length : l.grupos.includes(grupoSel);
+  const linhas = info.linhas.filter(noGrupo);
+  const vermelhos = linhas.filter(l => l.nivel === "vermelho").sort((a, b) => b.indicadores.length - a.indicadores.length || a.nome.localeCompare(b.nome, "pt-BR"));
+  const amarelos = linhas.filter(l => l.nivel === "amarelo").sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+  const ordemSit = { nunca: 0, so_testes: 1, antiga: 2 };
+  const semAval = linhas.filter(l => l.situacao).sort((a, b) => ordemSit[a.situacao] - ordemSit[b.situacao] || (b.diasEscala || 0) - (a.diasEscala || 0) || a.nome.localeCompare(b.nome, "pt-BR"));
+  const orfaosLimpaveis = info.orfaos.filter(o => !o.temDados && o.id);
+  const nCadastro = info.orfaos.length + info.duplicados.length + info.semGrupo.length;
+
+  async function limparOrfaos() {
+    setConfirmLimpar(false);
+    setMsg("Limpando...");
+    try {
+      for (const o of orfaosLimpaveis) await fbSet(`patients/${o.id}`, null);
+      const validos = new Set((patients || []).filter(p => p && p.name && p.id).map(p => p.id));
+      await limparMembrosDosGrupos(validos);
+      setMsg(`${orfaosLimpaveis.length} registro(s) sem nome removido(s) e grupos corrigidos.`);
+    } catch (e) {
+      setMsg("Erro ao limpar: " + (e && e.message ? e.message : "erro desconhecido"));
+    }
+    setTimeout(() => setMsg(""), 5000);
+  }
+
+  const card = { background: "#fff", borderRadius: 16, padding: 16, marginBottom: 10, boxShadow: "0 2px 10px rgba(0,0,0,.06)" };
+  const pill = on => ({ padding: "6px 14px", borderRadius: 20, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 12, background: on ? "#6d28d9" : "#f3f4f6", color: on ? "#fff" : "#6b7280" });
+  const tile = (n, rotulo, cor, fundo, alvo) => h("button", {
+    onClick: () => setSecao(alvo),
+    style: { flex: "1 1 130px", textAlign: "left", background: fundo, border: secao === alvo ? `2px solid ${cor}` : "2px solid transparent", borderRadius: 16, padding: "14px 16px", cursor: "pointer" }
+  },
+    h("div", { style: { fontSize: 28, fontWeight: 800, color: cor, lineHeight: 1 } }, n),
+    h("div", { style: { fontSize: 12, fontWeight: 700, color: "#4b5563", marginTop: 6 } }, rotulo)
+  );
+  const tagGrupo = l => h("span", { style: { fontSize: 11, fontWeight: 700, color: "#6b7280", background: "#f3f4f6", borderRadius: 20, padding: "2px 8px", marginLeft: 8 } }, l.grupos.length ? l.grupos.join(" / ") : "sem grupo");
+  const linhaAlerta = l => {
+    const cor = l.nivel === "vermelho" ? "#e11d48" : "#d97706";
+    return h("div", { key: l.id, className: "card-hover", onClick: () => onVerPaciente(l.id), style: { ...card, borderLeft: `5px solid ${cor}` } },
+      h("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" } },
+        h("div", { style: { fontWeight: 700, color: "#1f2937", fontSize: 15 } }, l.nome, tagGrupo(l)),
+        h("span", { style: { fontSize: 11, fontWeight: 800, color: "#fff", background: cor, borderRadius: 20, padding: "3px 10px" } }, l.indicadores.length, l.indicadores.length === 1 ? " indicador" : " indicadores")
+      ),
+      h("div", { style: { marginTop: 10, display: "flex", flexWrap: "wrap", gap: 6 } },
+        l.indicadores.map((i, k) => h("span", {
+          key: k,
+          style: { fontSize: 12, fontWeight: 600, borderRadius: 8, padding: "4px 9px", background: i.extremo ? "#fee2e2" : "#fef3c7", color: i.extremo ? "#991b1b" : "#92400e" }
+        }, i.escala, " · ", i.dimensao, i.risco ? " alta" : " baixa", " (", i.pct, "%) · ", i.data))
+      ),
+      l.alertaAntigo && h("div", { style: { fontSize: 12, color: "#6b7280", marginTop: 8 } }, "⏳ Resultado com mais de ", diasLimite, " dias. Reavaliar antes de agir.")
+    );
+  };
+  const rotSit = { nunca: ["Nunca avaliado", "#e11d48"], so_testes: ["Só testes cognitivos, sem escala", "#d97706"], antiga: ["Escala há mais de " + diasLimite + " dias", "#6b7280"] };
+
+  return h("div", null,
+    confirmLimpar && h(ConfirmModal, {
+      msg: `Remover ${orfaosLimpaveis.length} registro(s) sem nome e tirar dos grupos os atletas que já foram excluídos? Nenhuma resposta é apagada.`,
+      onConfirm: limparOrfaos, onCancel: () => setConfirmLimpar(false)
+    }),
+    h("h2", { style: { ...h2s, marginBottom: 6 } }, "Alertas"),
+    h("div", { style: { fontSize: 13, color: "#6b7280", marginBottom: 14 } }, "Triagem automática para priorizar quem olhar primeiro. Toque no atleta para abrir a ficha."),
+    h("div", { style: { display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 } },
+      tile(vermelhos.length, "Alerta vermelho", "#e11d48", "#fff1f2", "resultados"),
+      tile(amarelos.length, "Alerta amarelo", "#d97706", "#fffbeb", "resultados"),
+      tile(semAval.length, "Sem avaliação em dia", "#6d28d9", "#f5f3ff", "sem"),
+      tile(nCadastro, "Cadastro a corrigir", "#0e7490", "#ecfeff", "cadastro")
+    ),
+    h("div", { style: { display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 10 } },
+      h("span", { style: { fontSize: 12, fontWeight: 700, color: "#9ca3af" } }, "Grupo:"),
+      [["todos", "Todos"]].concat((grupos || []).map(g => [g.nome, g.nome]), [["__sem", "Sem grupo"]]).map(([id, rot]) => h("button", { key: id, onClick: () => setGrupoSel(id), style: pill(grupoSel === id) }, rot))
+    ),
+    h("div", { style: { display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 16 } },
+      h("span", { style: { fontSize: 12, fontWeight: 700, color: "#9ca3af" } }, "Avaliação vence em:"),
+      [30, 60, 90].map(v => h("button", { key: v, onClick: () => trocarDias(v), style: pill(diasLimite === v) }, v, " dias")),
+      h("button", { onClick: () => setMostrarCriterio(!mostrarCriterio), style: { ...pill(false), background: "transparent", textDecoration: "underline" } }, mostrarCriterio ? "Ocultar critérios" : "Como é calculado")
+    ),
+    mostrarCriterio && h("div", { style: { ...card, background: "#f9fafb", fontSize: 13, color: "#4b5563", lineHeight: 1.6 } },
+      h("div", null, "• Vale a aplicação mais recente de cada escala. Cada dimensão vira % da escala (0% é a média mínima por item, 100% a máxima)."),
+      h("div", null, "• Risco alto (ansiedade cognitiva e somática, preocupação, perturbação da concentração, HAM-A): alerta a partir de 67%. Extremo a partir de 83%."),
+      h("div", null, "• Recurso baixo (autoconfiança, ACSI-28, resiliência, suporte social, TSCI, SSCI, TROSCI): alerta até 33%. Extremo até 17%."),
+      h("div", null, "• Vermelho: 2 ou mais indicadores, ou 1 extremo. Amarelo: 1 indicador não extremo."),
+      h("div", null, "• Testes cognitivos e SIQ não geram alerta."),
+      h("div", { style: { marginTop: 6, fontWeight: 700 } }, "São critérios de triagem, não pontos de corte validados. Não substituem a sua avaliação.")
+    ),
+    msg && h("div", { style: { ...card, background: "#ecfdf5", color: "#065f46", fontWeight: 700, fontSize: 13 } }, msg),
+
+    secao === "resultados" && h("div", null,
+      vermelhos.length + amarelos.length === 0 && h(EmptyState, { icon: "✅", text: "Nenhum atleta em alerta pelos resultados." }),
+      vermelhos.length > 0 && h("div", { style: { fontSize: 13, fontWeight: 800, color: "#e11d48", margin: "4px 0 8px" } }, "Vermelho (", vermelhos.length, ")"),
+      vermelhos.map(linhaAlerta),
+      amarelos.length > 0 && h("div", { style: { fontSize: 13, fontWeight: 800, color: "#d97706", margin: "14px 0 8px" } }, "Amarelo (", amarelos.length, ")"),
+      amarelos.map(linhaAlerta)
+    ),
+
+    secao === "sem" && h("div", null,
+      semAval.length === 0 && h(EmptyState, { icon: "✅", text: "Todos com escala respondida dentro do prazo." }),
+      semAval.map(l => h("div", { key: l.id, className: "card-hover", onClick: () => onVerPaciente(l.id), style: { ...card, borderLeft: `5px solid ${rotSit[l.situacao][1]}` } },
+        h("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" } },
+          h("div", { style: { fontWeight: 700, color: "#1f2937", fontSize: 15 } }, l.nome, tagGrupo(l)),
+          h("span", { style: { fontSize: 11, fontWeight: 800, color: rotSit[l.situacao][1] } }, rotSit[l.situacao][0])
+        ),
+        h("div", { style: { fontSize: 12, color: "#6b7280", marginTop: 6 } },
+          l.situacao === "antiga" ? `Última escala em ${l.ultEscala} (${l.diasEscala} dias)` : l.situacao === "so_testes" ? `Última atividade em ${l.ultAtividade}` : (l.tarefas ? "Nenhuma tarefa respondida" : "Nenhuma tarefa atribuída"),
+          l.pendentes > 0 ? ` · ${l.pendentes} tarefa(s) pendente(s)` : ""
+        )
+      ))
+    ),
+
+    secao === "cadastro" && h("div", null,
+      nCadastro === 0 && h(EmptyState, { icon: "✅", text: "Nada a corrigir no cadastro." }),
+      info.orfaos.length > 0 && h("div", { style: card },
+        h("div", { style: { fontWeight: 700, color: "#1f2937" } }, info.orfaos.length, " registro(s) sem nome"),
+        h("div", { style: { fontSize: 13, color: "#6b7280", margin: "6px 0 10px" } }, "São atletas excluídos que continuaram na lista de um grupo e receberam tarefas. Registros com respostas não são removidos."),
+        orfaosLimpaveis.length > 0 && h("button", { onClick: () => setConfirmLimpar(true), style: { ...btn("#0e7490"), padding: "9px 16px", borderRadius: 10 } }, "Limpar ", orfaosLimpaveis.length, " registro(s)")
+      ),
+      info.duplicados.map((d, k) => h("div", { key: "d" + k, style: card },
+        h("div", { style: { fontWeight: 700, color: "#1f2937" } }, "Possível cadastro duplicado"),
+        h("div", { style: { fontSize: 13, color: "#6b7280", marginTop: 6 } }, d.map(x => x.nome).join("  ·  ")),
+        h("div", { style: { fontSize: 12, color: "#9ca3af", marginTop: 4 } }, "Mesma data de nascimento e mesmo primeiro nome.")
+      )),
+      info.semGrupo.length > 0 && h("div", { style: card },
+        h("div", { style: { fontWeight: 700, color: "#1f2937" } }, info.semGrupo.length, " atleta(s) sem grupo"),
+        h("div", { style: { fontSize: 13, color: "#6b7280", marginTop: 6 } }, info.semGrupo.map(x => x.nome).join("  ·  ")),
+        h("div", { style: { fontSize: 12, color: "#9ca3af", marginTop: 4 } }, "Não recebem as tarefas enviadas por grupo.")
+      )
+    )
+  );
+}
+
 const NAV_ITEMS = [
   { id: "patients", icon: "👥", label: "Pacientes" },
+  { id: "alertas",  icon: "🚨", label: "Alertas" },
   { id: "groups",   icon: "🗂", label: "Grupos" },
   { id: "dashboard",icon: "📊", label: "Dashboard" },
   { id: "overview", icon: "📈", label: "Visão Geral" },
@@ -3949,7 +4203,7 @@ function TherapistApp({
   const isDesktop = useIsDesktop();
 
   useEffect(() => {
-    const u = fbListen("patients", d => setPatients(d ? Object.values(d) : []));
+    const u = fbListen("patients", d => setPatients(d ? Object.entries(d).filter(([k, v]) => v && typeof v === "object").map(([k, v]) => ({ ...v, id: v.id || k })) : []));
     return () => u();
   }, []);
   useEffect(() => {
@@ -4007,6 +4261,11 @@ function TherapistApp({
   async function deletePatient(id) {
     await fbSet(`patients/${id}`, null);
     setConfirmDel(null);
+    // tira o atleta excluído dos grupos, para não receber tarefas de novo
+    try {
+      const validos = new Set((patients || []).filter(p => p && p.name && p.id && p.id !== id).map(p => p.id));
+      await limparMembrosDosGrupos(validos);
+    } catch (e) {}
   }
 
   if (patients === null) return React.createElement("div", { style: aw },
@@ -4104,6 +4363,10 @@ function TherapistApp({
     ),
 
     tab === "groups" && React.createElement(GruposTab, { patients: patients }),
+    tab === "alertas" && React.createElement(AlertasTab, {
+      patients: patients, grupos: grupos,
+      onVerPaciente: (pid) => { setSel(pid); }
+    }),
     tab === "dashboard" && React.createElement(DashboardTab, { patients: patients, onExport: () => setShowExport(true) }),
     tab === "respostas" && React.createElement(RespostasRecentesTab, {
       patients: patients,
@@ -4157,6 +4420,9 @@ function TherapistApp({
           NAV_ITEMS.map(item => {
             // Count unseen responses for badge
             let badge = 0;
+            if (item.id === "alertas" && patients) {
+              try { badge = calcAlertas(patients, grupos, 60).linhas.filter(l => l.nivel === "vermelho").length; } catch (e) {}
+            }
             if (item.id === "respostas" && patients) {
               try {
                 const vistas = JSON.parse(localStorage.getItem("meurhi_vistas") || "{}");
@@ -4228,7 +4494,7 @@ function TherapistApp({
       }, "📥 Exportar dados")
     ),
     React.createElement(TabBar, {
-      tabs: [["patients", "👥 Pacientes"], ["groups", "🗂 Grupos"], ["dashboard", "📊 Dashboard"], ["overview", "📈 Visão Geral"], ["respostas", "📬 Respostas"], ["config", "⚙️ Config"]],
+      tabs: [["patients", "👥 Pacientes"], ["alertas", "🚨 Alertas"], ["groups", "🗂 Grupos"], ["dashboard", "📊 Dashboard"], ["overview", "📈 Visão Geral"], ["respostas", "📬 Respostas"], ["config", "⚙️ Config"]],
       active: tab, onChange: setTab
     }),
     React.createElement("div", { style: ct }, tabContent)
