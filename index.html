@@ -2018,7 +2018,8 @@ function Spinner() {
 function ConfirmModal({
   msg,
   onConfirm,
-  onCancel
+  onCancel,
+  okLabel
 }) {
   return React.createElement("div", {
     style: {
@@ -2063,7 +2064,7 @@ function ConfirmModal({
       ...btn("#fee2e2"),
       flex: 1
     }
-  }, "🗑 Apagar"))));
+  }, okLabel || "🗑 Apagar"))));
 }
 function PatientModal({
   patient,
@@ -3887,7 +3888,7 @@ function AlertasTab({ patients, grupos, onVerPaciente }) {
   return h("div", null,
     confirmLimpar && h(ConfirmModal, {
       msg: `Remover ${orfaosLimpaveis.length} registro(s) sem nome e tirar dos grupos os atletas que já foram excluídos? Nenhuma resposta é apagada.`,
-      onConfirm: limparOrfaos, onCancel: () => setConfirmLimpar(false)
+      okLabel: "Limpar", onConfirm: limparOrfaos, onCancel: () => setConfirmLimpar(false)
     }),
     h("h2", { style: { ...h2s, marginBottom: 6 } }, "Alertas"),
     h("div", { style: { fontSize: 13, color: "#6b7280", marginBottom: 14 } }, "Triagem automática para priorizar quem olhar primeiro. Toque no atleta para abrir a ficha."),
@@ -3959,9 +3960,919 @@ function AlertasTab({ patients, grupos, onVerPaciente }) {
   );
 }
 
+// ══ Relatórios em PDF, sessões de prontuário e painel de pendências ══
+const REL_CFG = {
+  instituicao: "EC Meia Noite SAF",
+  cidade: "Patrocínio Paulista",
+  psicologo: "João Vitor Riau Rosa",
+  crp: "CRP 06/227336",
+  destinatario: "Coordenação do Setor de Futebol"
+};
+const REL_LOGO = "data:image/jpeg;base64,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";
+const SINAIS = {
+  regular: { rot: "Regular", resumo: "regular(es)", cor: [34, 139, 94] },
+  atencao: { rot: "Atenção", resumo: "em atenção", cor: [217, 150, 20] },
+  prioritario: { rot: "Prioritário", resumo: "prioritário(s)", cor: [190, 50, 50] },
+  informativo: { rot: "Informativo", resumo: "informativo(s)", cor: [148, 156, 170] }
+};
+const SINAIS_ORDEM = ["regular", "atencao", "prioritario", "informativo"];
+const REL_TIPOS = {
+  tr: "TEMPO DE REAÇÃO", atencao: "TESTE DE ATENÇÃO VISUAL", stroop: "TESTE DE STROOP", memoria_lista: "MEMÓRIA DE LISTA DE PALAVRAS",
+  matrizes: "MATRIZES PROGRESSIVAS", tmt: "TRAIL MAKING TEST", nback: "N-BACK · 2-BACK", gonogo: "GO / NO-GO", flanker: "TESTE DE FLANKER",
+  cancelamento: "TESTE DE CANCELAMENTO", span: "SPAN DE DÍGITOS", csai2r: "CSAI-2R", sas: "SAS", acsi28: "ACSI-28", teosq: "TEOSQ · ORIENTAÇÃO DE META",
+  siq: "SIQ · IMAGEM MENTAL", resiliencia: "RESILIÊNCIA ESPORTIVA", suporte_social: "SUPORTE SOCIAL PERCEBIDO", hama: "HAM-A",
+  tsci: "TSCI · AUTOCONFIANÇA TRAÇO", ssci: "SSCI · AUTOCONFIANÇA ESTADO", trosci: "TROSCI · ROBUSTEZ DA CONFIANÇA"
+};
+const REL_CAMPOS = {
+  forma: "Forma", acertos: "Acertos", erros: "Erros", total: "Total", media: "TR médio (ms)", desvio: "Desvio padrão (ms)",
+  mediaCongruente: "TR congruente (ms)", mediaIncongruente: "TR incongruente (ms)", custoInterferencia: "Custo interferência (ms)",
+  falsosPos: "Falsos positivos", falsosGo: "Falsos alarmes", omissoes: "Omissões", score: "Score", paginas: "Páginas", precisao: "Precisão (%)",
+  pct: "Percentual (%)", intrusions: "Intrusões", nivel: "Nível", mediaTempos: "TR médio (ms)", tempoA: "Tempo Parte A (s)", tempoB: "Tempo Parte B (s)",
+  totalAcertos: "Acertos", totalAlvos: "Alvos", totalOmissoes: "Omissões", humor: "Humor (%)", ansiedade: "Ansiedade (%)", emocao: "Emoção", intensidade: "Intensidade"
+};
+const REL_ORDEM_CAMPOS = ["forma", "paginas", "acertos", "total", "erros", "precisao", "pct", "media", "mediaTempos", "desvio", "mediaCongruente", "mediaIncongruente", "custoInterferencia", "falsosPos", "falsosGo", "omissoes", "intrusions", "tempoA", "tempoB", "score", "nivel"];
+// Frases em linguagem simples para a devolutiva à família: [a desenvolver, ponto forte]
+const REL_FRASES = {
+  "csai2r.cognitiva": ["Lidar com as preocupações antes das competições", "Mantém a mente tranquila antes de competir"],
+  "csai2r.somatica": ["Controlar as reações do corpo ao nervosismo, como tensão e coração acelerado", "Mantém o corpo relaxado antes de competir"],
+  "csai2r.autoconfianca": ["Fortalecer a confiança nas próprias capacidades", "Demonstra confiança nas próprias capacidades"],
+  "sas.somatica": ["Controlar as reações do corpo ao nervosismo", "Mantém o corpo tranquilo em situações de jogo"],
+  "sas.preocupacao": ["Reduzir a preocupação com erros e resultados", "Lida bem com a possibilidade de errar"],
+  "sas.concentracao": ["Manter o foco durante treinos e jogos", "Mantém bem o foco durante treinos e jogos"],
+  "acsi28.adversidade": ["Reagir de forma positiva quando as coisas não saem como o esperado", "Reage bem às dificuldades"],
+  "acsi28.pressao": ["Render bem em momentos de pressão", "Rende bem em momentos de pressão"],
+  "acsi28.metas": ["Estabelecer metas e se preparar mentalmente", "Organiza metas e se prepara mentalmente"],
+  "acsi28.concentracao": ["Manter a concentração diante de distrações", "Concentra-se bem mesmo com distrações"],
+  "acsi28.preocupacao": ["Reduzir a preocupação com o próprio desempenho", "Não se deixa abalar por preocupações com o desempenho"],
+  "acsi28.confianca": ["Fortalecer a confiança e a motivação", "Mostra confiança e motivação"],
+  "acsi28.treinabilidade": ["Receber orientações e correções com tranquilidade", "Recebe bem orientações e correções"],
+  "resiliencia.recuperacao": ["Recuperar-se depois de erros e resultados ruins", "Recupera-se bem de erros e resultados ruins"],
+  "resiliencia.adaptacao": ["Persistir e se adaptar a mudanças", "Persiste e se adapta bem a mudanças"],
+  "suporte_social.familia": ["Sentir-se mais apoiado pela família", "Sente-se apoiado pela família"],
+  "suporte_social.treinador": ["Sentir-se mais apoiado pela comissão técnica", "Sente-se apoiado pela comissão técnica"],
+  "suporte_social.colegas": ["Sentir-se mais apoiado pelos colegas", "Sente-se apoiado pelos colegas"],
+  "tsci.confianca": ["Fortalecer a confiança como atleta", "Mostra boa confiança como atleta"],
+  "ssci.confianca": ["Fortalecer a confiança antes das competições", "Chega confiante às competições"]
+};
+const TEXTOS_MODELO_PADRAO = [
+  { id: "m_ind", nome: "Atendimento individual", tipo: "Individual", relato: "Atendimento individual. Demanda trazida pelo atleta: \nIntervenções realizadas: \nResposta do atleta: ", parecer: "Manter acompanhamento. Próximo passo: " },
+  { id: "m_dev", nome: "Devolutiva de avaliação", tipo: "Individual", relato: "Devolutiva dos resultados das avaliações realizadas. Pontos apresentados ao atleta: \nReação do atleta: ", parecer: "Atleta compreendeu os resultados. Combinados: " },
+  { id: "m_hab", nome: "Treino de habilidades mentais", tipo: "Individual", relato: "Treino de habilidades mentais. Técnica trabalhada (respiração, visualização, rotina pré-jogo, diálogo interno): \nDesempenho do atleta na prática: ", parecer: "Orientado a praticar entre as sessões. Reavaliar em: " },
+  { id: "m_grp", nome: "Intervenção em grupo", tipo: "Grupo", relato: "Intervenção em grupo. Tema: \nAtividade realizada: \nParticipação do atleta: ", parecer: "Participação adequada. Observações: " },
+  { id: "m_resp", nome: "Contato com responsável", tipo: "Contato com responsável", relato: "Contato com o responsável. Assunto: \nInformações trocadas: ", parecer: "Combinados com a família: " },
+  { id: "m_obs", nome: "Observação em treino ou jogo", tipo: "Observação em campo", relato: "Observação em campo. Contexto (treino ou jogo): \nComportamentos observados: ", parecer: "Pontos a trabalhar em atendimento: " },
+  { id: "m_enc", nome: "Encaminhamento", tipo: "Individual", relato: "Identificada necessidade de avaliação por outro profissional. Motivo: ", parecer: "Encaminhamento para: \nResponsável comunicado em: " }
+];
+
+function relLimpo(s) {
+  return String(s == null ? "" : s)
+    .replace(/[–—]/g, "-").replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/…/g, "...").replace(/•/g, "·")
+    .replace(/[^\x0A\x20-\x7E\xA0-\xFF]/g, "").replace(/[ \t]+/g, " ").replace(/ *\n */g, "\n").trim();
+}
+function relDataBR(d) {
+  return d ? d.toLocaleDateString("pt-BR") : "";
+}
+function relIsoParaData(iso) {
+  if (!iso) return null;
+  const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return null;
+  const d = new Date(+m[1], +m[2] - 1, +m[3]);
+  return isNaN(d.getTime()) ? null : d;
+}
+function relIdade(nasc) {
+  const d = relIsoParaData(nasc);
+  if (!d) return null;
+  const h = new Date();
+  let a = h.getFullYear() - d.getFullYear();
+  if (h.getMonth() < d.getMonth() || (h.getMonth() === d.getMonth() && h.getDate() < d.getDate())) a--;
+  return a >= 0 && a < 120 ? a : null;
+}
+function relNomeTipo(type) {
+  if (REL_TIPOS[type]) return REL_TIPOS[type];
+  const ti = getTypeInfo(type);
+  return relLimpo(ti && ti.label ? ti.label : (type || "Avaliação")).toUpperCase();
+}
+// Indicadores de alerta de UMA resposta (mesmos cortes da tela de Alertas)
+function relIndicadores(type, response) {
+  const out = [];
+  let ed = null;
+  try { ed = getEscalaData(type); } catch (e) { ed = null; }
+  if (!ed || !ed.itens || !ed.escala || !response) return out;
+  const resp = response.respostas || [];
+  const L = ed.escala.length;
+  const soma = {}, cont = {}, total = {};
+  ed.itens.forEach(it => {
+    total[it.sub] = (total[it.sub] || 0) + 1;
+    const v = resp[it.id];
+    if (v != null) { soma[it.sub] = (soma[it.sub] || 0) + (it.inverso ? L + 1 - v : v); cont[it.sub] = (cont[it.sub] || 0) + 1; }
+  });
+  Object.keys(total).forEach(sub => {
+    if (!cont[sub] || cont[sub] / total[sub] < 0.8) return;
+    const pct = Math.round((soma[sub] / cont[sub] - 1) / (L - 1) * 100);
+    const risco = (ALERTA_RISCO[type] || []).includes(sub);
+    const recurso = (ALERTA_RECURSO[type] || []).includes(sub);
+    const nome = ed.subescalas && ed.subescalas[sub] ? ed.subescalas[sub].nome : sub;
+    out.push({ sub, nome, pct, soma: soma[sub], max: total[sub] * L, risco, recurso,
+      alerta: risco ? pct >= 67 : recurso ? pct <= 33 : false,
+      extremo: risco ? pct >= 83 : recurso ? pct <= 17 : false,
+      forte: risco ? pct <= 33 : recurso ? pct >= 67 : false });
+  });
+  return out;
+}
+function relSinalAuto(inds) {
+  const a = inds.filter(i => i.alerta);
+  if (!a.length) return "informativo";
+  return (a.length >= 2 || a.some(i => i.extremo)) ? "prioritario" : "atencao";
+}
+function relResumo(type, response, detalhado) {
+  if (!response || typeof response !== "object") return detalhado ? "" : "Avaliação realizada.";
+  const nome = relNomeTipo(type);
+  if (!detalhado) {
+    const a = relIndicadores(type, response).filter(i => i.alerta);
+    if (a.length) return "Avaliação realizada. Pontos de atenção: " + a.map(i => i.nome + (i.risco ? " alta" : " baixa")).join("; ") + ".";
+    return "Avaliação realizada.";
+  }
+  if (response.totais && typeof response.totais === "object") {
+    let ed = null;
+    try { ed = getEscalaData(type); } catch (e) { ed = null; }
+    const partes = Object.keys(response.totais).map(k => ((ed && ed.subescalas && ed.subescalas[k]) ? ed.subescalas[k].nome : k) + ": " + response.totais[k]);
+    if (type === "tsci" || type === "ssci") partes.push("Máximo: 117");
+    return nome + " · " + partes.join(", ");
+  }
+  const chaves = Object.keys(response).filter(k => k !== "tipo" && k !== "escala" && (typeof response[k] === "number" || typeof response[k] === "string"));
+  chaves.sort((a, b) => { const ia = REL_ORDEM_CAMPOS.indexOf(a), ib = REL_ORDEM_CAMPOS.indexOf(b); return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib); });
+  const partes = chaves.map(k => (REL_CAMPOS[k] || k) + ": " + response[k]);
+  return partes.length ? nome + " · " + partes.join(", ") : nome;
+}
+function relSessoes(p) {
+  const s = p && p.prontuario && p.prontuario.sessoes ? Object.values(p.prontuario.sessoes) : [];
+  return s.filter(x => x && typeof x === "object").sort((a, b) => ((parseDataBR(b.data) || 0) - (parseDataBR(a.data) || 0)));
+}
+// Monta as linhas do relatório (avaliações, sessões assinadas e, se pedido, diário)
+function relRegistros(patients, grupos, opt) {
+  opt = opt || {};
+  const grupoDe = {};
+  (grupos || []).forEach(g => membrosDoGrupo(g).forEach(pid => { (grupoDe[pid] = grupoDe[pid] || []).push(g.nome); }));
+  const de = opt.de ? opt.de.getTime() : -Infinity;
+  const ate = opt.ate ? opt.ate.getTime() + 86399999 : Infinity;
+  const linhas = [];
+  (patients || []).forEach(p => {
+    if (!p || !p.name || !p.id) return;
+    if (opt.pid && p.id !== opt.pid) return;
+    const cats = grupoDe[p.id] || [];
+    if (opt.grupo && opt.grupo !== "todos" && !cats.includes(opt.grupo)) return;
+    const base = { pid: p.id, atleta: p.name.trim(), categoria: cats.join(" / ") || "-" };
+    const add = (dStr, extra) => {
+      const d = parseDataBR(dStr);
+      const t = d ? d.getTime() : 0;
+      if (t < de || t > ate) return;
+      linhas.push({ ...base, data: dStr || "", t, ...extra });
+    };
+    const avals = (obj, kind) => Object.entries(obj || {}).forEach(([k, t]) => {
+      if (!t || !t.response) return;
+      const inds = relIndicadores(t.type, t.response);
+      const auto = relSinalAuto(inds);
+      add(t.answeredAt || t.createdAt, { kind, id: t.id || k, type: t.type, tipo: relNomeTipo(t.type), response: t.response, inds, sinalAuto: auto, sinal: SINAIS[t.sinal] ? t.sinal : auto, manual: !!SINAIS[t.sinal] });
+    });
+    avals(p.tasks, "task");
+    avals(p.respostas_arquivadas, "arq");
+    if (opt.sessoes !== false) relSessoes(p).forEach(s => {
+      if (s.status !== "assinado") return;
+      add(s.data, { kind: "sessao", id: s.id, type: "sessao", tipo: "Relato de sessão", sessao: s, inds: [], sinalAuto: "informativo", sinal: SINAIS[s.sinal] ? s.sinal : "informativo", manual: !!SINAIS[s.sinal] });
+    });
+    if (opt.diario) Object.entries(p.diarios || {}).forEach(([k, d]) => {
+      if (!d) return;
+      add(d.data, { kind: "diario", id: k, type: "diario", tipo: "DIÁRIO EMOCIONAL", diario: d, inds: [], sinalAuto: "informativo", sinal: SINAIS[d.sinal] ? d.sinal : "informativo", manual: !!SINAIS[d.sinal] });
+    });
+  });
+  linhas.sort((a, b) => b.t - a.t || a.atleta.localeCompare(b.atleta, "pt-BR"));
+  return linhas;
+}
+function relObservacao(r, detalhado) {
+  if (r.kind === "sessao") {
+    const s = r.sessao;
+    const cab = [s.tipo, s.tema].filter(Boolean).join(" · ");
+    if (!detalhado) return [cab, s.parecer ? "Parecer: " + s.parecer : ""].filter(Boolean).join("\n");
+    return [cab, s.relato, s.parecer ? "Parecer: " + s.parecer : ""].filter(Boolean).join("\n\n");
+  }
+  if (r.kind === "diario") {
+    const d = r.diario;
+    return detalhado ? "DIÁRIO EMOCIONAL · Emoção: " + (d.emocao || "-") + ", Intensidade: " + (d.intensidade != null ? d.intensidade : "-") + (d.hora ? ", Hora: " + d.hora : "") : "Registro de diário emocional.";
+  }
+  return relResumo(r.type, r.response, detalhado);
+}
+function relCaminhoSinal(r) {
+  if (r.kind === "task") return `patients/${r.pid}/tasks/${r.id}/sinal`;
+  if (r.kind === "arq") return `patients/${r.pid}/respostas_arquivadas/${r.id}/sinal`;
+  if (r.kind === "sessao") return `patients/${r.pid}/prontuario/sessoes/${r.id}/sinal`;
+  if (r.kind === "diario") return `patients/${r.pid}/diarios/${r.id}/sinal`;
+  return null;
+}
+// Sugestões para a devolutiva à família, a partir da aplicação mais recente de cada escala
+function relSugestoesFamilia(registros) {
+  const visto = {}, fortes = [], desenvolver = [];
+  registros.filter(r => r.kind === "task" || r.kind === "arq").forEach(r => {
+    if (visto[r.type]) return;
+    visto[r.type] = true;
+    r.inds.forEach(i => {
+      const f = REL_FRASES[r.type + "." + i.sub];
+      if (!f) return;
+      if (i.alerta && !desenvolver.includes(f[0])) desenvolver.push(f[0]);
+      if (i.forte && !fortes.includes(f[1])) fortes.push(f[1]);
+    });
+  });
+  return { fortes, desenvolver };
+}
+
+// ── Motor de PDF (jsPDF + autoTable) no padrão do Relatório de Psicologia ──
+let _pdfLibs = null;
+function carregarPdfLibs() {
+  if (window.jspdf && window.jspdf.jsPDF && window.jspdf.jsPDF.API && window.jspdf.jsPDF.API.autoTable) return Promise.resolve(window.jspdf.jsPDF);
+  if (_pdfLibs) return _pdfLibs;
+  const carregar = src => new Promise((ok, erro) => {
+    const s = document.createElement("script");
+    s.src = src; s.onload = ok; s.onerror = () => erro(new Error("Não foi possível carregar o gerador de PDF. Verifique a internet."));
+    document.head.appendChild(s);
+  });
+  _pdfLibs = carregar("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js")
+    .then(() => carregar("https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"))
+    .then(() => window.jspdf.jsPDF)
+    .catch(e => { _pdfLibs = null; throw e; });
+  return _pdfLibs;
+}
+function relPdf(jsPDF, meta) {
+  const doc = new jsPDF({ unit: "pt", format: "a4" });
+  const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
+  const M = 40, NAVY = [27, 38, 68], VERDE = [46, 125, 90], TOPO = 62, BASE = H - 52;
+  const o = { doc, W, H, M, y: 0 };
+  const logo = (x, y, s) => { try { if (REL_LOGO && REL_LOGO.length > 100) doc.addImage(REL_LOGO, "JPEG", x, y, s, s); } catch (e) {} };
+  const direita = (y, tam) => {
+    const b = " ·  " + REL_CFG.instituicao;
+    doc.setFont("times", "normal"); doc.setFontSize(tam);
+    const wb = doc.getTextWidth(b);
+    doc.setTextColor(VERDE[0], VERDE[1], VERDE[2]); doc.text(b, W - M - wb, y);
+    doc.setFont("times", "bold"); doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
+    doc.text("PSICOLOGIA", W - M - wb - doc.getTextWidth("PSICOLOGIA") - 2, y);
+  };
+  // Cabeçalho da primeira página
+  logo(152, 30, 40);
+  direita(56, 10.5);
+  doc.setDrawColor(NAVY[0], NAVY[1], NAVY[2]); doc.setLineWidth(1.3); doc.line(300, 66, W - M, 66);
+  doc.setFont("times", "bold"); doc.setFontSize(16); doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
+  doc.text(relLimpo(meta.titulo).toUpperCase(), W / 2, 86, { align: "center" });
+  doc.setFont("times", "italic"); doc.setFontSize(10.5); doc.setTextColor(VERDE[0], VERDE[1], VERDE[2]);
+  doc.text(relLimpo(meta.subtitulo || ""), W / 2, 101, { align: "center" });
+  o.y = 114;
+  o.espaco = alt => { if (o.y + alt > BASE) { doc.addPage(); o.y = TOPO; } };
+  o.info = linhas => {
+    doc.autoTable({
+      startY: o.y, margin: { left: M, right: M, top: TOPO, bottom: 52 }, theme: "grid", body: linhas.map(l => [relLimpo(l[0]), relLimpo(l[1])]),
+      styles: { font: "times", fontSize: 9, textColor: 20, lineColor: [0, 0, 0], lineWidth: 0.5, cellPadding: 3 },
+      columnStyles: { 0: { cellWidth: 110, fontStyle: "bold", fillColor: [232, 242, 236] } }
+    });
+    o.y = doc.lastAutoTable.finalY + 16;
+  };
+  o.secao = titulo => {
+    o.espaco(40);
+    doc.setFont("times", "bold"); doc.setFontSize(11); doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
+    doc.text(relLimpo(titulo).toUpperCase(), M, o.y + 8);
+    doc.setDrawColor(VERDE[0], VERDE[1], VERDE[2]); doc.setLineWidth(0.8); doc.line(M, o.y + 12, W - M, o.y + 12);
+    o.y += 24;
+  };
+  o.texto = (t, op) => {
+    op = op || {};
+    const tam = op.tam || 10, rec = op.recuo || 0;
+    doc.setFont("times", op.estilo || "normal"); doc.setFontSize(tam);
+    const cor = op.cor || [25, 25, 25];
+    const txt = relLimpo(t);
+    if (!txt) return;
+    txt.split("\n").forEach(par => {
+      const ls = doc.splitTextToSize(par || " ", W - 2 * M - rec);
+      ls.forEach((l, i) => {
+        o.espaco(tam + 3);
+        doc.setFont("times", op.estilo || "normal"); doc.setFontSize(tam); doc.setTextColor(cor[0], cor[1], cor[2]);
+        if (op.marcador && i === 0) doc.text("·", M + rec - 8, o.y);
+        doc.text(l, M + rec, o.y);
+        o.y += tam + 3;
+      });
+    });
+    o.y += op.depois == null ? 5 : op.depois;
+  };
+  o.campo = (rotulo, valor) => {
+    if (!relLimpo(valor)) return;
+    o.texto(rotulo, { estilo: "bold", tam: 9.5, depois: 0, cor: NAVY });
+    o.texto(valor, { tam: 10 });
+  };
+  o.lista = itens => itens.filter(x => relLimpo(x)).forEach(x => o.texto(x, { recuo: 14, marcador: true, depois: 2 }));
+  o.tabela = cfg => {
+    doc.autoTable(Object.assign({
+      startY: o.y, margin: { left: M, right: M, top: TOPO, bottom: 52 }, theme: "grid", rowPageBreak: "avoid",
+      styles: { font: "times", fontSize: 8.5, textColor: 20, lineColor: [0, 0, 0], lineWidth: 0.5, cellPadding: 4, valign: "middle", overflow: "linebreak" },
+      headStyles: { fillColor: NAVY, textColor: 255, fontStyle: "bold", lineColor: [0, 0, 0], lineWidth: 0.5 },
+      alternateRowStyles: { fillColor: [242, 242, 242] }
+    }, cfg));
+    o.y = doc.lastAutoTable.finalY + 16;
+  };
+  o.assinatura = () => {
+    o.espaco(96);
+    o.y += 30;
+    const h = new Date();
+    const p2 = n => String(n).padStart(2, "0");
+    doc.setFont("times", "normal"); doc.setFontSize(10); doc.setTextColor(25, 25, 25);
+    doc.text(relLimpo(`${REL_CFG.cidade}, ${p2(h.getDate())} / ${p2(h.getMonth() + 1)} / ${h.getFullYear()}`), W / 2, o.y, { align: "center" });
+    doc.setDrawColor(90, 90, 90); doc.setLineWidth(0.5); doc.line(W / 2 - 110, o.y + 34, W / 2 + 110, o.y + 34);
+    doc.setFont("times", "bold"); doc.text(relLimpo(REL_CFG.psicologo), W / 2, o.y + 47, { align: "center" });
+    doc.setFont("times", "normal"); doc.setFontSize(9);
+    doc.text(relLimpo("Psicólogo · " + REL_CFG.crp), W / 2, o.y + 59, { align: "center" });
+    doc.text(relLimpo(REL_CFG.instituicao), W / 2, o.y + 70, { align: "center" });
+    o.y += 84;
+  };
+  o.finalizar = () => {
+    const n = doc.getNumberOfPages();
+    for (let i = 1; i <= n; i++) {
+      doc.setPage(i);
+      if (i > 1) {
+        logo(M, 20, 22);
+        doc.setFont("times", "italic"); doc.setFontSize(8); doc.setTextColor(140, 140, 140);
+        doc.text(relLimpo(meta.titulo).toUpperCase(), M + 30, 35);
+        direita(35, 9);
+        doc.setDrawColor(NAVY[0], NAVY[1], NAVY[2]); doc.setLineWidth(1.1); doc.line(300, 43, W - M, 43);
+      }
+      doc.setFont("times", "normal"); doc.setFontSize(8); doc.setTextColor(150, 150, 150);
+      doc.text(relLimpo(`${meta.rodape || "Psicologia"} · ${REL_CFG.instituicao}   |   Página ${i} de ${n}`), W / 2, H - 28, { align: "center" });
+    }
+    return doc;
+  };
+  return o;
+}
+function relDonut(doc, cx, cy, R, r, partes) {
+  const tot = partes.reduce((a, p) => a + p.v, 0);
+  if (!tot) return;
+  let a0 = -Math.PI / 2;
+  partes.forEach(p => {
+    if (!p.v) return;
+    const a1 = a0 + 2 * Math.PI * p.v / tot;
+    const n = Math.max(2, Math.ceil((a1 - a0) / (Math.PI / 90)));
+    const pts = [];
+    for (let i = 0; i <= n; i++) { const a = a0 + (a1 - a0) * i / n; pts.push([cx + R * Math.cos(a), cy + R * Math.sin(a)]); }
+    for (let i = n; i >= 0; i--) { const a = a0 + (a1 - a0) * i / n; pts.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]); }
+    const deltas = [];
+    for (let i = 1; i < pts.length; i++) deltas.push([pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]]);
+    doc.setFillColor(p.cor[0], p.cor[1], p.cor[2]);
+    doc.lines(deltas, pts[0][0], pts[0][1], [1, 1], "F", true);
+    a0 = a1;
+  });
+}
+function relContagem(registros) {
+  const c = { regular: 0, atencao: 0, prioritario: 0, informativo: 0 };
+  registros.forEach(r => { c[SINAIS[r.sinal] ? r.sinal : "informativo"]++; });
+  return c;
+}
+function relBolinha(doc, x, y, sinal) {
+  const cor = (SINAIS[sinal] || SINAIS.informativo).cor;
+  doc.setFillColor(cor[0], cor[1], cor[2]); doc.setDrawColor(90, 90, 90); doc.setLineWidth(0.4);
+  doc.circle(x, y, 3.6, "FD");
+}
+function relPeriodoTxt(de, ate) {
+  if (de && ate) return relDataBR(de) + " a " + relDataBR(ate);
+  if (de) return "A partir de " + relDataBR(de);
+  if (ate) return "Até " + relDataBR(ate);
+  return "Todo o histórico";
+}
+
+// 1) Relatório à Coordenação (modelo enviado)
+function pdfCoordenacao(jsPDF, d) {
+  const p = relPdf(jsPDF, { titulo: "Relatório de Psicologia", subtitulo: "Comunicação à Coordenação · Setor de Futebol" });
+  const doc = p.doc, regs = d.registros, c = relContagem(regs);
+  const info = [["Período", relPeriodoTxt(d.de, d.ate)], ["Destinatário", d.destinatario || REL_CFG.destinatario]];
+  if (d.grupo && d.grupo !== "todos") info.push(["Categoria", d.grupo]);
+  info.push(["Total de avaliações", String(regs.length)]);
+  p.info(info);
+  p.secao("Resumo do período");
+  p.texto(`${regs.length} avaliações no período. Sinais: ${c.regular} regular(es), ${c.atencao} em atenção, ${c.prioritario} prioritário(s) e ${c.informativo} informativo(s).`);
+  if (!d.detalhado) p.texto("Versão sintética: este relatório não traz pontuações individuais das escalas psicológicas.", { estilo: "italic", tam: 9, cor: [90, 90, 90] });
+  p.secao("Detalhamento das avaliações");
+  p.tabela({
+    head: [["Data", "Atleta", "Categoria", "Tipo", "Observação", "Sinal"]],
+    body: regs.map(r => [r.data, relLimpo(r.atleta), relLimpo(r.categoria), relLimpo(r.tipo), relLimpo(relObservacao(r, d.detalhado)), SINAIS[r.sinal].rot]),
+    columnStyles: { 0: { cellWidth: 54, halign: "center" }, 1: { cellWidth: 94 }, 2: { cellWidth: 52, halign: "center" }, 3: { cellWidth: 86 }, 5: { cellWidth: 58, halign: "center" } },
+    didParseCell: h => { if (h.section === "head" && [0, 2, 5].includes(h.column.index)) h.cell.styles.halign = "center"; }
+  });
+  p.secao("Resumo prático do período");
+  p.espaco(20);
+  doc.setFont("times", "normal"); doc.setFontSize(9); doc.setTextColor(60, 60, 60);
+  let x = p.M;
+  doc.text("Leitura rápida por atleta:", x, p.y); x += doc.getTextWidth("Leitura rápida por atleta:") + 12;
+  [["regular", "regular"], ["atencao", "atenção"], ["prioritario", "prioridade"], ["informativo", "informativo"]].forEach(([k, rot]) => {
+    relBolinha(doc, x, p.y - 3, k); doc.setTextColor(60, 60, 60); doc.text(rot, x + 8, p.y); x += doc.getTextWidth(rot) + 26;
+  });
+  p.y += 10;
+  p.tabela({
+    body: regs.map(r => ["", relLimpo(r.atleta), relLimpo(r.categoria), relLimpo(r.tipo)]),
+    styles: { font: "times", fontSize: 8.5, textColor: 20, lineColor: [0, 0, 0], lineWidth: 0.5, cellPadding: 2.5, valign: "middle" },
+    alternateRowStyles: { fillColor: [255, 255, 255] },
+    columnStyles: { 0: { cellWidth: 20 }, 1: { cellWidth: 190 }, 2: { cellWidth: 52, halign: "center" } },
+    didDrawCell: h => { if (h.section === "body" && h.column.index === 0) relBolinha(doc, h.cell.x + h.cell.width / 2, h.cell.y + h.cell.height / 2, regs[h.row.index].sinal); }
+  });
+  p.espaco(250);
+  p.secao("Distribuição por sinal");
+  const cy = p.y + 84;
+  relDonut(doc, p.W / 2 - 40, cy, 78, 40, SINAIS_ORDEM.map(k => ({ v: c[k], cor: SINAIS[k].cor })));
+  if (!regs.length) { doc.setDrawColor(200, 200, 200); doc.circle(p.W / 2 - 40, cy, 78, "S"); }
+  let ly = cy - 30;
+  [["regular", "Regular"], ["atencao", "Atenção"], ["prioritario", "Prioridade"], ["informativo", "Informativo"]].forEach(([k, rot]) => {
+    relBolinha(doc, p.W - 150, ly - 3, k);
+    doc.setFont("times", "normal"); doc.setFontSize(9); doc.setTextColor(60, 60, 60); doc.text(`${rot} (${c[k]})`, p.W - 140, ly);
+    ly += 18;
+  });
+  p.y = cy + 92;
+  p.assinatura();
+  return p.finalizar();
+}
+
+function relCabecalhoAtleta(p, a, extra) {
+  const idade = relIdade(a.nasc);
+  const nascD = relIsoParaData(a.nasc);
+  const linhas = [["Atleta", a.nome], ["Categoria", a.categoria || "-"]];
+  if (nascD) linhas.push(["Nascimento", relDataBR(nascD) + (idade != null ? ` (${idade} anos)` : "")]);
+  (extra || []).forEach(l => linhas.push(l));
+  p.info(linhas);
+}
+function relTabelasEvolucao(p, registros) {
+  const porTipo = {};
+  registros.filter(r => (r.kind === "task" || r.kind === "arq") && r.inds.length).forEach(r => { (porTipo[r.type] = porTipo[r.type] || []).push(r); });
+  let alguma = false;
+  Object.keys(porTipo).forEach(type => {
+    const apps = porTipo[type].slice().sort((a, b) => a.t - b.t).slice(-5);
+    const subs = apps[apps.length - 1].inds;
+    alguma = true;
+    p.espaco(60);
+    p.texto(relNomeTipo(type), { estilo: "bold", tam: 10, depois: 2, cor: [27, 38, 68] });
+    p.tabela({
+      head: [["Dimensão"].concat(apps.map(a => a.data), ["Leitura atual"])],
+      body: subs.map(s => [relLimpo(s.nome)].concat(apps.map(a => { const i = a.inds.find(x => x.sub === s.sub); return i ? `${i.soma} (${i.pct}%)` : "-"; }), [s.alerta ? (s.risco ? "Alta: atenção" : "Baixa: atenção") : s.forte ? "Favorável" : "Dentro do esperado"])),
+      columnStyles: { 0: { cellWidth: 150 } },
+      didParseCell: h => { if (h.section === "body" && h.column.index === apps.length + 1 && /atenção/.test(String(h.cell.raw))) { h.cell.styles.textColor = [170, 40, 40]; h.cell.styles.fontStyle = "bold"; } }
+    });
+  });
+  return alguma;
+}
+
+// 2) Relatório individual
+function pdfIndividual(jsPDF, d) {
+  const p = relPdf(jsPDF, { titulo: "Relatório Individual de Psicologia", subtitulo: "Acompanhamento em Psicologia do Esporte" });
+  const regs = d.registros, avals = regs.filter(r => r.kind === "task" || r.kind === "arq"), sess = regs.filter(r => r.kind === "sessao");
+  relCabecalhoAtleta(p, d.atleta, [["Período", relPeriodoTxt(d.de, d.ate)], ["Avaliações no período", String(avals.length)], ["Atendimentos registrados", String(sess.length)]]);
+  if (relLimpo(d.sintese)) { p.secao("Síntese do psicólogo"); p.texto(d.sintese); }
+  p.secao("Evolução nas escalas");
+  if (!relTabelasEvolucao(p, regs)) p.texto("Nenhuma escala psicológica respondida no período.", { estilo: "italic", cor: [90, 90, 90] });
+  else p.texto("Valores em pontos e em % da escala. A leitura segue os critérios de triagem do MeuPsi e não substitui a interpretação clínica.", { estilo: "italic", tam: 8.5, cor: [90, 90, 90] });
+  const outros = avals.filter(r => !r.inds.length);
+  if (outros.length) {
+    p.secao("Testes cognitivos e outras avaliações");
+    p.tabela({ head: [["Data", "Avaliação", "Resultado"]], body: outros.map(r => [r.data, relLimpo(r.tipo), relLimpo(relResumo(r.type, r.response, true).replace(r.tipo + " · ", ""))]), columnStyles: { 0: { cellWidth: 58, halign: "center" }, 1: { cellWidth: 140 } } });
+  }
+  if (sess.length) {
+    p.secao("Atendimentos");
+    p.tabela({ head: [["Data", "Tipo", "Tema", "Parecer"]], body: sess.map(r => [r.data, relLimpo(r.sessao.tipo || "-"), relLimpo(r.sessao.tema || "-"), relLimpo(r.sessao.parecer || "-")]), columnStyles: { 0: { cellWidth: 58, halign: "center" }, 1: { cellWidth: 90 }, 2: { cellWidth: 120 } } });
+  }
+  if (relLimpo(d.recomendacoes)) { p.secao("Recomendações"); p.texto(d.recomendacoes); }
+  p.assinatura();
+  return p.finalizar();
+}
+
+// 3) Devolutiva à família (linguagem simples, sem números)
+function pdfFamilia(jsPDF, d) {
+  const p = relPdf(jsPDF, { titulo: "Devolutiva à Família", subtitulo: "Acompanhamento em Psicologia do Esporte", rodape: "Devolutiva" });
+  relCabecalhoAtleta(p, d.atleta, [["Período", relPeriodoTxt(d.de, d.ate)]]);
+  p.secao("Sobre o acompanhamento");
+  p.texto(d.introducao);
+  const bloco = (titulo, txt) => {
+    const itens = String(txt || "").split("\n").map(x => x.trim()).filter(Boolean);
+    if (!itens.length) return;
+    p.secao(titulo);
+    p.lista(itens);
+    p.y += 4;
+  };
+  bloco("Pontos fortes observados", d.fortes);
+  bloco("Pontos em desenvolvimento", d.desenvolver);
+  bloco("Como a família pode ajudar", d.orientacoes);
+  if (relLimpo(d.observacoes)) { p.secao("Observações do psicólogo"); p.texto(d.observacoes); }
+  p.texto("Este documento resume o acompanhamento em linguagem simples e não é um laudo psicológico. Dúvidas podem ser tratadas diretamente com o psicólogo.", { estilo: "italic", tam: 8.5, cor: [90, 90, 90] });
+  p.assinatura();
+  return p.finalizar();
+}
+
+// 4) Prontuário completo
+function pdfProntuario(jsPDF, d) {
+  const p = relPdf(jsPDF, { titulo: "Prontuário Psicológico", subtitulo: "Documento sigiloso · uso restrito do psicólogo", rodape: "Prontuário sigiloso" });
+  const pr = d.prontuario || {}, id = pr.identificacao || {}, dem = pr.demanda || {}, hist = pr.historia || {}, evr = pr.evolucao_reg || {}, enc = pr.encerramento || {};
+  relCabecalhoAtleta(p, d.atleta, [["Instituição", id.instituicao || REL_CFG.instituicao], ["Responsável", id.responsavel || "-"], ["Contato", id.contato || "-"], ["Termo de consentimento", id.tcle || "Não registrado"], ["Emitido em", relDataBR(new Date())]]);
+  const secaoCampos = (titulo, campos) => {
+    if (!campos.some(c => relLimpo(c[1]))) return;
+    p.secao(titulo);
+    campos.forEach(c => p.campo(c[0], c[1]));
+  };
+  secaoCampos("Demanda", [["Queixa principal", dem.queixa], ["Objetivos", dem.objetivos], ["CID / Hipótese", dem.cid], ["Medicações", dem.medicacoes]]);
+  secaoCampos("História clínica", [["História familiar", hist.familiar], ["História social", hist.social], ["Histórico de saúde", hist.saude], ["Histórico psicológico", hist.psico]]);
+  secaoCampos("Procedimentos e observações", [["Procedimentos técnico-científicos adotados", evr.procedimentos], ["Instrumentos de avaliação", evr.instrumentos], ["Observações clínicas", evr.observacoes]]);
+  const sess = d.sessoes.slice().sort((a, b) => ((parseDataBR(a.data) || 0) - (parseDataBR(b.data) || 0)));
+  p.secao("Registro de sessões");
+  if (!sess.length) p.texto("Nenhuma sessão registrada.", { estilo: "italic", cor: [90, 90, 90] });
+  sess.forEach((s, i) => {
+    p.espaco(60);
+    const cab = [`Sessão ${i + 1}`, s.data, s.tipo, s.duracao ? s.duracao + " min" : ""].filter(Boolean).join(" · ");
+    p.texto(cab, { estilo: "bold", tam: 10, depois: 1, cor: [27, 38, 68] });
+    p.texto(s.status === "assinado" ? "Assinado em " + (s.assinadoEm || "-") : "RASCUNHO (não assinado)", { estilo: "italic", tam: 8.5, depois: 3, cor: s.status === "assinado" ? [90, 90, 90] : [170, 40, 40] });
+    p.campo("Tema", s.tema);
+    p.campo("Relato", s.relato);
+    p.campo("Parecer", s.parecer);
+    Object.values(s.complementos || {}).forEach(c => p.campo("Complemento em " + (c.data || "-"), c.texto));
+    p.y += 4;
+  });
+  const antigas = pr.evolucao ? Object.values(pr.evolucao) : [];
+  if (antigas.length) {
+    p.secao("Anotações de evolução");
+    antigas.forEach(e => p.campo(e.date || "-", e.text));
+  }
+  const avals = d.registros.filter(r => r.kind === "task" || r.kind === "arq");
+  p.secao("Instrumentos aplicados");
+  if (!avals.length) p.texto("Nenhuma avaliação respondida.", { estilo: "italic", cor: [90, 90, 90] });
+  else p.tabela({ head: [["Data", "Instrumento", "Resultado"]], body: avals.map(r => [r.data, relLimpo(r.tipo), relLimpo(relResumo(r.type, r.response, true).replace(r.tipo + " · ", ""))]), columnStyles: { 0: { cellWidth: 58, halign: "center" }, 1: { cellWidth: 140 } } });
+  secaoCampos("Encerramento", [["Encaminhamento", enc.encaminhamento], ["Motivo do encerramento", enc.motivo], ["Data de encerramento", enc.data_enc], ["Considerações finais", enc.consideracoes]]);
+  p.assinatura();
+  return p.finalizar();
+}
+// Situação do prontuário de cada atleta (painel de pendências)
+function relPendencias(patients, grupos, diasLimite) {
+  const grupoDe = {};
+  (grupos || []).forEach(g => membrosDoGrupo(g).forEach(pid => { (grupoDe[pid] = grupoDe[pid] || []).push(g.nome); }));
+  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  return (patients || []).filter(p => p && p.name && p.id).map(p => {
+    const pr = p.prontuario || {}, id = pr.identificacao || {}, dem = pr.demanda || {};
+    const sess = relSessoes(p);
+    const assinadas = sess.filter(s => s.status === "assinado"), rasc = sess.filter(s => s.status !== "assinado");
+    const ult = assinadas.length ? parseDataBR(assinadas[0].data) : null;
+    const dias = ult ? Math.round((hoje.getTime() - ult.getTime()) / 86400000) : null;
+    const faltas = [];
+    if (!relLimpo(id.tcle)) faltas.push("Sem termo de consentimento");
+    if (!relLimpo(id.responsavel) && !relLimpo(id.contato)) faltas.push("Sem responsável ou contato");
+    if (!relLimpo(dem.queixa) && !relLimpo(dem.objetivos)) faltas.push("Sem demanda registrada");
+    if (rasc.length) faltas.push(rasc.length + " rascunho(s) sem assinar");
+    if (!assinadas.length) faltas.push("Nenhuma sessão registrada");
+    else if (dias > diasLimite) faltas.push("Sem evolução há " + dias + " dias");
+    const temAlgo = Object.keys(pr).some(k => pr[k] && typeof pr[k] === "object" && Object.values(pr[k]).some(v => v && (typeof v !== "string" || v.trim())));
+    return { id: p.id, nome: p.name.trim(), grupos: grupoDe[p.id] || [], sessoes: assinadas.length, rascunhos: rasc.length, ultima: ult ? relDataBR(ult) : "", dias, faltas, status: !temAlgo ? "vazio" : faltas.length ? "pendente" : "ok" };
+  });
+}
+
+// ── Interface: sessões do prontuário, relatórios e pendências ──
+function relHojeIso() {
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+function relIsoParaBR(iso) {
+  const d = relIsoParaData(iso);
+  return d ? relDataBR(d) : "";
+}
+function relBRParaIso(br) {
+  const d = parseDataBR(br);
+  return d ? d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0") : relHojeIso();
+}
+function relAgora() {
+  const d = new Date();
+  return d.toLocaleDateString("pt-BR") + " " + String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+}
+function relArquivo(prefixo, nome) {
+  const limpo = String(nome || "").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^A-Za-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+  return `${prefixo}_${limpo || "MeuPsi"}_${new Date().toLocaleDateString("pt-BR").replace(/\//g, "-")}.pdf`;
+}
+async function relGerar(montar, arquivo) {
+  const jsPDF = await carregarPdfLibs();
+  const doc = montar(jsPDF);
+  doc.save(arquivo);
+}
+const REL_ROT = { fontSize: 11, fontWeight: 700, color: "#9ca3af", marginBottom: 6, textTransform: "uppercase", letterSpacing: ".5px" };
+const REL_TIPOS_SESSAO = ["Individual", "Grupo", "Observação em campo", "Contato com responsável", "Contato com comissão técnica", "Outro"];
+
+function BotaoPdfProntuario({ patient }) {
+  const [estado, setEstado] = useState("");
+  async function exportar() {
+    setEstado("Gerando...");
+    try {
+      const all = await fbGet("grupos");
+      const grupos = all ? Object.values(all) : [];
+      const p = { ...patient, id: patient.id };
+      const regs = relRegistros([p], grupos, { pid: p.id, sessoes: true });
+      const cats = grupos.filter(g => membrosDoGrupo(g).includes(p.id)).map(g => g.nome).join(" / ");
+      await relGerar(jsPDF => pdfProntuario(jsPDF, { atleta: { nome: p.name, nasc: p.dataNasc, categoria: cats }, prontuario: p.prontuario || {}, sessoes: relSessoes(p), registros: regs }), relArquivo("Prontuario", p.name));
+      setEstado("");
+    } catch (e) {
+      setEstado("Erro: " + (e && e.message ? e.message : "não foi possível gerar"));
+    }
+  }
+  return React.createElement("div", { style: { marginBottom: 14 } },
+    React.createElement("button", { onClick: exportar, style: { ...btn("#1b2644"), padding: "9px 16px", borderRadius: 10 } }, "📄 Exportar prontuário em PDF"),
+    estado && React.createElement("span", { style: { marginLeft: 10, fontSize: 12, color: "#6b7280" } }, estado)
+  );
+}
+
+function SessoesProntuario({ patientId, sessoes }) {
+  const h = React.createElement;
+  const vazio = () => ({ id: "", data: relHojeIso(), duracao: "", tipo: "Individual", tema: "", relato: "", parecer: "", sinal: "informativo", criadoEm: "" });
+  const [form, setForm] = useState(null);
+  const [custom, setCustom] = useState([]);
+  const [nomeModelo, setNomeModelo] = useState("");
+  const [confirma, setConfirma] = useState(null);
+  const [compl, setCompl] = useState(null);
+  const [msg, setMsg] = useState("");
+  useEffect(() => {
+    const u = fbListen("modelos_texto", d => setCustom(d ? Object.values(d).filter(Boolean) : []));
+    return () => u();
+  }, []);
+  const lista = Object.values(sessoes || {}).filter(s => s && typeof s === "object").sort((a, b) => ((parseDataBR(b.data) || 0) - (parseDataBR(a.data) || 0)));
+  const modelos = TEXTOS_MODELO_PADRAO.concat(custom);
+  const caminho = id => `patients/${patientId}/prontuario/sessoes/${id}`;
+  const aviso = t => { setMsg(t); setTimeout(() => setMsg(""), 3000); };
+  function aplicarModelo(id) {
+    const m = modelos.find(x => x.id === id);
+    if (!m || !form) return;
+    setForm({ ...form, tipo: m.tipo && REL_TIPOS_SESSAO.includes(m.tipo) ? m.tipo : form.tipo, tema: form.tema || m.nome,
+      relato: (form.relato ? form.relato + "\n" : "") + (m.relato || ""), parecer: (form.parecer ? form.parecer + "\n" : "") + (m.parecer || "") });
+  }
+  async function salvar() {
+    if (!form.relato.trim() && !form.parecer.trim()) { aviso("Escreva o relato ou o parecer antes de salvar."); return; }
+    const id = form.id || "s" + Date.now();
+    await fbSet(caminho(id), { id, data: relIsoParaBR(form.data) || new Date().toLocaleDateString("pt-BR"), duracao: form.duracao || "", tipo: form.tipo, tema: form.tema.trim(), relato: form.relato.trim(), parecer: form.parecer.trim(), sinal: form.sinal, status: "rascunho", criadoEm: form.criadoEm || relAgora(), atualizadoEm: relAgora() });
+    setForm(null);
+    aviso("Rascunho salvo. Assine para travar o registro.");
+  }
+  async function salvarModelo() {
+    if (!nomeModelo.trim() || !form) return;
+    const id = "mc" + Date.now();
+    await fbSet(`modelos_texto/${id}`, { id, nome: nomeModelo.trim(), tipo: form.tipo, relato: form.relato, parecer: form.parecer });
+    setNomeModelo("");
+    aviso("Texto-modelo salvo.");
+  }
+  async function confirmar() {
+    const c = confirma;
+    setConfirma(null);
+    if (c.acao === "assinar") await fbUpdate(caminho(c.id), { status: "assinado", assinadoEm: relAgora(), assinadoPor: REL_CFG.psicologo + " · " + REL_CFG.crp });
+    if (c.acao === "apagar") await fbSet(caminho(c.id), null);
+    if (c.acao === "apagarModelo") await fbSet(`modelos_texto/${c.id}`, null);
+  }
+  async function salvarComplemento() {
+    if (!compl || !compl.texto.trim()) return;
+    await fbSet(`${caminho(compl.id)}/complementos/c${Date.now()}`, { data: relAgora(), texto: compl.texto.trim() });
+    setCompl(null);
+  }
+  const campo = (rot, el) => h("div", { style: { marginBottom: 12 } }, h("div", { style: REL_ROT }, rot), el);
+  const inp = (k, extra) => h("input", { className: "inp", value: form[k], onChange: e => setForm({ ...form, [k]: e.target.value }), style: { marginBottom: 0 }, ...(extra || {}) });
+  const area = (k, ph, alt) => h("textarea", { className: "inp", value: form[k], placeholder: ph, onChange: e => setForm({ ...form, [k]: e.target.value }), style: { minHeight: alt, resize: "vertical", marginBottom: 0 } });
+  const chip = (txt, cor, fundo) => h("span", { style: { fontSize: 11, fontWeight: 800, color: cor, background: fundo, borderRadius: 20, padding: "2px 9px" } }, txt);
+  const botao = (txt, fn, cor) => h("button", { onClick: fn, style: { background: "none", border: `1.5px solid ${cor}`, color: cor, borderRadius: 10, padding: "6px 12px", cursor: "pointer", fontWeight: 700, fontSize: 12 } }, txt);
+
+  return h("div", { className: "fade-in", style: { marginBottom: 14 } },
+    confirma && h(ConfirmModal, { msg: confirma.msg, okLabel: confirma.acao === "assinar" ? "🔒 Assinar" : undefined, onConfirm: confirmar, onCancel: () => setConfirma(null) }),
+    !form && h("button", { className: "btn-main", onClick: () => setForm(vazio()), style: { marginBottom: 12 } }, "+ Nova sessão"),
+    msg && h("div", { style: { ...crd, marginBottom: 12, background: "#ecfdf5", color: "#065f46", fontWeight: 700, fontSize: 13 } }, msg),
+    form && h("div", { style: { ...crd, marginBottom: 14 } },
+      h("h3", { style: { fontSize: 15, fontWeight: 800, color: "#1f2937", marginBottom: 12 } }, form.id ? "Editar rascunho" : "Nova sessão"),
+      campo("Texto-modelo", h("select", { className: "inp", value: "", onChange: e => aplicarModelo(e.target.value), style: { marginBottom: 0 } },
+        h("option", { value: "" }, "Inserir um texto-modelo..."),
+        modelos.map(m => h("option", { key: m.id, value: m.id }, m.nome))
+      )),
+      h("div", { style: { display: "flex", gap: 10, flexWrap: "wrap" } },
+        h("div", { style: { flex: "1 1 140px" } }, campo("Data", inp("data", { type: "date" }))),
+        h("div", { style: { flex: "1 1 110px" } }, campo("Duração (min)", inp("duracao", { type: "number", min: 0, placeholder: "Ex.: 40" }))),
+        h("div", { style: { flex: "2 1 180px" } }, campo("Tipo", h("select", { className: "inp", value: form.tipo, onChange: e => setForm({ ...form, tipo: e.target.value }), style: { marginBottom: 0 } }, REL_TIPOS_SESSAO.map(t => h("option", { key: t, value: t }, t)))))
+      ),
+      campo("Tema", inp("tema", { placeholder: "Ex.: Confiança, rotina pré-jogo" })),
+      campo("Relato da sessão", area("relato", "O que foi trabalhado e como o atleta respondeu...", 110)),
+      campo("Parecer", area("parecer", "Sua leitura profissional e os próximos passos...", 70)),
+      campo("Sinal para relatórios", h("select", { className: "inp", value: form.sinal, onChange: e => setForm({ ...form, sinal: e.target.value }), style: { marginBottom: 0 } }, ["informativo", "regular", "atencao", "prioritario"].map(k => h("option", { key: k, value: k }, SINAIS[k].rot)))),
+      h("div", { style: { display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 } },
+        h("button", { className: "btn-main", onClick: salvar, style: { flex: "1 1 160px", width: "auto" } }, "Salvar rascunho"),
+        h("button", { onClick: () => setForm(null), style: { ...btn("#9ca3af"), flex: "0 0 auto", padding: "12px 18px", borderRadius: 12 } }, "Cancelar")
+      ),
+      h("div", { style: { display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" } },
+        h("input", { className: "inp", value: nomeModelo, onChange: e => setNomeModelo(e.target.value), placeholder: "Nome para guardar este texto como modelo", style: { flex: "1 1 200px", marginBottom: 0 } }),
+        botao("Guardar como modelo", salvarModelo, "#6d28d9")
+      ),
+      custom.length > 0 && h("div", { style: { marginTop: 10, fontSize: 12, color: "#6b7280" } }, "Seus modelos: ",
+        custom.map(m => h("span", { key: m.id, style: { display: "inline-flex", alignItems: "center", gap: 4, background: "#f3f4f6", borderRadius: 20, padding: "2px 8px", margin: "2px 4px 2px 0" } }, m.nome,
+          h("button", { onClick: () => setConfirma({ acao: "apagarModelo", id: m.id, msg: `Apagar o texto-modelo "${m.nome}"?` }), style: { border: "none", background: "none", cursor: "pointer", color: "#e11d48", fontWeight: 800 } }, "×")))
+      )
+    ),
+    lista.length === 0 && !form && h("p", { style: { color: "#aaa", fontSize: 13 } }, "Nenhuma sessão registrada. Cada atendimento vira um registro com data, relato e parecer."),
+    lista.map(s => {
+      const assinado = s.status === "assinado";
+      const comps = Object.values(s.complementos || {});
+      return h("div", { key: s.id, style: { ...crd, marginBottom: 10, borderLeft: `4px solid ${assinado ? "#059669" : "#d97706"}` } },
+        h("div", { style: { display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap", alignItems: "center" } },
+          h("div", { style: { fontWeight: 800, color: "#1f2937", fontSize: 14 } }, [s.data, s.tipo, s.duracao ? s.duracao + " min" : ""].filter(Boolean).join(" · ")),
+          h("div", { style: { display: "flex", gap: 6, flexWrap: "wrap" } },
+            s.sinal && s.sinal !== "informativo" && SINAIS[s.sinal] && chip(SINAIS[s.sinal].rot, "#fff", `rgb(${SINAIS[s.sinal].cor.join(",")})`),
+            assinado ? chip("🔒 Assinado em " + (s.assinadoEm || ""), "#065f46", "#d1fae5") : chip("Rascunho", "#92400e", "#fef3c7"))
+        ),
+        s.tema && h("div", { style: { fontSize: 13, fontWeight: 700, color: "#374151", marginTop: 8 } }, s.tema),
+        s.relato && h("div", { style: { fontSize: 13, color: "#374151", whiteSpace: "pre-wrap", marginTop: 6 } }, s.relato),
+        s.parecer && h("div", { style: { fontSize: 13, color: "#374151", whiteSpace: "pre-wrap", marginTop: 8, background: "#f9fafb", borderRadius: 10, padding: "8px 12px" } }, h("strong", null, "Parecer: "), s.parecer),
+        comps.map((c, i) => h("div", { key: i, style: { fontSize: 13, color: "#374151", whiteSpace: "pre-wrap", marginTop: 8, borderLeft: "3px solid #6d28d9", paddingLeft: 10 } }, h("div", { style: { fontSize: 11, color: "#9ca3af" } }, "Complemento em ", c.data), c.texto)),
+        compl && compl.id === s.id && h("div", { style: { marginTop: 10 } },
+          h("textarea", { className: "inp", value: compl.texto, onChange: e => setCompl({ ...compl, texto: e.target.value }), placeholder: "Complemento ao registro assinado...", style: { minHeight: 70, resize: "vertical" } }),
+          h("div", { style: { display: "flex", gap: 8 } }, botao("Salvar complemento", salvarComplemento, "#059669"), botao("Cancelar", () => setCompl(null), "#9ca3af"))
+        ),
+        !(compl && compl.id === s.id) && h("div", { style: { display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 } },
+          assinado
+            ? botao("+ Complemento", () => setCompl({ id: s.id, texto: "" }), "#6d28d9")
+            : [
+              botao("Editar", () => setForm({ id: s.id, data: relBRParaIso(s.data), duracao: s.duracao || "", tipo: s.tipo || "Individual", tema: s.tema || "", relato: s.relato || "", parecer: s.parecer || "", sinal: SINAIS[s.sinal] ? s.sinal : "informativo", criadoEm: s.criadoEm || "" }), "#6d28d9"),
+              botao("🔒 Assinar e travar", () => setConfirma({ acao: "assinar", id: s.id, msg: "Assinar este registro? Depois de assinado ele não pode mais ser editado nem apagado, só complementado." }), "#059669"),
+              botao("Apagar", () => setConfirma({ acao: "apagar", id: s.id, msg: "Apagar este rascunho?" }), "#e11d48")
+            ].map((b, i) => h(React.Fragment, { key: i }, b))
+        )
+      );
+    })
+  );
+}
+
+function RelatoriosTab({ patients, grupos, onVerPaciente }) {
+  const h = React.createElement;
+  const mesesAtras = n => { const d = new Date(); d.setMonth(d.getMonth() - n); d.setDate(1); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-01"; };
+  const [sub, setSub] = useState("exportar");
+  const [modelo, setModelo] = useState("coord");
+  const [de, setDe] = useState(mesesAtras(3));
+  const [ate, setAte] = useState(relHojeIso());
+  const [grupo, setGrupo] = useState("todos");
+  const [destinatario, setDestinatario] = useState(REL_CFG.destinatario);
+  const [detalhado, setDetalhado] = useState(true);
+  const [incSessoes, setIncSessoes] = useState(true);
+  const [incDiario, setIncDiario] = useState(false);
+  const [mostrarTodos, setMostrarTodos] = useState(false);
+  const [pid, setPid] = useState("");
+  const [sintese, setSintese] = useState("");
+  const [recomendacoes, setRecomendacoes] = useState("");
+  const [fam, setFam] = useState({ introducao: "", fortes: "", desenvolver: "", orientacoes: "", observacoes: "" });
+  const [estado, setEstado] = useState("");
+  const [diasPend, setDiasPend] = useState(30);
+  const [filtroPend, setFiltroPend] = useState("todos");
+
+  const nomeados = (patients || []).filter(p => p && p.name && p.id).sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+  const atletaSel = nomeados.find(p => p.id === pid) || null;
+  const dDe = relIsoParaData(de), dAte = relIsoParaData(ate);
+  const catsDe = p => (grupos || []).filter(g => membrosDoGrupo(g).includes(p.id)).map(g => g.nome).join(" / ");
+  const regsCoord = modelo === "coord" ? relRegistros(patients, grupos, { de: dDe, ate: dAte, grupo, sessoes: incSessoes, diario: incDiario }) : [];
+  const regsAtleta = atletaSel ? relRegistros(patients, grupos, { pid, de: modelo === "pront" ? null : dDe, ate: modelo === "pront" ? null : dAte, sessoes: true }) : [];
+
+  function sugerirFamilia() {
+    if (!atletaSel) return;
+    const s = relSugestoesFamilia(regsAtleta);
+    const nAval = regsAtleta.filter(r => r.kind !== "sessao").length, nSess = regsAtleta.filter(r => r.kind === "sessao").length;
+    const primeiro = atletaSel.name.trim().split(/\s+/)[0];
+    setFam({
+      introducao: `No período, ${primeiro} participou de ${nAval} atividade(s) de avaliação${nSess ? ` e de ${nSess} atendimento(s)` : ""} com a Psicologia do Esporte do clube. O trabalho tem o objetivo de apoiar o desenvolvimento esportivo e pessoal do atleta.`,
+      fortes: s.fortes.join("\n"), desenvolver: s.desenvolver.join("\n"),
+      orientacoes: "Valorizar o esforço e a dedicação, e não só o resultado.\nConversar sobre treinos e jogos sem cobrança logo após a partida.\nManter a rotina de sono, alimentação e estudo.\nProcurar o psicólogo do clube ao perceber mudança de comportamento.",
+      observacoes: ""
+    });
+  }
+  useEffect(() => { if (modelo === "fam" && pid) sugerirFamilia(); }, [modelo, pid]);
+
+  async function gerar() {
+    setEstado("Gerando PDF...");
+    try {
+      if (modelo === "coord") {
+        if (!regsCoord.length) { setEstado("Nenhum registro no período escolhido."); return; }
+        await relGerar(jsPDF => pdfCoordenacao(jsPDF, { registros: regsCoord, de: dDe, ate: dAte, destinatario, detalhado, grupo }), relArquivo("Psicologia", grupo === "todos" ? "Todos" : grupo));
+      } else {
+        if (!atletaSel) { setEstado("Escolha o atleta."); return; }
+        const atleta = { nome: atletaSel.name.trim(), nasc: atletaSel.dataNasc, categoria: catsDe(atletaSel) };
+        if (modelo === "ind") await relGerar(jsPDF => pdfIndividual(jsPDF, { atleta, registros: regsAtleta, de: dDe, ate: dAte, sintese, recomendacoes }), relArquivo("Relatorio", atleta.nome));
+        if (modelo === "fam") await relGerar(jsPDF => pdfFamilia(jsPDF, { atleta, de: dDe, ate: dAte, ...fam }), relArquivo("Devolutiva", atleta.nome));
+        if (modelo === "pront") await relGerar(jsPDF => pdfProntuario(jsPDF, { atleta, prontuario: atletaSel.prontuario || {}, sessoes: relSessoes(atletaSel), registros: regsAtleta }), relArquivo("Prontuario", atleta.nome));
+      }
+      setEstado("PDF gerado.");
+      setTimeout(() => setEstado(""), 4000);
+    } catch (e) {
+      setEstado("Erro: " + (e && e.message ? e.message : "não foi possível gerar o PDF"));
+    }
+  }
+  async function mudarSinal(r, novo) {
+    const c = relCaminhoSinal(r);
+    if (c) await fbSet(c, novo === r.sinalAuto && r.kind !== "sessao" ? null : novo);
+  }
+
+  const card = { background: "#fff", borderRadius: 16, padding: 16, marginBottom: 12, boxShadow: "0 2px 10px rgba(0,0,0,.06)" };
+  const pill = on => ({ padding: "7px 14px", borderRadius: 20, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 12, background: on ? "#6d28d9" : "#f3f4f6", color: on ? "#fff" : "#6b7280" });
+  const campo = (rot, el, flex) => h("div", { style: { marginBottom: 12, flex: flex || "1 1 100%" } }, h("div", { style: REL_ROT }, rot), el);
+  const data = (v, set) => h("input", { type: "date", className: "inp", value: v, onChange: e => set(e.target.value), style: { marginBottom: 0 } });
+  const area = (v, set, ph, alt) => h("textarea", { className: "inp", value: v, placeholder: ph, onChange: e => set(e.target.value), style: { minHeight: alt || 80, resize: "vertical", marginBottom: 0 } });
+  const check = (v, set, rot) => h("label", { style: { display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#374151", marginBottom: 8, cursor: "pointer" } }, h("input", { type: "checkbox", checked: v, onChange: e => set(e.target.checked) }), rot);
+  const periodo = () => h("div", { style: { display: "flex", gap: 10, flexWrap: "wrap" } }, campo("De", data(de, setDe), "1 1 140px"), campo("Até", data(ate, setAte), "1 1 140px"));
+  const seletorAtleta = () => campo("Atleta", h("select", { className: "inp", value: pid, onChange: e => setPid(e.target.value), style: { marginBottom: 0 } },
+    h("option", { value: "" }, "Escolha o atleta..."), nomeados.map(p => h("option", { key: p.id, value: p.id }, p.name.trim()))));
+  const MODELOS = [["coord", "📋", "Relatório à Coordenação", "Avaliações do período com sinal, por atleta"], ["ind", "👤", "Relatório individual", "Resultados, evolução e síntese de um atleta"], ["fam", "🏠", "Devolutiva à família", "Linguagem simples, sem números"], ["pront", "📁", "Prontuário completo", "Registro documental para guarda"]];
+  const cont = relContagem(regsCoord);
+  const ajustaveis = mostrarTodos ? regsCoord : regsCoord.filter(r => r.sinal !== "informativo" || r.kind === "sessao");
+
+  const pend = sub === "prontuarios" ? relPendencias(patients, grupos, diasPend) : [];
+  const nPend = pend.filter(x => x.status === "pendente").length, nVazio = pend.filter(x => x.status === "vazio").length, nOk = pend.filter(x => x.status === "ok").length;
+  const pendLista = pend.filter(x => filtroPend === "todos" ? true : x.status === filtroPend).sort((a, b) => b.faltas.length - a.faltas.length || a.nome.localeCompare(b.nome, "pt-BR"));
+
+  return h("div", null,
+    h("h2", { style: { ...h2s, marginBottom: 6 } }, "Relatórios e prontuários"),
+    h("div", { style: { display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" } },
+      h("button", { onClick: () => setSub("exportar"), style: pill(sub === "exportar") }, "📄 Exportar em PDF"),
+      h("button", { onClick: () => setSub("prontuarios"), style: pill(sub === "prontuarios") }, "📁 Controle de prontuários")
+    ),
+
+    sub === "exportar" && h("div", null,
+      h("div", { style: { display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 } },
+        MODELOS.map(([id, ic, nome, desc]) => h("button", { key: id, onClick: () => { setModelo(id); setEstado(""); }, style: { flex: "1 1 200px", textAlign: "left", background: "#fff", border: modelo === id ? "2px solid #6d28d9" : "2px solid transparent", borderRadius: 16, padding: 14, cursor: "pointer", boxShadow: "0 2px 10px rgba(0,0,0,.06)" } },
+          h("div", { style: { fontSize: 22 } }, ic),
+          h("div", { style: { fontWeight: 800, color: "#1f2937", fontSize: 14, marginTop: 4 } }, nome),
+          h("div", { style: { fontSize: 12, color: "#6b7280", marginTop: 2 } }, desc)))
+      ),
+      h("div", { style: card },
+        modelo === "coord" && h("div", null,
+          periodo(),
+          h("div", { style: { display: "flex", gap: 10, flexWrap: "wrap" } },
+            campo("Categoria", h("select", { className: "inp", value: grupo, onChange: e => setGrupo(e.target.value), style: { marginBottom: 0 } }, h("option", { value: "todos" }, "Todas"), (grupos || []).map(g => h("option", { key: g.id || g.nome, value: g.nome }, g.nome))), "1 1 140px"),
+            campo("Destinatário", h("input", { className: "inp", value: destinatario, onChange: e => setDestinatario(e.target.value), style: { marginBottom: 0 } }), "2 1 220px")
+          ),
+          campo("Nível de detalhe", h("div", { style: { display: "flex", gap: 8, flexWrap: "wrap" } },
+            h("button", { onClick: () => setDetalhado(true), style: pill(detalhado) }, "Com pontuações (como no modelo)"),
+            h("button", { onClick: () => setDetalhado(false), style: pill(!detalhado) }, "Só síntese e sinal"))),
+          check(incSessoes, setIncSessoes, "Incluir relatos de sessão assinados"),
+          check(incDiario, setIncDiario, "Incluir registros do diário emocional"),
+          h("div", { style: { background: "#f9fafb", borderRadius: 12, padding: "10px 14px", fontSize: 13, color: "#374151", margin: "6px 0 12px" } },
+            h("strong", null, regsCoord.length), " registro(s) no período: ", cont.regular, " regular(es), ", cont.atencao, " em atenção, ", cont.prioritario, " prioritário(s), ", cont.informativo, " informativo(s)."),
+          regsCoord.length > 0 && h("div", { style: { marginBottom: 12 } },
+            h("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8, marginBottom: 8 } },
+              h("div", { style: REL_ROT }, "Ajustar sinais antes de exportar"),
+              h("button", { onClick: () => setMostrarTodos(!mostrarTodos), style: pill(false) }, mostrarTodos ? "Mostrar só os sinalizados" : "Mostrar todos")),
+            ajustaveis.length === 0 && h("div", { style: { fontSize: 13, color: "#9ca3af" } }, "Nenhum registro sinalizado automaticamente. Use \"Mostrar todos\" para marcar algum."),
+            ajustaveis.slice(0, 150).map(r => h("div", { key: r.kind + r.pid + r.id, style: { display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", padding: "8px 0", borderBottom: "1px solid #f3f4f6" } },
+              h("div", { style: { flex: "1 1 220px", minWidth: 0 } },
+                h("div", { style: { fontSize: 13, fontWeight: 700, color: "#1f2937" } }, r.atleta, h("span", { style: { fontWeight: 400, color: "#9ca3af" } }, " · ", r.data)),
+                h("div", { style: { fontSize: 12, color: "#6b7280" } }, r.tipo, r.inds.filter(i => i.alerta).length ? " · " + r.inds.filter(i => i.alerta).map(i => i.nome + (i.risco ? " alta" : " baixa")).join("; ") : "")),
+              h("select", { value: r.sinal, onChange: e => mudarSinal(r, e.target.value), style: { padding: "6px 8px", borderRadius: 8, border: "1.5px solid #e5e7eb", fontSize: 12, fontWeight: 700, color: `rgb(${SINAIS[r.sinal].cor.join(",")})` } },
+                ["informativo", "regular", "atencao", "prioritario"].map(k => h("option", { key: k, value: k }, SINAIS[k].rot + (k === r.sinalAuto && r.kind !== "sessao" && r.kind !== "diario" ? " (sugerido)" : ""))))
+            )),
+            ajustaveis.length > 150 && h("div", { style: { fontSize: 12, color: "#9ca3af", marginTop: 6 } }, "Mostrando os 150 primeiros. Reduza o período para ver os demais.")
+          )
+        ),
+        modelo !== "coord" && h("div", null,
+          seletorAtleta(),
+          modelo !== "pront" && periodo(),
+          modelo === "ind" && h("div", null,
+            campo("Síntese do psicólogo", area(sintese, setSintese, "Sua leitura geral do atleta no período...", 90)),
+            campo("Recomendações", area(recomendacoes, setRecomendacoes, "Próximos passos e orientações...", 70))),
+          modelo === "fam" && h("div", null,
+            h("div", { style: { fontSize: 12, color: "#6b7280", marginBottom: 10 } }, "Os textos abaixo são sugestões a partir das avaliações. Revise antes de exportar: um item por linha."),
+            campo("Sobre o acompanhamento", area(fam.introducao, v => setFam({ ...fam, introducao: v }), "", 70)),
+            campo("Pontos fortes observados", area(fam.fortes, v => setFam({ ...fam, fortes: v }), "Um por linha", 80)),
+            campo("Pontos em desenvolvimento", area(fam.desenvolver, v => setFam({ ...fam, desenvolver: v }), "Um por linha", 80)),
+            campo("Como a família pode ajudar", area(fam.orientacoes, v => setFam({ ...fam, orientacoes: v }), "Um por linha", 90)),
+            campo("Observações do psicólogo", area(fam.observacoes, v => setFam({ ...fam, observacoes: v }), "Opcional", 60)),
+            atletaSel && h("button", { onClick: sugerirFamilia, style: { ...pill(false), marginBottom: 12 } }, "Refazer sugestões")),
+          modelo === "pront" && h("div", { style: { fontSize: 13, color: "#6b7280", marginBottom: 12 } }, "Exporta identificação, demanda, história, todas as sessões (rascunhos saem marcados), instrumentos aplicados e encerramento. Documento sigiloso."),
+          atletaSel && h("div", { style: { background: "#f9fafb", borderRadius: 12, padding: "10px 14px", fontSize: 13, color: "#374151", marginBottom: 12 } },
+            regsAtleta.filter(r => r.kind !== "sessao").length, " avaliação(ões) e ", regsAtleta.filter(r => r.kind === "sessao").length, " sessão(ões) assinada(s) ", modelo === "pront" ? "no histórico." : "no período.")
+        ),
+        h("button", { className: "btn-main", onClick: gerar }, "📄 Gerar PDF"),
+        estado && h("div", { style: { fontSize: 13, color: estado.startsWith("Erro") ? "#e11d48" : "#6b7280", marginTop: 10, fontWeight: 700 } }, estado)
+      )
+    ),
+
+    sub === "prontuarios" && h("div", null,
+      h("div", { style: { display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 } },
+        [["pendente", nPend, "Com pendência", "#d97706", "#fffbeb"], ["vazio", nVazio, "Prontuário vazio", "#e11d48", "#fff1f2"], ["ok", nOk, "Em dia", "#059669", "#ecfdf5"]].map(([id, n, rot, cor, fundo]) => h("button", { key: id, onClick: () => setFiltroPend(id), style: { flex: "1 1 130px", textAlign: "left", background: fundo, border: filtroPend === id ? `2px solid ${cor}` : "2px solid transparent", borderRadius: 16, padding: "14px 16px", cursor: "pointer" } },
+          h("div", { style: { fontSize: 28, fontWeight: 800, color: cor, lineHeight: 1 } }, n),
+          h("div", { style: { fontSize: 12, fontWeight: 700, color: "#4b5563", marginTop: 6 } }, rot)))
+      ),
+      h("div", { style: { display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 14 } },
+        h("span", { style: { fontSize: 12, fontWeight: 700, color: "#9ca3af" } }, "Evolução vence em:"),
+        [30, 60, 90].map(v => h("button", { key: v, onClick: () => setDiasPend(v), style: pill(diasPend === v) }, v, " dias")),
+        h("button", { onClick: () => setFiltroPend("todos"), style: pill(filtroPend === "todos") }, "Ver todos")
+      ),
+      pendLista.length === 0 && h(EmptyState, { icon: "✅", text: "Nenhum atleta nesta situação." }),
+      pendLista.map(x => h("div", { key: x.id, className: "card-hover", onClick: () => onVerPaciente(x.id), style: { ...card, borderLeft: `5px solid ${x.status === "ok" ? "#059669" : x.status === "vazio" ? "#e11d48" : "#d97706"}` } },
+        h("div", { style: { display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap", alignItems: "center" } },
+          h("div", { style: { fontWeight: 700, color: "#1f2937", fontSize: 15 } }, x.nome, h("span", { style: { fontSize: 11, fontWeight: 700, color: "#6b7280", background: "#f3f4f6", borderRadius: 20, padding: "2px 8px", marginLeft: 8 } }, x.grupos.length ? x.grupos.join(" / ") : "sem grupo")),
+          h("div", { style: { fontSize: 12, color: "#6b7280" } }, x.sessoes, " sessão(ões)", x.ultima ? " · última em " + x.ultima : "")),
+        x.faltas.length > 0 && h("div", { style: { marginTop: 8, display: "flex", flexWrap: "wrap", gap: 6 } }, x.faltas.map((f, i) => h("span", { key: i, style: { fontSize: 12, fontWeight: 600, borderRadius: 8, padding: "3px 9px", background: "#fef3c7", color: "#92400e" } }, f)))
+      ))
+    )
+  );
+}
+
+
 const NAV_ITEMS = [
   { id: "patients", icon: "👥", label: "Pacientes" },
   { id: "alertas",  icon: "🚨", label: "Alertas" },
+  { id: "relatorios", icon: "📄", label: "Relatórios" },
   { id: "groups",   icon: "🗂", label: "Grupos" },
   { id: "dashboard",icon: "📊", label: "Dashboard" },
   { id: "overview", icon: "📈", label: "Visão Geral" },
@@ -4363,6 +5274,10 @@ function TherapistApp({
     ),
 
     tab === "groups" && React.createElement(GruposTab, { patients: patients }),
+    tab === "relatorios" && React.createElement(RelatoriosTab, {
+      patients: patients, grupos: grupos,
+      onVerPaciente: (pid) => { setSel(pid); }
+    }),
     tab === "alertas" && React.createElement(AlertasTab, {
       patients: patients, grupos: grupos,
       onVerPaciente: (pid) => { setSel(pid); }
@@ -4494,7 +5409,7 @@ function TherapistApp({
       }, "📥 Exportar dados")
     ),
     React.createElement(TabBar, {
-      tabs: [["patients", "👥 Pacientes"], ["alertas", "🚨 Alertas"], ["groups", "🗂 Grupos"], ["dashboard", "📊 Dashboard"], ["overview", "📈 Visão Geral"], ["respostas", "📬 Respostas"], ["config", "⚙️ Config"]],
+      tabs: [["patients", "👥 Pacientes"], ["alertas", "🚨 Alertas"], ["relatorios", "📄 Relatórios"], ["groups", "🗂 Grupos"], ["dashboard", "📊 Dashboard"], ["overview", "📈 Visão Geral"], ["respostas", "📬 Respostas"], ["config", "⚙️ Config"]],
       active: tab, onChange: setTab
     }),
     React.createElement("div", { style: ct }, tabContent)
@@ -5006,26 +5921,30 @@ function PatientDetail({
     }, d.contexto));
   })), tab === "prontuario" && React.createElement(ProntuarioTab, {
     patientId: patient.id,
-    prontuario: lp.prontuario || {}
+    prontuario: lp.prontuario || {},
+    patient: { ...lp, id: patient.id }
   })));
 }
 function ProntuarioTab({
   patientId,
-  prontuario
+  prontuario,
+  patient
 }) {
-  const [ptab, setPtab] = useState("identificacao");
+  const [ptab, setPtab] = useState("sessoes");
   const [data, setData] = useState(prontuario);
   const [saved, setSaved] = useState(false);
   const [evo, setEvo] = useState("");
-  const sections = [["identificacao", "🪪 Ident."], ["demanda", "🎯 Demanda"], ["evolucao_reg", "📋 Evolução"], ["encerramento", "🔚 Encerr."], ["anexos", "📎 Anexos"]];
+  const sections = [["sessoes", "🗓 Sessões"], ["identificacao", "🪪 Ident."], ["demanda", "🎯 Demanda"], ["evolucao_reg", "📋 Evolução"], ["encerramento", "🔚 Encerr."], ["anexos", "📎 Anexos"]];
   const fields = {
-    identificacao: [["nome", "Nome completo", ""], ["nasc", "Data de nascimento", ""], ["instituicao", "Instituição", ""], ["contato", "Contato", ""], ["responsavel", "Responsável", ""]],
+    identificacao: [["nome", "Nome completo", ""], ["nasc", "Data de nascimento", ""], ["instituicao", "Instituição", ""], ["contato", "Contato", ""], ["responsavel", "Responsável", ""], ["tcle", "Termo de consentimento (data da assinatura)", ""]],
     demanda: [["queixa", "Queixa principal", "Descreva a demanda..."], ["objetivos", "Objetivos", "Defina os objetivos..."], ["cid", "CID / Hipótese", ""], ["medicacoes", "Medicações", ""]],
     evolucao_reg: [["procedimentos", "Procedimentos técnico-científicos adotados", "Técnicas e abordagens..."], ["instrumentos", "Instrumentos de avaliação", ""], ["observacoes", "Observações clínicas", ""]],
     encerramento: [["encaminhamento", "Encaminhamento", ""], ["motivo", "Motivo do encerramento", ""], ["data_enc", "Data de encerramento", ""], ["consideracoes", "Considerações finais", ""]]
   };
-  async function save() {
-    await fbSet(`patients/${patientId}/prontuario`, data);
+  async function save(sec) {
+    // salva só a seção editada, para não sobrescrever sessões e evoluções com dados antigos
+    const s = typeof sec === "string" ? sec : ptab;
+    await fbSet(`patients/${patientId}/prontuario/${s}`, data[s] || {});
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   }
@@ -5038,7 +5957,7 @@ function ProntuarioTab({
     });
     setEvo("");
   }
-  const evolucao = data.evolucao ? Object.values(data.evolucao).reverse() : [];
+  const evolucao = prontuario && prontuario.evolucao ? Object.values(prontuario.evolucao).reverse() : [];
   return React.createElement("div", null, React.createElement("h2", {
     style: h2s
   }, "📁 Prontuário"), React.createElement("div", {
@@ -5064,7 +5983,12 @@ function ProntuarioTab({
       color: ptab === id ? "#fff" : "#6b7280",
       boxShadow: ptab === id ? "0 4px 12px rgba(109,40,217,.3)" : "0 1px 4px rgba(0,0,0,.08)"
     }
-  }, label))), ptab !== "anexos" && fields[ptab] && React.createElement("div", {
+  }, label))), patient && React.createElement(BotaoPdfProntuario, {
+    patient: patient
+  }), ptab === "sessoes" && React.createElement(SessoesProntuario, {
+    patientId: patientId,
+    sessoes: prontuario && prontuario.sessoes
+  }), ptab !== "anexos" && fields[ptab] && React.createElement("div", {
     className: "fade-in",
     style: {
       ...crd,
@@ -5209,7 +6133,7 @@ function ProntuarioTab({
     }
   }))), React.createElement("button", {
     className: "btn-main",
-    onClick: save
+    onClick: () => save("historia")
   }, saved ? "✅ Salvo!" : "Salvar História Clínica")), React.createElement("div", {
     style: crd
   }, React.createElement("h3", {
@@ -5219,7 +6143,7 @@ function ProntuarioTab({
       color: "#1f2937",
       marginBottom: 4
     }
-  }, "📝 Evolução de Sessão"), React.createElement("textarea", {
+  }, "📝 Anotação rápida"), React.createElement("textarea", {
     className: "inp",
     value: evo,
     onChange: e => setEvo(e.target.value),
