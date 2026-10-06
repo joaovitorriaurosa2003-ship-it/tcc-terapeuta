@@ -4346,6 +4346,7 @@ function pdfCoordenacao(jsPDF, d) {
   const doc = p.doc, regs = d.registros, c = relContagem(regs);
   const info = [["Período", relPeriodoTxt(d.de, d.ate)], ["Destinatário", d.destinatario || REL_CFG.destinatario]];
   if (d.grupo && d.grupo !== "todos") info.push(["Categoria", d.grupo]);
+  if (d.filtro) info.push(["Filtro", d.filtro]);
   info.push(["Total de avaliações", String(regs.length)]);
   p.info(info);
   p.secao("Resumo do período");
@@ -4709,6 +4710,7 @@ function RelatoriosTab({ patients, grupos, onVerPaciente }) {
   const [detalhado, setDetalhado] = useState(true);
   const [incSessoes, setIncSessoes] = useState(true);
   const [incDiario, setIncDiario] = useState(false);
+  const [soSinalizados, setSoSinalizados] = useState(false);
   const [mostrarTodos, setMostrarTodos] = useState(false);
   const [pid, setPid] = useState("");
   const [sintese, setSintese] = useState("");
@@ -4743,8 +4745,9 @@ function RelatoriosTab({ patients, grupos, onVerPaciente }) {
     setEstado("Gerando PDF...");
     try {
       if (modelo === "coord") {
-        if (!regsCoord.length) { setEstado("Nenhum registro no período escolhido."); return; }
-        await relGerar(jsPDF => pdfCoordenacao(jsPDF, { registros: regsCoord, de: dDe, ate: dAte, destinatario, detalhado, grupo }), relArquivo("Psicologia", grupo === "todos" ? "Todos" : grupo));
+        const lista = soSinalizados ? regsCoord.filter(r => r.sinal === "atencao" || r.sinal === "prioritario") : regsCoord;
+        if (!lista.length) { setEstado(soSinalizados ? "Nenhum registro em atenção ou prioritário no período." : "Nenhum registro no período escolhido."); return; }
+        await relGerar(jsPDF => pdfCoordenacao(jsPDF, { registros: lista, de: dDe, ate: dAte, destinatario, detalhado, grupo, filtro: soSinalizados ? "Somente registros em atenção ou prioritários" : "" }), relArquivo(soSinalizados ? "Psicologia_Atencao" : "Psicologia", grupo === "todos" ? "Todos" : grupo));
       } else {
         if (!atletaSel) { setEstado("Escolha o atleta."); return; }
         const atleta = { nome: atletaSel.name.trim(), nasc: atletaSel.dataNasc, categoria: catsDe(atletaSel) };
@@ -4774,6 +4777,7 @@ function RelatoriosTab({ patients, grupos, onVerPaciente }) {
     h("option", { value: "" }, "Escolha o atleta..."), nomeados.map(p => h("option", { key: p.id, value: p.id }, p.name.trim()))));
   const MODELOS = [["coord", "📋", "Relatório à Coordenação", "Avaliações do período com sinal, por atleta"], ["ind", "👤", "Relatório individual", "Resultados, evolução e síntese de um atleta"], ["fam", "🏠", "Devolutiva à família", "Linguagem simples, sem números"], ["pront", "📁", "Prontuário completo", "Registro documental para guarda"]];
   const cont = relContagem(regsCoord);
+  const regsExport = soSinalizados ? regsCoord.filter(r => r.sinal === "atencao" || r.sinal === "prioritario") : regsCoord;
   const ajustaveis = mostrarTodos ? regsCoord : regsCoord.filter(r => r.sinal !== "informativo" || r.kind === "sessao");
 
   const pend = sub === "prontuarios" ? relPendencias(patients, grupos, diasPend) : [];
@@ -4804,10 +4808,14 @@ function RelatoriosTab({ patients, grupos, onVerPaciente }) {
           campo("Nível de detalhe", h("div", { style: { display: "flex", gap: 8, flexWrap: "wrap" } },
             h("button", { onClick: () => setDetalhado(true), style: pill(detalhado) }, "Com pontuações (como no modelo)"),
             h("button", { onClick: () => setDetalhado(false), style: pill(!detalhado) }, "Só síntese e sinal"))),
+          campo("O que entra no relatório", h("div", { style: { display: "flex", gap: 8, flexWrap: "wrap" } },
+            h("button", { onClick: () => setSoSinalizados(false), style: pill(!soSinalizados) }, "Todos os registros"),
+            h("button", { onClick: () => setSoSinalizados(true), style: pill(soSinalizados) }, "Só atenção e prioritário"))),
           check(incSessoes, setIncSessoes, "Incluir relatos de sessão assinados"),
           check(incDiario, setIncDiario, "Incluir registros do diário emocional"),
           h("div", { style: { background: "#f9fafb", borderRadius: 12, padding: "10px 14px", fontSize: 13, color: "#374151", margin: "6px 0 12px" } },
-            h("strong", null, regsCoord.length), " registro(s) no período: ", cont.regular, " regular(es), ", cont.atencao, " em atenção, ", cont.prioritario, " prioritário(s), ", cont.informativo, " informativo(s)."),
+            h("strong", null, regsCoord.length), " registro(s) no período: ", cont.regular, " regular(es), ", cont.atencao, " em atenção, ", cont.prioritario, " prioritário(s), ", cont.informativo, " informativo(s).",
+            soSinalizados && h("div", { style: { marginTop: 4, fontWeight: 700 } }, "O PDF sairá com ", regsExport.length, " registro(s): só atenção e prioritário.")),
           regsCoord.length > 0 && h("div", { style: { marginBottom: 12 } },
             h("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8, marginBottom: 8 } },
               h("div", { style: REL_ROT }, "Ajustar sinais antes de exportar"),
