@@ -78,11 +78,14 @@
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script>
   const cfg={apiKey:"AIzaSyDrQDc6-GANiIcU_Eg2X5J7XMLRQwh7UQo",authDomain:"meupsi-91fad.firebaseapp.com",projectId:"meupsi-91fad",storageBucket:"meupsi-91fad.firebasestorage.app",messagingSenderId:"70457582233",appId:"1:70457582233:web:4114186b782d888d9e8e08",databaseURL:"https://meupsi-91fad-default-rtdb.firebaseio.com"};
   firebase.initializeApp(cfg);
   const db=firebase.database();
   window._db=db;
+  window._cfg=cfg;
+  try{window._auth=firebase.auth();}catch(e){window._auth=null;}
   window._ref=(database,path)=>database.ref(path);
   window._set=(refObj,value)=>refObj.set(value);
   window._get=async(refObj)=>{const snap=await refObj.get();return{exists:()=>snap.exists(),val:()=>snap.val()};};
@@ -3545,23 +3548,205 @@ function ExportarScreen({ patients, grupos, onClose }) {
   );
 }
 
+// ══ Login seguro (Firebase Authentication) ══
+// O atleta continua entrando com nome e senha; por baixo, cada um tem uma conta própria.
+const SEG_DOMINIO = "@atleta.meupsi.app";
+function segSlug(nome) {
+  return String(nome || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, ".").replace(/^\.+|\.+$/g, "");
+}
+function segEmailAtleta(nome) {
+  const s = segSlug(nome);
+  return s ? s + SEG_DOMINIO : "";
+}
+function segSenha(pin) {
+  return "meupsi:" + String(pin == null ? "" : pin);
+}
+function segAuth() {
+  return window._auth || null;
+}
+function segUsuario() {
+  const a = segAuth();
+  return a ? a.currentUser : null;
+}
+function segEhAtleta() {
+  const u = segUsuario();
+  return !!(u && u.email && u.email.endsWith(SEG_DOMINIO));
+}
+function segEhTerapeuta() {
+  const u = segUsuario();
+  return !!(u && !segEhAtleta());
+}
+async function segSair() {
+  try { const a = segAuth(); if (a && a.currentUser) await a.signOut(); } catch (e) {}
+}
+let _segSec = null;
+async function segSecundario() {
+  if (_segSec) return _segSec;
+  const app = firebase.initializeApp(window._cfg, "gestao");
+  const a = app.auth();
+  try { await a.setPersistence(firebase.auth.Auth.Persistence.NONE); } catch (e) {}
+  _segSec = a;
+  return a;
+}
+function segErro(e) {
+  const c = e && e.code ? e.code : "";
+  if (c === "auth/operation-not-allowed") return "O login por e-mail e senha ainda não foi ativado no Firebase.";
+  if (c === "auth/too-many-requests") return "Muitas tentativas. Aguarde alguns minutos.";
+  if (c === "auth/network-request-failed") return "Sem conexão.";
+  if (c === "auth/email-already-in-use") return "Já existe um acesso com este nome.";
+  return (e && e.message) || "erro desconhecido";
+}
+// Cria (ou adota) a conta de um atleta. Roda na sessão secundária para não derrubar o login do terapeuta.
+async function segCriarConta(p, pin) {
+  const email = segEmailAtleta(p.name);
+  if (!email) throw new Error("Nome inválido para criar o acesso.");
+  const sec = await segSecundario();
+  let cred;
+  try {
+    cred = await sec.createUserWithEmailAndPassword(email, segSenha(pin));
+  } catch (e) {
+    if (e && e.code === "auth/email-already-in-use") cred = await sec.signInWithEmailAndPassword(email, segSenha(pin));
+    else throw e;
+  }
+  const uid = cred.user.uid;
+  try { await sec.signOut(); } catch (e) {}
+  await fbSet(`usuarios/${uid}`, { pid: p.id, criadoEm: new Date().toLocaleDateString("pt-BR") });
+  await fbUpdate(`patients/${p.id}`, { authUid: uid, login: email });
+  return uid;
+}
+async function segRemoverConta(nome, pin, uid) {
+  const sec = await segSecundario();
+  try {
+    const cred = await sec.signInWithEmailAndPassword(segEmailAtleta(nome), segSenha(pin));
+    await cred.user.delete();
+  } catch (e) { try { await sec.signOut(); } catch (e2) {} }
+  if (uid) await fbSet(`usuarios/${uid}`, null);
+}
+// Mantém a conta em dia quando o terapeuta muda nome ou senha do atleta
+async function segAtualizarConta(antes, depois) {
+  if (!antes || !antes.authUid) return segCriarConta({ id: depois.id, name: depois.name }, depois.password);
+  const pinAntigo = antes.password || "1234";
+  if (segSlug(antes.name) === segSlug(depois.name)) {
+    if (pinAntigo === depois.password) return antes.authUid;
+    const sec = await segSecundario();
+    const cred = await sec.signInWithEmailAndPassword(segEmailAtleta(antes.name), segSenha(pinAntigo));
+    await cred.user.updatePassword(segSenha(depois.password));
+    try { await sec.signOut(); } catch (e) {}
+    return antes.authUid;
+  }
+  await segRemoverConta(antes.name, pinAntigo, antes.authUid);
+  return segCriarConta({ id: depois.id, name: depois.name }, depois.password);
+}
+// Pergunta ao banco, sem login, se os dados estão legíveis por qualquer pessoa
+async function segBancoAberto() {
+  try {
+    const r = await fetch(String(window._cfg.databaseURL).replace(/\/$/, "") + "/grupos.json?shallow=true");
+    return r.status === 200;
+  } catch (e) { return null; }
+}
+function SegurancaCard() {
+  const h = React.createElement;
+  const [pacs, setPacs] = useState(null);
+  const [aberto, setAberto] = useState(null);
+  const [rodando, setRodando] = useState("");
+  const [falhas, setFalhas] = useState([]);
+  async function carregar() {
+    try {
+      const all = await fbGet("patients");
+      setPacs(all ? Object.entries(all).filter(([k, v]) => v && v.name).map(([k, v]) => ({ ...v, id: v.id || k })) : []);
+    } catch (e) { setPacs([]); }
+    setAberto(await segBancoAberto());
+  }
+  useEffect(() => { carregar(); }, []);
+  const u = segUsuario();
+  const sem = (pacs || []).filter(p => !p.authUid);
+  async function criarTodos() {
+    const erros = [];
+    let n = 0;
+    for (const p of sem) {
+      n++;
+      setRodando(`Criando acesso ${n} de ${sem.length}...`);
+      try {
+        const pin = p.password || "1234";
+        if (!p.password) await fbSet(`patients/${p.id}/password`, pin);
+        await segCriarConta(p, pin);
+      } catch (e) { erros.push(p.name.trim() + ": " + segErro(e)); if (e && e.code === "auth/operation-not-allowed") break; }
+      await new Promise(r => setTimeout(r, 200));
+    }
+    setFalhas(erros);
+    setRodando("");
+    carregar();
+  }
+  const linha = (ok, txt) => h("div", { style: { display: "flex", gap: 8, alignItems: "flex-start", fontSize: 13, color: "#374151", marginBottom: 8 } }, h("span", null, ok === null ? "⏳" : ok ? "✅" : "⚠️"), h("span", null, txt));
+  return h("div", { style: { ...crd, marginTop: 14 } },
+    h("h3", { style: { fontSize: 15, fontWeight: 800, color: "#1f2937", marginBottom: 4 } }, "🔒 Segurança dos dados"),
+    h("p", { style: { fontSize: 12, color: "#9ca3af", marginBottom: 14 } }, "Situação do fechamento do banco. Os três itens precisam estar verdes."),
+    linha(u && segEhTerapeuta() ? true : false, u && segEhTerapeuta() ? "Você entrou com o login seguro (" + u.email + ")." : "Você entrou pelo login antigo. Entre com e-mail e senha para usar o login seguro."),
+    linha(pacs === null ? null : sem.length === 0, pacs === null ? "Verificando acessos dos atletas..." : `${pacs.length - sem.length} de ${pacs.length} atletas com acesso seguro criado.`),
+    linha(aberto === null ? null : !aberto, aberto === null ? "Verificando o banco..." : aberto ? "O banco está ABERTO: qualquer pessoa consegue ler os dados sem login." : "O banco está fechado: só entra quem tem login."),
+    pacs !== null && sem.length > 0 && !rodando && h("button", { className: "btn-main", onClick: criarTodos, style: { marginTop: 6 } }, `Criar acesso seguro para ${sem.length} atleta(s)`),
+    rodando && h("div", { style: { fontSize: 13, fontWeight: 700, color: "#6d28d9", marginTop: 6 } }, rodando),
+    falhas.length > 0 && h("div", { style: { marginTop: 10, fontSize: 12, color: "#e11d48" } }, h("div", { style: { fontWeight: 700 } }, "Não foi possível criar:"), falhas.map((f, i) => h("div", { key: i }, f))),
+    h("p", { style: { fontSize: 12, color: "#9ca3af", marginTop: 12 } }, "O atleta continua entrando com o mesmo nome e a mesma senha de antes.")
+  );
+}
 function LoginScreen({
   onLogin
 }) {
   const [role, setRole] = useState("therapist");
   const [pid, setPid] = useState("");
   const [pass, setPass] = useState("");
+  const [email, setEmail] = useState(() => { try { return localStorage.getItem("meupsi_email_terapeuta") || ""; } catch (e) { return ""; } });
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
   async function handle() {
     setErr("");
     setLoading(true);
+    await segSair();
+    const a = segAuth();
     try {
       if (role === "therapist") {
-        const d = await fbGet("therapist");
+        if (email.trim()) {
+          // login seguro do terapeuta
+          if (!a) { setErr("Login seguro indisponível. Recarregue a página."); setLoading(false); return; }
+          try {
+            await a.signInWithEmailAndPassword(email.trim(), pass);
+          } catch (e) {
+            setErr(e && (e.code === "auth/too-many-requests" || e.code === "auth/network-request-failed" || e.code === "auth/operation-not-allowed") ? segErro(e) : "E-mail ou senha incorretos.");
+            setLoading(false);
+            return;
+          }
+          try {
+            await fbGet("terapeuta_ok");
+          } catch (e) {
+            await segSair();
+            setErr("Esta conta não tem acesso de terapeuta.");
+            setLoading(false);
+            return;
+          }
+          try { localStorage.setItem("meupsi_email_terapeuta", email.trim()); } catch (e) {}
+          onLogin("therapist", null);
+          setLoading(false);
+          return;
+        }
+        let d;
+        try { d = await fbGet("therapist"); } catch (e) { setErr("Informe seu e-mail e sua senha."); setLoading(false); return; }
         if (pass === (d?.password || "1234")) onLogin("therapist", null);else setErr("Senha incorreta.");
       } else {
-        const all = await fbGet("patients");
+        const emailAtleta = segEmailAtleta(pid);
+        if (a && emailAtleta) {
+          try {
+            const cred = await a.signInWithEmailAndPassword(emailAtleta, segSenha(pass));
+            const m = await fbGet(`usuarios/${cred.user.uid}`);
+            if (m && m.pid) { onLogin("patient", m.pid); setLoading(false); return; }
+            await segSair();
+          } catch (e) {
+            await segSair();
+            if (e && (e.code === "auth/too-many-requests" || e.code === "auth/network-request-failed")) { setErr(segErro(e)); setLoading(false); return; }
+          }
+        }
+        let all;
+        try { all = await fbGet("patients"); } catch (e) { setErr("Nome ou senha incorretos."); setLoading(false); return; }
         if (!all) {
           setErr("Nenhum paciente cadastrado.");
           setLoading(false);
@@ -3668,7 +3853,14 @@ function LoginScreen({
       boxShadow: role === r ? "0 2px 8px rgba(0,0,0,.1)" : "none",
       transition: "all .2s"
     }
-  }, r === "therapist" ? "Terapeuta" : "Paciente"))), role === "patient" && React.createElement("input", {
+  }, r === "therapist" ? "Terapeuta" : "Paciente"))), role === "therapist" && React.createElement("input", {
+    type: "email",
+    className: "inp",
+    placeholder: "E-mail (login seguro)",
+    value: email,
+    autoComplete: "username",
+    onChange: e => setEmail(e.target.value)
+  }), role === "patient" && React.createElement("input", {
     className: "inp",
     placeholder: "Seu nome completo",
     value: pid,
@@ -3819,9 +4011,10 @@ function calcAlertas(patients, grupos, diasLimite) {
   return { linhas, orfaos, duplicados, semGrupo: linhas.filter(l => !l.grupos.length) };
 }
 
-function AlertasTab({ patients, grupos, onVerPaciente }) {
+function AlertasTab({ patients, grupos, onVerPaciente, inicial }) {
   const h = React.createElement;
-  const [secao, setSecao] = useState("resultados");
+  const [secao, setSecao] = useState((inicial && inicial.secao) || "resultados");
+  const [mesclar, setMesclar] = useState(null);
   const [grupoSel, setGrupoSel] = useState("todos");
   const [mostrarCriterio, setMostrarCriterio] = useState(false);
   const [confirmLimpar, setConfirmLimpar] = useState(false);
@@ -3890,6 +4083,7 @@ function AlertasTab({ patients, grupos, onVerPaciente }) {
       msg: `Remover ${orfaosLimpaveis.length} registro(s) sem nome e tirar dos grupos os atletas que já foram excluídos? Nenhuma resposta é apagada.`,
       okLabel: "Limpar", onConfirm: limparOrfaos, onCancel: () => setConfirmLimpar(false)
     }),
+    mesclar && h(MesclarModal, { par: mesclar, onClose: () => setMesclar(null) }),
     h("h2", { style: { ...h2s, marginBottom: 6 } }, "Alertas"),
     h("div", { style: { fontSize: 13, color: "#6b7280", marginBottom: 14 } }, "Triagem automática para priorizar quem olhar primeiro. Toque no atleta para abrir a ficha."),
     h("div", { style: { display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 } },
@@ -3949,7 +4143,8 @@ function AlertasTab({ patients, grupos, onVerPaciente }) {
       info.duplicados.map((d, k) => h("div", { key: "d" + k, style: card },
         h("div", { style: { fontWeight: 700, color: "#1f2937" } }, "Possível cadastro duplicado"),
         h("div", { style: { fontSize: 13, color: "#6b7280", marginTop: 6 } }, d.map(x => x.nome).join("  ·  ")),
-        h("div", { style: { fontSize: 12, color: "#9ca3af", marginTop: 4 } }, "Mesma data de nascimento e mesmo primeiro nome.")
+        h("div", { style: { fontSize: 12, color: "#9ca3af", margin: "4px 0 10px" } }, "Mesma data de nascimento e mesmo primeiro nome."),
+        d.length === 2 && h("button", { onClick: () => { const par = d.map(x => (patients || []).find(p => p.id === x.id)).filter(Boolean); if (par.length === 2) setMesclar(par); }, style: { ...btn("#6d28d9"), padding: "9px 16px", borderRadius: 10 } }, "Mesclar os dois")
       )),
       info.semGrupo.length > 0 && h("div", { style: card },
         h("div", { style: { fontWeight: 700, color: "#1f2937" } }, info.semGrupo.length, " atleta(s) sem grupo"),
@@ -4128,11 +4323,13 @@ function relRegistros(patients, grupos, opt) {
       if (t < de || t > ate) return;
       linhas.push({ ...base, data: dStr || "", t, ...extra });
     };
+    const sn = p.sinais || {};
     const avals = (obj, kind) => Object.entries(obj || {}).forEach(([k, t]) => {
       if (!t || !t.response) return;
       const inds = relIndicadores(t.type, t.response);
       const auto = relSinalAuto(inds);
-      add(t.answeredAt || t.createdAt, { kind, id: t.id || k, type: t.type, tipo: relNomeTipo(t.type), response: t.response, inds, sinalAuto: auto, sinal: SINAIS[t.sinal] ? t.sinal : auto, manual: !!SINAIS[t.sinal] });
+      const man = sn[kind + "_" + (t.id || k)] || t.sinal;
+      add(t.answeredAt || t.createdAt, { kind, id: t.id || k, type: t.type, tipo: relNomeTipo(t.type), response: t.response, inds, sinalAuto: auto, sinal: SINAIS[man] ? man : auto, manual: !!SINAIS[man] });
     });
     avals(p.tasks, "task");
     avals(p.respostas_arquivadas, "arq");
@@ -4142,7 +4339,8 @@ function relRegistros(patients, grupos, opt) {
     });
     if (opt.diario) Object.entries(p.diarios || {}).forEach(([k, d]) => {
       if (!d) return;
-      add(d.data, { kind: "diario", id: k, type: "diario", tipo: "DIÁRIO EMOCIONAL", diario: d, inds: [], sinalAuto: "informativo", sinal: SINAIS[d.sinal] ? d.sinal : "informativo", manual: !!SINAIS[d.sinal] });
+      const man = sn["diario_" + k] || d.sinal;
+      add(d.data, { kind: "diario", id: k, type: "diario", tipo: "DIÁRIO EMOCIONAL", diario: d, inds: [], sinalAuto: "informativo", sinal: SINAIS[man] ? man : "informativo", manual: !!SINAIS[man] });
     });
   });
   linhas.sort((a, b) => b.t - a.t || a.atleta.localeCompare(b.atleta, "pt-BR"));
@@ -4162,10 +4360,8 @@ function relObservacao(r, detalhado) {
   return relResumo(r.type, r.response, detalhado);
 }
 function relCaminhoSinal(r) {
-  if (r.kind === "task") return `patients/${r.pid}/tasks/${r.id}/sinal`;
-  if (r.kind === "arq") return `patients/${r.pid}/respostas_arquivadas/${r.id}/sinal`;
+  if (r.kind === "task" || r.kind === "arq" || r.kind === "diario") return `patients/${r.pid}/sinais/${r.kind}_${r.id}`;
   if (r.kind === "sessao") return `patients/${r.pid}/prontuario/sessoes/${r.id}/sinal`;
-  if (r.kind === "diario") return `patients/${r.pid}/diarios/${r.id}/sinal`;
   return null;
 }
 // Sugestões para a devolutiva à família, a partir da aplicação mais recente de cada escala
@@ -4698,11 +4894,11 @@ function SessoesProntuario({ patientId, sessoes }) {
   );
 }
 
-function RelatoriosTab({ patients, grupos, onVerPaciente }) {
+function RelatoriosTab({ patients, grupos, onVerPaciente, inicial }) {
   const h = React.createElement;
   const mesesAtras = n => { const d = new Date(); d.setMonth(d.getMonth() - n); d.setDate(1); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-01"; };
-  const [sub, setSub] = useState("exportar");
-  const [modelo, setModelo] = useState("coord");
+  const [sub, setSub] = useState((inicial && inicial.sub) || "exportar");
+  const [modelo, setModelo] = useState((inicial && inicial.modelo) || "coord");
   const [de, setDe] = useState(mesesAtras(3));
   const [ate, setAte] = useState(relHojeIso());
   const [grupo, setGrupo] = useState("todos");
@@ -4876,6 +5072,162 @@ function RelatoriosTab({ patients, grupos, onVerPaciente }) {
   );
 }
 
+
+// ══ Mesclar cadastros duplicados ══
+// Junta tudo do registro de origem no de destino, sem perder respostas. Só pula o que for idêntico.
+function mesclarDados(dest, orig) {
+  const out = { tasks: {}, diarios: {}, respostas_arquivadas: {}, sinais: {}, prontuario: null, dataNasc: null, copiadas: 0, puladas: 0 };
+  const igual = (a, b) => a.type === b.type && (a.answeredAt || "") === (b.answeredAt || "") && JSON.stringify(a.response || null) === JSON.stringify(b.response || null);
+  const juntar = (campo, comparar) => {
+    const d = dest[campo] || {}, o = orig[campo] || {};
+    Object.entries(o).forEach(([k, v]) => {
+      if (!v) return;
+      if (comparar && Object.values(d).some(x => x && comparar(x, v))) { out.puladas++; return; }
+      let chave = k;
+      if (d[chave] !== undefined || out[campo][chave] !== undefined) {
+        if (JSON.stringify(d[chave]) === JSON.stringify(v)) { out.puladas++; return; }
+        chave = k + "_m";
+      }
+      out[campo][chave] = v && typeof v === "object" && v.id === k ? { ...v, id: chave } : v;
+      out.copiadas++;
+    });
+  };
+  juntar("tasks", igual);
+  juntar("respostas_arquivadas", igual);
+  juntar("diarios", (a, b) => JSON.stringify(a) === JSON.stringify(b));
+  juntar("sinais", null);
+  const pd = dest.prontuario || {}, po = orig.prontuario || {};
+  const pr = {};
+  Object.keys(po).forEach(sec => {
+    const a = pd[sec] || {}, b = po[sec] || {};
+    if (!b || typeof b !== "object") return;
+    const novo = {};
+    Object.entries(b).forEach(([k, v]) => {
+      const vazio = a[k] == null || (typeof a[k] === "string" && !a[k].trim());
+      if (sec === "sessoes" || sec === "evolucao") { if (a[k] === undefined) novo[k] = v; else if (JSON.stringify(a[k]) !== JSON.stringify(v)) novo[k + "_m"] = v && typeof v === "object" && v.id === k ? { ...v, id: k + "_m" } : v; }
+      else if (vazio && v != null && !(typeof v === "string" && !v.trim())) novo[k] = v;
+    });
+    if (Object.keys(novo).length) pr[sec] = novo;
+  });
+  if (Object.keys(pr).length) out.prontuario = pr;
+  if (!dest.dataNasc && orig.dataNasc) out.dataNasc = orig.dataNasc;
+  return out;
+}
+async function mesclarPacientes(dest, orig) {
+  const m = mesclarDados(dest, orig);
+  // cópia de segurança do registro que vai sair
+  await fbSet(`mesclados/${orig.id}`, { ...orig, mescladoEm: new Date().toLocaleDateString("pt-BR"), mescladoPara: dest.id });
+  for (const campo of ["tasks", "diarios", "respostas_arquivadas", "sinais"]) {
+    for (const [k, v] of Object.entries(m[campo])) await fbSet(`patients/${dest.id}/${campo}/${k}`, v);
+  }
+  if (m.prontuario) for (const [sec, obj] of Object.entries(m.prontuario)) for (const [k, v] of Object.entries(obj)) await fbSet(`patients/${dest.id}/prontuario/${sec}/${k}`, v);
+  if (m.dataNasc) await fbSet(`patients/${dest.id}/dataNasc`, m.dataNasc);
+  // grupos: o destino ocupa o lugar da origem
+  const all = await fbGet("grupos");
+  for (const g of (all ? Object.values(all) : [])) {
+    if (!g || !g.id) continue;
+    const atuais = membrosDoGrupo(g);
+    if (!atuais.includes(orig.id)) continue;
+    const novos = [...new Set(atuais.map(x => x === orig.id ? dest.id : x))];
+    const obj = {};
+    novos.forEach((pid, i) => { obj[`m_${i}`] = pid; });
+    await fbSet(`grupos/${g.id}/membros`, obj);
+  }
+  if (segEhTerapeuta() && orig.authUid) { try { await segRemoverConta(orig.name, orig.password || "1234", orig.authUid); } catch (e) {} }
+  await fbSet(`patients/${orig.id}`, null);
+  return m;
+}
+function MesclarModal({ par, onClose }) {
+  const h = React.createElement;
+  const [manter, setManter] = useState(par[0].id);
+  const [estado, setEstado] = useState("");
+  const dest = par.find(p => p.id === manter), orig = par.find(p => p.id !== manter);
+  const previa = mesclarDados(dest, orig);
+  const n = o => Object.keys(o || {}).length;
+  async function confirmar() {
+    setEstado("Mesclando...");
+    try { const m = await mesclarPacientes(dest, orig); setEstado(`Pronto: ${m.copiadas} item(ns) trazido(s), ${m.puladas} idêntico(s) ignorado(s).`); setTimeout(onClose, 2500); }
+    catch (e) { setEstado("Erro: " + (e && e.message ? e.message : "não foi possível mesclar")); }
+  }
+  return h("div", { style: { position: "fixed", inset: 0, background: "rgba(0,0,0,.5)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 } },
+    h("div", { style: { background: "#fff", borderRadius: 20, padding: 22, width: "100%", maxWidth: 440, maxHeight: "90vh", overflowY: "auto" } },
+      h("h3", { style: { fontSize: 16, fontWeight: 800, color: "#1f2937", marginBottom: 6 } }, "Mesclar cadastros"),
+      h("p", { style: { fontSize: 13, color: "#6b7280", marginBottom: 14 } }, "Escolha qual cadastro fica. O outro é juntado a ele e sai da lista."),
+      par.map(p => h("label", { key: p.id, style: { display: "flex", gap: 10, alignItems: "flex-start", padding: 12, borderRadius: 12, border: manter === p.id ? "2px solid #6d28d9" : "2px solid #e5e7eb", marginBottom: 8, cursor: "pointer" } },
+        h("input", { type: "radio", checked: manter === p.id, onChange: () => setManter(p.id), style: { marginTop: 3 } }),
+        h("div", null,
+          h("div", { style: { fontWeight: 700, color: "#1f2937", fontSize: 14 } }, (p.name || "").trim()),
+          h("div", { style: { fontSize: 12, color: "#6b7280" } }, n(p.tasks), " tarefa(s) · ", n(p.diarios), " diário(s) · ", n(p.prontuario && p.prontuario.sessoes), " sessão(ões)")))),
+      h("div", { style: { background: "#f9fafb", borderRadius: 12, padding: "10px 14px", fontSize: 13, color: "#374151", margin: "8px 0 14px" } },
+        "Serão trazidos ", h("strong", null, previa.copiadas), " item(ns) de \"", (orig.name || "").trim(), "\". ", previa.puladas, " idêntico(s) será(ão) ignorado(s). Respostas diferentes do mesmo dia são mantidas. Fica uma cópia de segurança do cadastro removido."),
+      estado && h("div", { style: { fontSize: 13, fontWeight: 700, color: estado.startsWith("Erro") ? "#e11d48" : "#059669", marginBottom: 10 } }, estado),
+      !estado.startsWith("Pronto") && h("div", { style: { display: "flex", gap: 8 } },
+        h("button", { className: "btn-main", onClick: confirmar, disabled: estado === "Mesclando...", style: { flex: 1 } }, "Mesclar"),
+        h("button", { onClick: onClose, style: { ...btn("#9ca3af"), padding: "12px 18px", borderRadius: 12 } }, "Cancelar"))
+    )
+  );
+}
+
+// ══ Busca única: atleta ou função ══
+const BUSCA_FUNCOES = [
+  { rot: "Pacientes", ic: "👥", chaves: "atletas lista cadastro", acao: { tab: "patients" } },
+  { rot: "Novo paciente", ic: "➕", chaves: "cadastrar adicionar atleta criar", acao: { tab: "patients", novo: true } },
+  { rot: "Alertas por resultado", ic: "🚨", chaves: "vermelho amarelo risco triagem atencao", acao: { tab: "alertas", secao: "resultados" } },
+  { rot: "Sem avaliação em dia", ic: "⏳", chaves: "pendente vencida nunca avaliado", acao: { tab: "alertas", secao: "sem" } },
+  { rot: "Cadastro a corrigir e mesclar duplicados", ic: "🧹", chaves: "mesclar duplicado sem nome sem grupo juntar", acao: { tab: "alertas", secao: "cadastro" } },
+  { rot: "Relatório à Coordenação (PDF)", ic: "📋", chaves: "relatorio pdf exportar coordenacao sinal", acao: { tab: "relatorios", sub: "exportar", modelo: "coord" } },
+  { rot: "Relatório individual (PDF)", ic: "👤", chaves: "relatorio pdf atleta evolucao", acao: { tab: "relatorios", sub: "exportar", modelo: "ind" } },
+  { rot: "Devolutiva à família (PDF)", ic: "🏠", chaves: "relatorio pdf pais responsavel devolutiva", acao: { tab: "relatorios", sub: "exportar", modelo: "fam" } },
+  { rot: "Prontuário completo (PDF)", ic: "📁", chaves: "relatorio pdf prontuario documento", acao: { tab: "relatorios", sub: "exportar", modelo: "pront" } },
+  { rot: "Controle de prontuários", ic: "🗂", chaves: "pendencias sessoes termo consentimento evolucao", acao: { tab: "relatorios", sub: "prontuarios" } },
+  { rot: "Grupos e disparo de tarefas", ic: "🗂", chaves: "sub 15 sub 17 categoria enviar protocolo bateria", acao: { tab: "groups" } },
+  { rot: "Dashboard", ic: "📊", chaves: "graficos radar medias escalas", acao: { tab: "dashboard" } },
+  { rot: "Visão geral", ic: "📈", chaves: "progresso tarefas concluidas", acao: { tab: "overview" } },
+  { rot: "Respostas recentes", ic: "📬", chaves: "novas respostas hoje semana", acao: { tab: "respostas" } },
+  { rot: "Exportar dados (planilha)", ic: "📥", chaves: "csv excel baixar exportar", acao: { exportar: true } },
+  { rot: "Configurações e segurança", ic: "⚙️", chaves: "senha login seguro banco acesso", acao: { tab: "config" } }
+];
+function BuscaGlobal({ patients, grupos, onAtleta, onFuncao }) {
+  const h = React.createElement;
+  const [q, setQ] = useState("");
+  const [aberto, setAberto] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    const tecla = e => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); if (ref.current) ref.current.focus(); }
+    };
+    window.addEventListener("keydown", tecla);
+    return () => window.removeEventListener("keydown", tecla);
+  }, []);
+  const norm = s => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  const termo = norm(q).trim();
+  const palavras = termo.split(/\s+/).filter(Boolean);
+  const bate = txt => palavras.every(p => norm(txt).includes(p));
+  const atletas = termo ? (patients || []).filter(p => p && p.name && p.id && bate(p.name)).sort((a, b) => a.name.localeCompare(b.name, "pt-BR")).slice(0, 7) : [];
+  const funcoes = termo ? BUSCA_FUNCOES.filter(f => bate(f.rot + " " + f.chaves)).slice(0, 6) : [];
+  const grupoDe = p => (grupos || []).filter(g => membrosDoGrupo(g).includes(p.id)).map(g => g.nome).join(" / ");
+  const escolher = fn => { fn(); setQ(""); setAberto(false); if (ref.current) ref.current.blur(); };
+  const primeiro = () => { if (atletas.length) escolher(() => onAtleta(atletas[0].id)); else if (funcoes.length) escolher(() => onFuncao(funcoes[0].acao)); };
+  const item = (k, ic, t1, t2, fn) => h("div", { key: k, onMouseDown: e => { e.preventDefault(); escolher(fn); }, className: "card-hover", style: { display: "flex", gap: 10, alignItems: "center", padding: "9px 12px", cursor: "pointer", borderRadius: 10 } },
+    h("span", { style: { fontSize: 16, width: 22, textAlign: "center" } }, ic),
+    h("div", { style: { minWidth: 0 } }, h("div", { style: { fontSize: 13, fontWeight: 700, color: "#1f2937" } }, t1), t2 && h("div", { style: { fontSize: 11, color: "#9ca3af" } }, t2)));
+  const rot = t => h("div", { style: { fontSize: 10, fontWeight: 800, color: "#9ca3af", letterSpacing: ".6px", textTransform: "uppercase", padding: "8px 12px 2px" } }, t);
+  return h("div", { style: { position: "relative", flex: "1 1 260px", maxWidth: 460, minWidth: 0 } },
+    h("input", {
+      ref, className: "inp", value: q, placeholder: "🔍 Buscar atleta ou função...",
+      onChange: e => { setQ(e.target.value); setAberto(true); }, onFocus: () => setAberto(true), onBlur: () => setTimeout(() => setAberto(false), 150),
+      onKeyDown: e => { if (e.key === "Enter") primeiro(); if (e.key === "Escape") { setQ(""); setAberto(false); } },
+      style: { marginBottom: 0 }
+    }),
+    aberto && termo && h("div", { style: { position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, background: "#fff", borderRadius: 14, boxShadow: "0 12px 40px rgba(0,0,0,.18)", zIndex: 200, padding: 6, maxHeight: 420, overflowY: "auto", textAlign: "left" } },
+      atletas.length > 0 && rot("Atletas"),
+      atletas.map(p => item("a" + p.id, "👤", p.name.trim(), grupoDe(p) || "sem grupo", () => onAtleta(p.id))),
+      funcoes.length > 0 && rot("Funções"),
+      funcoes.map((f, i) => item("f" + i, f.ic, f.rot, null, () => onFuncao(f.acao))),
+      atletas.length + funcoes.length === 0 && h("div", { style: { padding: 14, fontSize: 13, color: "#9ca3af" } }, "Nada encontrado para \"", q, "\".")
+    )
+  );
+}
 
 const NAV_ITEMS = [
   { id: "patients", icon: "👥", label: "Pacientes" },
@@ -5119,7 +5471,17 @@ function TherapistApp({
   const [showExport, setShowExport] = useState(false);
   const [buscaPaciente, setBuscaPaciente] = useState("");
   const [ordenacao, setOrdenacao] = useState("nome"); // nome | idade
+  const [atalho, setAtalho] = useState(null);
   const isDesktop = useIsDesktop();
+  function irParaFuncao(a) {
+    if (!a) return;
+    setSel(null);
+    if (a.exportar) { setShowExport(true); return; }
+    setAtalho({ ...a, n: Date.now() });
+    if (a.tab) setTab(a.tab);
+    if (a.novo) setModal("new");
+  }
+  const busca = React.createElement(BuscaGlobal, { patients: patients, grupos: grupos, onAtleta: pid => { setTab("patients"); setSel(pid); }, onFuncao: irParaFuncao });
 
   useEffect(() => {
     const u = fbListen("patients", d => setPatients(d ? Object.entries(d).filter(([k, v]) => v && typeof v === "object").map(([k, v]) => ({ ...v, id: v.id || k })) : []));
@@ -5161,15 +5523,24 @@ function TherapistApp({
         return;
       }
       if (modal?.id) {
+        const antes = list.find(p => p.id === modal.id) || (patients || []).find(p => p.id === modal.id) || null;
         const updates = { name, dataNasc: dataNasc || "" };
         if (pass) updates.password = pass;
         await fbUpdate(`patients/${modal.id}`, updates);
+        if (segEhTerapeuta() && antes) {
+          try { await segAtualizarConta(antes, { id: modal.id, name, password: pass || antes.password || "1234" }); }
+          catch (e) { alert("Cadastro salvo, mas o acesso do atleta não foi atualizado: " + segErro(e)); }
+        }
       } else {
         const id = "p" + Date.now();
         await fbSet(`patients/${id}`, {
           id, name, password: pass || "1234", dataNasc: dataNasc || "", tasks: {},
           prontuario: { identificacao: {}, demanda: {}, evolucao_reg: {}, encerramento: {}, historia: {}, evolucao: {} }
         });
+        if (segEhTerapeuta()) {
+          try { await segCriarConta({ id, name }, pass || "1234"); }
+          catch (e) { alert("Atleta cadastrado, mas o acesso não foi criado: " + segErro(e)); }
+        }
       }
       setModal(null);
     } catch (e) {
@@ -5178,6 +5549,10 @@ function TherapistApp({
   }
 
   async function deletePatient(id) {
+    const antes = (patients || []).find(p => p.id === id);
+    if (segEhTerapeuta() && antes && antes.authUid) {
+      try { await segRemoverConta(antes.name, antes.password || "1234", antes.authUid); } catch (e) {}
+    }
     await fbSet(`patients/${id}`, null);
     setConfirmDel(null);
     // tira o atleta excluído dos grupos, para não receber tarefas de novo
@@ -5283,10 +5658,12 @@ function TherapistApp({
 
     tab === "groups" && React.createElement(GruposTab, { patients: patients }),
     tab === "relatorios" && React.createElement(RelatoriosTab, {
+      key: "rel" + (atalho && atalho.tab === "relatorios" ? atalho.n : 0), inicial: atalho && atalho.tab === "relatorios" ? atalho : null,
       patients: patients, grupos: grupos,
       onVerPaciente: (pid) => { setSel(pid); }
     }),
     tab === "alertas" && React.createElement(AlertasTab, {
+      key: "al" + (atalho && atalho.tab === "alertas" ? atalho.n : 0), inicial: atalho && atalho.tab === "alertas" ? atalho : null,
       patients: patients, grupos: grupos,
       onVerPaciente: (pid) => { setSel(pid); }
     }),
@@ -5320,7 +5697,8 @@ function TherapistApp({
       )
     ),
 
-    tab === "config" && React.createElement(ConfigTab, { role: "therapist", onLogout: onLogout })
+    tab === "config" && React.createElement(ConfigTab, { role: "therapist", onLogout: onLogout }),
+    tab === "config" && React.createElement(SegurancaCard, null)
   );
 
   // ── DESKTOP layout ──
@@ -5392,6 +5770,7 @@ function TherapistApp({
             ),
             React.createElement("div", { style: { fontSize: 12, color: "#9ca3af", marginTop: 2 } }, "João Rosa · CRP 06/227336")
           ),
+          React.createElement("div", { style: { flex: "1 1 260px", display: "flex", justifyContent: "center", margin: "0 16px", minWidth: 0 } }, busca),
           React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 12 } },
             React.createElement("button", {
               onClick: () => setShowExport(true),
@@ -5414,7 +5793,8 @@ function TherapistApp({
       React.createElement("button", {
         onClick: () => setShowExport(true),
         style: { width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, background: "linear-gradient(135deg,#059669,#34d399)", color: "#fff", border: "none", borderRadius: 10, padding: "10px 0", cursor: "pointer", fontWeight: 700, fontSize: 13, boxShadow: "0 2px 8px rgba(5,150,105,.3)" }
-      }, "📥 Exportar dados")
+      }, "📥 Exportar dados"),
+      React.createElement("div", { style: { marginTop: 10, display: "flex" } }, busca)
     ),
     React.createElement(TabBar, {
       tabs: [["patients", "👥 Pacientes"], ["alertas", "🚨 Alertas"], ["relatorios", "📄 Relatórios"], ["groups", "🗂 Grupos"], ["dashboard", "📊 Dashboard"], ["overview", "📈 Visão Geral"], ["respostas", "📬 Respostas"], ["config", "⚙️ Config"]],
@@ -6412,8 +6792,19 @@ function PatientApp({
   const [sel, setSel] = useState(null);
   const [viewTask, setViewTask] = useState(null);
   useEffect(() => {
-    const u = fbListen(`patients/${patientId}`, d => setPatient(d));
-    return () => u();
+    if (!segEhAtleta()) {
+      const u = fbListen(`patients/${patientId}`, d => setPatient(d));
+      return () => u();
+    }
+    // login seguro: o atleta só pode ler nome, nascimento, tarefas e diário
+    const partes = {};
+    let pronto = false;
+    const us = ["name", "dataNasc", "tasks", "diarios"].map(k => fbListen(`patients/${patientId}/${k}`, d => {
+      partes[k] = d;
+      if (k === "tasks") pronto = true;
+      if (pronto) setPatient({ id: patientId, name: partes.name || "", dataNasc: partes.dataNasc || "", tasks: partes.tasks || null, diarios: partes.diarios || null });
+    }));
+    return () => us.forEach(u => u());
   }, [patientId]);
   async function submitResponse(taskId, response) {
     await fbUpdate(`patients/${patientId}/tasks/${taskId}`, {
@@ -10272,6 +10663,20 @@ function ConfigTab({
     }
     setLoading(true);
     try {
+      if (segUsuario() && (role === "therapist" ? segEhTerapeuta() : segEhAtleta())) {
+        // login seguro: troca a senha da própria conta
+        const u = segUsuario();
+        const atleta = role !== "therapist";
+        if (!atleta && newPass.length < 6) { setErr("A nova senha deve ter pelo menos 6 caracteres."); setLoading(false); return; }
+        try {
+          await u.reauthenticateWithCredential(firebase.auth.EmailAuthProvider.credential(u.email, atleta ? segSenha(oldPass) : oldPass));
+        } catch (e) { setErr(e && e.code === "auth/too-many-requests" ? segErro(e) : "Senha atual incorreta."); setLoading(false); return; }
+        await u.updatePassword(atleta ? segSenha(newPass) : newPass);
+        if (atleta) await fbSet(`patients/${patientId}/password`, newPass);
+        setMsg(atleta ? "✅ Sua senha foi alterada com sucesso!" : "✅ Senha do terapeuta alterada com sucesso!");
+        setOldPass(""); setNewPass(""); setConfirmPass(""); setLoading(false);
+        return;
+      }
       if (role === "therapist") {
         const d = await fbGet("therapist");
         const stored = d?.password || "1234";
@@ -10453,17 +10858,17 @@ function App() {
     })
   });
   if (session.role === "therapist") return React.createElement(TherapistApp, {
-    onLogout: () => setSession({
+    onLogout: () => { segSair(); setSession({
       role: null,
       patientId: null
-    })
+    }); }
   });
   return React.createElement(PatientApp, {
     patientId: session.patientId,
-    onLogout: () => setSession({
+    onLogout: () => { segSair(); setSession({
       role: null,
       patientId: null
-    })
+    }); }
   });
 }
 const root = ReactDOM.createRoot(document.getElementById("root"));
