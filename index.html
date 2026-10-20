@@ -1807,7 +1807,7 @@ function CartaModal({
   }, "Próxima →"))));
 }
 function BaralhosTab() {
-  const [sel, setSel] = useState(null);
+  const [sel, setSel] = useNavState("Baralhos.sel", null);
   const [idx, setIdx] = useState(0);
   function open(b) {
     setSel({
@@ -2417,7 +2417,7 @@ function GruposTab({
 }) {
   const [grupos, setGrupos] = useState([]);
   const [loaded, setLoaded] = useState(false);
-  const [view, setView] = useState(null);
+  const [view, setView] = useNavState("Grupos.view", null);
   const [dispMsg, setDispMsg] = useState("");
   const [confirmApagar, setConfirmApagar] = useState(null);
   const [apagando, setApagando] = useState(false);
@@ -3690,6 +3690,77 @@ function SegurancaCard() {
     h("p", { style: { fontSize: 12, color: "#9ca3af", marginTop: 12 } }, "O atleta continua entrando com o mesmo nome e a mesma senha de antes.")
   );
 }
+// ══ Botão voltar do celular: volta para a última tela visitada ══
+// Cada troca de tela registra um passo no histórico do navegador; o "voltar" desfaz o último passo.
+const NAVH = { gen: Date.now(), passos: [], setters: {}, aberto: null, memo: {}, popEm: 0 };
+function navInit() {
+  try { history.replaceState({ meupsi: NAVH.gen, idx: 0 }, ""); } catch (e) {}
+  window.addEventListener("popstate", navPop);
+}
+function navPop(e) {
+  const st = e.state;
+  if (!st || st.meupsi !== NAVH.gen) return; // entrada de uma sessão anterior
+  const alvo = st.idx || 0;
+  NAVH.popEm = Date.now();
+  if (alvo >= NAVH.passos.length) return;
+  let aplicados = 0;
+  while (NAVH.passos.length > alvo) {
+    const passo = NAVH.passos.pop();
+    for (let i = passo.length - 1; i >= 0; i--) {
+      const s = NAVH.setters[passo[i].chave];
+      if (s) { s(passo[i].antes); aplicados++; }
+    }
+  }
+  // o passo era de uma tela que já fechou: volta mais um para não parecer que nada aconteceu
+  if (!aplicados && NAVH.passos.length > 0) { try { history.back(); } catch (e2) {} }
+}
+function navReset() {
+  NAVH.gen = Date.now();
+  NAVH.passos = [];
+  NAVH.aberto = null;
+  NAVH.memo = {};
+  try { history.replaceState({ meupsi: NAVH.gen, idx: 0 }, ""); } catch (e) {}
+}
+function useNavState(chave, inicial) {
+  // ao voltar para uma tela que tinha fechado, ela reabre como estava
+  const [v, setV] = useState(() => {
+    const m = NAVH.memo[chave];
+    return m && Date.now() - NAVH.popEm < 1500 ? m.v : inicial;
+  });
+  const ref = useRef(v);
+  ref.current = v;
+  useEffect(() => {
+    NAVH.setters[chave] = setV;
+    return () => {
+      NAVH.memo[chave] = { v: ref.current };
+      if (NAVH.setters[chave] === setV) delete NAVH.setters[chave];
+    };
+  }, [chave]);
+  const set = novo => {
+    const atual = ref.current;
+    const valor = typeof novo === "function" ? novo(atual) : novo;
+    if (Object.is(valor, atual)) return;
+    const topo = NAVH.passos[NAVH.passos.length - 1];
+    // fechar pelo botão do app (ficha, cadastro, tarefa): usa o histórico, para o voltar do celular não reabrir a tela
+    if ((valor === null || valor === false) && topo && NAVH.aberto !== topo && topo.length === 1 && topo[0].chave === chave && Object.is(topo[0].antes, valor)) {
+      try { history.back(); return; } catch (e) {}
+    }
+    if (NAVH.aberto) {
+      NAVH.aberto.push({ chave, antes: atual });
+    } else {
+      const passo = [{ chave, antes: atual }];
+      NAVH.passos.push(passo);
+      NAVH.aberto = passo;
+      try { history.pushState({ meupsi: NAVH.gen, idx: NAVH.passos.length }, ""); } catch (e) {}
+      // mudanças feitas no mesmo clique viram um único passo
+      Promise.resolve().then(() => { if (NAVH.aberto === passo) NAVH.aberto = null; });
+    }
+    ref.current = valor;
+    setV(valor);
+  };
+  return [v, set];
+}
+navInit();
 function LoginScreen({
   onLogin
 }) {
@@ -4013,7 +4084,7 @@ function calcAlertas(patients, grupos, diasLimite) {
 
 function AlertasTab({ patients, grupos, onVerPaciente, inicial }) {
   const h = React.createElement;
-  const [secao, setSecao] = useState((inicial && inicial.secao) || "resultados");
+  const [secao, setSecao] = useNavState("Alertas.secao", (inicial && inicial.secao) || "resultados");
   const [mesclar, setMesclar] = useState(null);
   const [grupoSel, setGrupoSel] = useState("todos");
   const [mostrarCriterio, setMostrarCriterio] = useState(false);
@@ -4897,8 +4968,8 @@ function SessoesProntuario({ patientId, sessoes }) {
 function RelatoriosTab({ patients, grupos, onVerPaciente, inicial }) {
   const h = React.createElement;
   const mesesAtras = n => { const d = new Date(); d.setMonth(d.getMonth() - n); d.setDate(1); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-01"; };
-  const [sub, setSub] = useState((inicial && inicial.sub) || "exportar");
-  const [modelo, setModelo] = useState((inicial && inicial.modelo) || "coord");
+  const [sub, setSub] = useNavState("Relatorios.sub", (inicial && inicial.sub) || "exportar");
+  const [modelo, setModelo] = useNavState("Relatorios.modelo", (inicial && inicial.modelo) || "coord");
   const [de, setDe] = useState(mesesAtras(3));
   const [ate, setAte] = useState(relHojeIso());
   const [grupo, setGrupo] = useState("todos");
@@ -5461,14 +5532,14 @@ function RespostasRecentesTab({ patients, onVerPaciente }) {
 function TherapistApp({
   onLogout
 }) {
-  const [tab, setTab] = useState("patients");
+  const [tab, setTab] = useNavState("Terapeuta.tab", "patients");
   const [patients, setPatients] = useState(null);
   const [grupos, setGrupos] = useState([]);
-  const [sel, setSel] = useState(null);
-  const [modal, setModal] = useState(null);
+  const [sel, setSel] = useNavState("Terapeuta.sel", null);
+  const [modal, setModal] = useNavState("Terapeuta.modal", null);
   const [modalErr, setModalErr] = useState("");
   const [confirmDel, setConfirmDel] = useState(null);
-  const [showExport, setShowExport] = useState(false);
+  const [showExport, setShowExport] = useNavState("Terapeuta.export", false);
   const [buscaPaciente, setBuscaPaciente] = useState("");
   const [ordenacao, setOrdenacao] = useState("nome"); // nome | idade
   const [atalho, setAtalho] = useState(null);
@@ -5937,15 +6008,15 @@ function PatientDetail({
   patient,
   onBack
 }) {
-  const [tab, setTab] = useState("tasks");
+  const [tab, setTab] = useNavState("Ficha.tab", "tasks");
   const [lp, setLp] = useState(patient);
-  const [showAdd, setShowAdd] = useState(false);
+  const [showAdd, setShowAdd] = useNavState("Ficha.add", false);
   const [tt, setTt] = useState("");
   const [ttitle, setTtitle] = useState("");
   const [tnote, setTnote] = useState("");
   const [confirmDel, setConfirmDel] = useState(null);
-  const [viewTask, setViewTask] = useState(null);
-  const [modoTeste, setModoTeste] = useState(false);
+  const [viewTask, setViewTask] = useNavState("Ficha.task", null);
+  const [modoTeste, setModoTeste] = useNavState("Ficha.teste", false);
   useEffect(() => {
     const u = fbListen(`patients/${patient.id}`, d => {
       if (d) setLp(d);
@@ -6318,7 +6389,7 @@ function ProntuarioTab({
   prontuario,
   patient
 }) {
-  const [ptab, setPtab] = useState("sessoes");
+  const [ptab, setPtab] = useNavState("Prontuario.aba", "sessoes");
   const [data, setData] = useState(prontuario);
   const [saved, setSaved] = useState(false);
   const [evo, setEvo] = useState("");
@@ -6788,9 +6859,9 @@ function PatientApp({
   onLogout
 }) {
   const [patient, setPatient] = useState(null);
-  const [tab, setTab] = useState("tasks");
-  const [sel, setSel] = useState(null);
-  const [viewTask, setViewTask] = useState(null);
+  const [tab, setTab] = useNavState("Atleta.tab", "tasks");
+  const [sel, setSel] = useNavState("Atleta.sel", null);
+  const [viewTask, setViewTask] = useNavState("Atleta.task", null);
   useEffect(() => {
     if (!segEhAtleta()) {
       const u = fbListen(`patients/${patientId}`, d => setPatient(d));
@@ -10362,8 +10433,8 @@ function DashboardTab({
   patients,
   onExport
 }) {
-  const [sel, setSel] = useState(0);
-  const [subTab, setSubTab] = useState("radar");
+  const [sel, setSel] = useNavState("Dashboard.sel", 0);
+  const [subTab, setSubTab] = useNavState("Dashboard.sub", "radar");
   const [buscaDash, setBuscaDash] = useState("");
   const isDesktop = useIsDesktop();
   const p = patients[sel];
@@ -10852,20 +10923,20 @@ function App() {
     }
   }, "Conectando...")));
   if (!session.role) return React.createElement(LoginScreen, {
-    onLogin: (role, pid) => setSession({
+    onLogin: (role, pid) => { navReset(); setSession({
       role,
       patientId: pid
-    })
+    }); }
   });
   if (session.role === "therapist") return React.createElement(TherapistApp, {
-    onLogout: () => { segSair(); setSession({
+    onLogout: () => { segSair(); navReset(); setSession({
       role: null,
       patientId: null
     }); }
   });
   return React.createElement(PatientApp, {
     patientId: session.patientId,
-    onLogout: () => { segSair(); setSession({
+    onLogout: () => { segSair(); navReset(); setSession({
       role: null,
       patientId: null
     }); }
