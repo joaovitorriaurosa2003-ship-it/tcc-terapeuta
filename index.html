@@ -177,6 +177,10 @@ const TASK_TYPES = [{
   label: "📋 SAS",
   color: "#0891b2"
 }, {
+  id: "sas2",
+  label: "📋 SAS-2 (Ansiedade Esportiva)",
+  color: "#0e7490"
+}, {
   id: "acsi28",
   label: "📋 ACSI-28",
   color: "#059669"
@@ -1060,10 +1064,42 @@ const TROSCI_DATA = {
   ]
 };
 
+// SAS-2: ansiedade esportiva traço, 15 itens (3 dimensões x 5). Redação própria em português
+// baseada nas dimensões da SAS-2 (Smith, Smoll, Cumming e Grossbard, 2006); não é a tradução oficial.
+const SAS2_DATA = {
+  id: "sas2",
+  nome: "SAS-2 · Ansiedade Esportiva",
+  color: "#0e7490",
+  instrucao: "Pense em como você costuma se sentir antes ou durante as competições. Marque o quanto cada frase é verdadeira para você. Não existe resposta certa ou errada.",
+  escala: ["Nada", "Um pouco", "Bastante", "Muito"],
+  subescalas: {
+    somatica: { nome: "Ansiedade Somática", cor: "#e11d48" },
+    preocupacao: { nome: "Preocupação", cor: "#d97706" },
+    concentracao: { nome: "Perturbação da Concentração", cor: "#7c3aed" }
+  },
+  itens: [
+    { id: 1, texto: "Meu corpo fica tenso antes ou durante os jogos.", sub: "somatica" },
+    { id: 2, texto: "Fico preocupado em jogar mal.", sub: "preocupacao" },
+    { id: 3, texto: "Tenho dificuldade de prestar atenção no que está acontecendo no jogo.", sub: "concentracao" },
+    { id: 4, texto: "Sinto meu coração acelerado quando o jogo vai começar.", sub: "somatica" },
+    { id: 5, texto: "Fico preocupado em decepcionar o treinador ou a minha família.", sub: "preocupacao" },
+    { id: 6, texto: "Me distraio e perco o foco durante a partida.", sub: "concentracao" },
+    { id: 7, texto: "Sinto um frio ou um aperto na barriga antes de competir.", sub: "somatica" },
+    { id: 8, texto: "Fico preocupado em errar em momentos importantes.", sub: "preocupacao" },
+    { id: 9, texto: "Penso em outras coisas e não consigo me concentrar no jogo.", sub: "concentracao" },
+    { id: 10, texto: "Meus músculos ficam travados por causa do nervosismo.", sub: "somatica" },
+    { id: 11, texto: "Fico pensando que posso perder o jogo.", sub: "preocupacao" },
+    { id: 12, texto: "Esqueço as orientações do treinador por causa do nervosismo.", sub: "concentracao" },
+    { id: 13, texto: "Minhas mãos ficam suadas ou tremendo antes de jogar.", sub: "somatica" },
+    { id: 14, texto: "Fico preocupado com o que os outros vão achar do meu desempenho.", sub: "preocupacao" },
+    { id: 15, texto: "Minha cabeça fica longe do jogo em momentos decisivos.", sub: "concentracao" }
+  ]
+};
 function getEscalaData(id) {
   return {
     csai2r: CSAI2R_DATA,
     sas: SAS_DATA,
+    sas2: SAS2_DATA,
     acsi28: ACSI28_DATA,
     teosq: TEOSQ_DATA,
     siq: SIQ_DATA,
@@ -2181,7 +2217,7 @@ const TASK_CATEGORIES = [
     label: "📋 Escalas Psicológicas",
     color: "#0891b2",
     bg: "#cffafe",
-    ids: ["csai2r", "sas", "hama", "acsi28", "teosq", "siq", "resiliencia", "suporte_social", "tsci", "ssci", "trosci"]
+    ids: ["csai2r", "sas", "sas2", "hama", "acsi28", "teosq", "siq", "resiliencia", "suporte_social", "tsci", "ssci", "trosci"]
   },
   {
     id: "tcc",
@@ -3236,6 +3272,10 @@ function csvPaciente(p) {
   csv += historicoCSV("SAS (HISTÓRICO)", tasks.filter(t => t.type === "sas" && t.response?.totais), [
     ["Somática", r => r.totais.somatica], ["Preocupação", r => r.totais.preocupacao], ["Concentração", r => r.totais.concentracao]
   ]);
+  csv += historicoCSV("SAS-2 (HISTÓRICO)", tasks.filter(t => t.type === "sas2" && t.response?.totais), [
+    ["Somática", r => r.totais.somatica], ["Preocupação", r => r.totais.preocupacao], ["Concentração", r => r.totais.concentracao],
+    ["Total", r => (r.totais.somatica || 0) + (r.totais.preocupacao || 0) + (r.totais.concentracao || 0)]
+  ]);
   csv += historicoCSV("ACSI-28 (HISTÓRICO)", tasks.filter(t => t.type === "acsi28" && t.response?.totais), [
     ["Adversidade", r => r.totais.adversidade], ["Pressão", r => r.totais.pressao], ["Metas", r => r.totais.metas],
     ["Concentração", r => r.totais.concentracao], ["Preocupação", r => r.totais.preocupacao], ["Confiança", r => r.totais.confianca], ["Treinabilidade", r => r.totais.treinabilidade]
@@ -3972,6 +4012,7 @@ function useIsDesktop() {
 const ALERTA_RISCO = {
   csai2r: ["cognitiva", "somatica"],
   sas: ["somatica", "preocupacao", "concentracao"],
+  sas2: ["somatica", "preocupacao", "concentracao"],
   hama: ["ansiedade_psiquica", "ansiedade_somatica"]
 };
 const ALERTA_RECURSO = {
@@ -3983,7 +4024,7 @@ const ALERTA_RECURSO = {
   ssci: ["confianca"],
   trosci: ["estabilidade", "recuperacao", "resistencia_externa"]
 };
-const ALERTA_ESCALAS = ["csai2r", "sas", "acsi28", "siq", "resiliencia", "suporte_social", "hama", "tsci", "ssci", "trosci", "teosq"];
+const ALERTA_ESCALAS = ["csai2r", "sas", "sas2", "acsi28", "siq", "resiliencia", "suporte_social", "hama", "tsci", "ssci", "trosci", "teosq"];
 function membrosDoGrupo(g) {
   return g && g.membros ? (Array.isArray(g.membros) ? g.membros : Object.values(g.membros)) : [];
 }
@@ -4245,7 +4286,7 @@ const SINAIS_ORDEM = ["regular", "atencao", "prioritario", "informativo"];
 const REL_TIPOS = {
   tr: "TEMPO DE REAÇÃO", atencao: "TESTE DE ATENÇÃO VISUAL", stroop: "TESTE DE STROOP", memoria_lista: "MEMÓRIA DE LISTA DE PALAVRAS",
   matrizes: "MATRIZES PROGRESSIVAS", tmt: "TRAIL MAKING TEST", nback: "N-BACK · 2-BACK", gonogo: "GO / NO-GO", flanker: "TESTE DE FLANKER",
-  cancelamento: "TESTE DE CANCELAMENTO", span: "SPAN DE DÍGITOS", csai2r: "CSAI-2R", sas: "SAS", acsi28: "ACSI-28", teosq: "TEOSQ · ORIENTAÇÃO DE META",
+  cancelamento: "TESTE DE CANCELAMENTO", span: "SPAN DE DÍGITOS", csai2r: "CSAI-2R", sas: "SAS", sas2: "SAS-2 · ANSIEDADE ESPORTIVA", acsi28: "ACSI-28", teosq: "TEOSQ · ORIENTAÇÃO DE META",
   siq: "SIQ · IMAGEM MENTAL", resiliencia: "RESILIÊNCIA ESPORTIVA", suporte_social: "SUPORTE SOCIAL PERCEBIDO", hama: "HAM-A",
   tsci: "TSCI · AUTOCONFIANÇA TRAÇO", ssci: "SSCI · AUTOCONFIANÇA ESTADO", trosci: "TROSCI · ROBUSTEZ DA CONFIANÇA"
 };
@@ -4265,6 +4306,9 @@ const REL_FRASES = {
   "sas.somatica": ["Controlar as reações do corpo ao nervosismo", "Mantém o corpo tranquilo em situações de jogo"],
   "sas.preocupacao": ["Reduzir a preocupação com erros e resultados", "Lida bem com a possibilidade de errar"],
   "sas.concentracao": ["Manter o foco durante treinos e jogos", "Mantém bem o foco durante treinos e jogos"],
+  "sas2.somatica": ["Controlar as reações do corpo ao nervosismo", "Mantém o corpo tranquilo em situações de jogo"],
+  "sas2.preocupacao": ["Reduzir a preocupação com erros e resultados", "Lida bem com a possibilidade de errar"],
+  "sas2.concentracao": ["Manter o foco durante treinos e jogos", "Mantém bem o foco durante treinos e jogos"],
   "acsi28.adversidade": ["Reagir de forma positiva quando as coisas não saem como o esperado", "Reage bem às dificuldades"],
   "acsi28.pressao": ["Render bem em momentos de pressão", "Rende bem em momentos de pressão"],
   "acsi28.metas": ["Estabelecer metas e se preparar mentalmente", "Organiza metas e se prepara mentalmente"],
@@ -5378,7 +5422,7 @@ function RespostasRecentesTab({ patients, onVerPaciente }) {
     const icons = {
       tr: "⚡", stroop: "🎨", tmt: "🔢", nback: "🧩", gonogo: "🚦",
       flanker: "➡️", atencao: "🎯", cancelamento: "✂️", matrizes: "🧩", memoria_lista: "🧠",
-      csai2r: "😰", sas: "📋", hama: "📊", acsi28: "💪", teosq: "🎯",
+      csai2r: "😰", sas: "📋", sas2: "📋", hama: "📊", acsi28: "💪", teosq: "🎯",
       siq: "🧘", resiliencia: "🛡️", suporte_social: "🤝",
       tsci: "🏆", ssci: "🏆", trosci: "🧱",
       pensamentos: "💭", experimento: "🔬", escala: "📊"
@@ -5405,6 +5449,7 @@ function RespostasRecentesTab({ patients, onVerPaciente }) {
       const nivel = total <= 17 ? "Leve" : total <= 24 ? "Moderada" : total <= 30 ? "Grave" : "Muito Grave";
       return `Total ${total}/56 · ${nivel}`;
     }
+    if (r.type === "sas2") { const t = resp.totais || {}; return `Total ${(t.somatica || 0) + (t.preocupacao || 0) + (t.concentracao || 0)}/60 · Som. ${t.somatica || 0} · Preoc. ${t.preocupacao || 0} · Conc. ${t.concentracao || 0}`; }
     if (r.type === "tsci" || r.type === "ssci") return `Confiança: ${resp.totais?.confianca || 0}/117`;
     if (r.type === "trosci") return `Estabilidade ${resp.totais?.estabilidade || 0} · Recuperação ${resp.totais?.recuperacao || 0} · Resist. externa ${resp.totais?.resistencia_externa || 0}`;
     if (resp.totais) {
@@ -5922,7 +5967,7 @@ function ModoTeste({ patient, onClose }) {
         testeAtivo.id === "estado_dia"      && React.createElement(EstadoDiaForm,    { color: ti.color, onSubmit: handleResult }),
         testeAtivo.id === "experimento"   && React.createElement(ExperimentoForm,   { color: ti.color, onSubmit: handleResult }),
         testeAtivo.id === "escala"        && React.createElement(EscalaForm,        { color: ti.color, onSubmit: handleResult }),
-        ["csai2r","sas","acsi28","teosq","siq","resiliencia","suporte_social","hama","tsci","ssci","trosci"].includes(testeAtivo.id) &&
+        ["csai2r","sas","sas2","acsi28","teosq","siq","resiliencia","suporte_social","hama","tsci","ssci","trosci"].includes(testeAtivo.id) &&
           React.createElement(EscalaPsiForm, { tipo: testeAtivo.id, color: ti.color, onSubmit: handleResult }),
         testeAtivo.id === "tr"            && React.createElement(TRForm,            { color: ti.color, onSubmit: handleResult }),
         testeAtivo.id === "stroop"        && React.createElement(StroopForm,        { color: ti.color, onSubmit: handleResult }),
@@ -5986,7 +6031,7 @@ function ModoTeste({ patient, onClose }) {
                 t.id === "tr" ? "⚡" : t.id === "gonogo" ? "🚦" : t.id === "flanker" ? "➡️" :
                 t.id === "stroop" ? "🎨" : t.id === "tmt" ? "🔢" : t.id === "nback" ? "🧩" :
                 t.id === "atencao" ? "🎯" : t.id === "cancelamento" ? "✂️" : t.id === "matrizes" ? "🧩" : t.id === "memoria_lista" ? "🧠" :
-                t.id === "csai2r" ? "😰" : t.id === "sas" ? "📋" : t.id === "hama" ? "📊" :
+                t.id === "csai2r" ? "😰" : t.id === "sas" ? "📋" : t.id === "sas2" ? "📋" : t.id === "hama" ? "📊" :
                 t.id === "acsi28" ? "💪" : t.id === "teosq" ? "🎯" : t.id === "siq" ? "🧘" :
                 t.id === "resiliencia" ? "🛡️" : t.id === "suporte_social" ? "🤝" :
                 t.id === "tsci" ? "🏆" : t.id === "ssci" ? "🏆" : t.id === "trosci" ? "🧱" :
@@ -9200,7 +9245,7 @@ function TaskForm({
   }), task.type === "escala" && React.createElement(EscalaForm, {
     color: ti.color,
     onSubmit: onSubmit
-  }), ["csai2r", "sas", "acsi28", "teosq", "siq", "resiliencia", "suporte_social", "hama", "tsci", "ssci", "trosci"].includes(task.type) && React.createElement(EscalaPsiForm, {
+  }), ["csai2r", "sas", "sas2", "acsi28", "teosq", "siq", "resiliencia", "suporte_social", "hama", "tsci", "ssci", "trosci"].includes(task.type) && React.createElement(EscalaPsiForm, {
     tipo: task.type,
     color: ti.color,
     onSubmit: onSubmit
@@ -10215,7 +10260,7 @@ function ResponseView({
     ESCALAS_DEF.forEach(s => items.push([s.nome, `${response[s.id]}%`]));
     if (response.obs) items.push(["Obs", response.obs]);
   }
-  if (["csai2r", "sas", "acsi28", "teosq", "siq", "resiliencia", "suporte_social", "hama", "tsci", "ssci", "trosci"].includes(type) && response.totais) {
+  if (["csai2r", "sas", "sas2", "acsi28", "teosq", "siq", "resiliencia", "suporte_social", "hama", "tsci", "ssci", "trosci"].includes(type) && response.totais) {
     const ed = getEscalaData(type);
     if (!ed) return null;
     return React.createElement("div", {
@@ -10443,6 +10488,7 @@ function DashboardTab({
   const escResp = tasks.filter(t => t.type === "escala" && t.response).slice(-1)[0]?.response || null;
   const csaiResp = tasks.filter(t => t.type === "csai2r" && t.response?.totais).slice(-1)[0]?.response?.totais || null;
   const sasResp = tasks.filter(t => t.type === "sas" && t.response?.totais).slice(-1)[0]?.response?.totais || null;
+  const sas2Resp = tasks.filter(t => t.type === "sas2" && t.response?.totais).slice(-1)[0]?.response?.totais || null;
   const acsiResp = tasks.filter(t => t.type === "acsi28" && t.response?.totais).slice(-1)[0]?.response?.totais || null;
   const teosqResp = tasks.filter(t => t.type === "teosq" && t.response?.totais).slice(-1)[0]?.response?.totais || null;
   const siqResp = tasks.filter(t => t.type === "siq" && t.response?.totais).slice(-1)[0]?.response?.totais || null;
@@ -10594,6 +10640,15 @@ function DashboardTab({
           React.createElement(MiniBar, { label: "Ansiedade Somática", value: sasResp.somatica, max: 28, color: "#e11d48" }),
           React.createElement(MiniBar, { label: "Preocupação", value: sasResp.preocupacao, max: 28, color: "#d97706" }),
           React.createElement(MiniBar, { label: "Perturbação Concentração", value: sasResp.concentracao, max: 28, color: "#7c3aed" })
+        ) : React.createElement("p", { style: { fontSize: 13, color: "#9ca3af" } }, "Nenhuma resposta ainda.")
+      ),
+      React.createElement("div", { style: { ...crd, marginBottom: isDesktop ? 0 : 14 } },
+        React.createElement("div", { style: { fontSize: 14, fontWeight: 800, color: "#0e7490", marginBottom: 12 } }, "📋 SAS-2"),
+        sas2Resp ? React.createElement(React.Fragment, null,
+          React.createElement(MiniBar, { label: "Ansiedade Somática", value: sas2Resp.somatica || 0, max: 20, color: "#e11d48" }),
+          React.createElement(MiniBar, { label: "Preocupação", value: sas2Resp.preocupacao || 0, max: 20, color: "#d97706" }),
+          React.createElement(MiniBar, { label: "Perturbação Concentração", value: sas2Resp.concentracao || 0, max: 20, color: "#7c3aed" }),
+          React.createElement("div", { style: { marginTop: 4, fontSize: 11, color: "#9ca3af" } }, "Total ", (sas2Resp.somatica || 0) + (sas2Resp.preocupacao || 0) + (sas2Resp.concentracao || 0), "/60 · quanto maior, mais ansiedade")
         ) : React.createElement("p", { style: { fontSize: 13, color: "#9ca3af" } }, "Nenhuma resposta ainda.")
       ),
       React.createElement("div", { style: { ...crd, marginBottom: isDesktop ? 0 : 14 } },
