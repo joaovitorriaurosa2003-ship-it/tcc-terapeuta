@@ -3309,7 +3309,7 @@ function csvPaciente(p) {
 
   // ── Testes Cognitivos — histórico completo ──────────────────────────────
   csv += historicoCSV("TEMPO DE REAÇÃO (HISTÓRICO)", tasks.filter(t => t.type === "tr" && t.response), [
-    ["TR médio (ms)", r => r.media], ["Desvio padrão (ms)", r => r.desvio], ["Acertos", r => r.acertos], ["Falsos positivos", r => r.falsosPos], ["Omissões", r => r.omissoes], ["Score", r => r.score]
+    ["TR médio (ms)", r => r.media], ["Mediana (ms)", r => r.mediana != null ? r.mediana : "—"], ["Desvio padrão (ms)", r => r.desvio], ["Melhor (ms)", r => r.melhor != null ? r.melhor : "—"], ["Lapsos >500ms", r => r.lapsos != null ? r.lapsos : "—"], ["Fadiga fim-início (ms)", r => r.fadiga != null ? r.fadiga : "—"], ["Tempos por tentativa", r => (r.seq || r.tempos || []).join(" ")], ["Acertos", r => r.acertos], ["Falsos positivos", r => r.falsosPos], ["Omissões", r => r.omissoes], ["Score", r => r.score]
   ]);
   csv += historicoCSV("TESTE DE STROOP (HISTÓRICO)", tasks.filter(t => t.type === "stroop" && t.response), [
     ["Forma", r => r.forma || "—"], ["Acertos", r => r.acertos], ["Erros", r => r.erros], ["TR médio (ms)", r => r.media],
@@ -4293,11 +4293,11 @@ const REL_TIPOS = {
 const REL_CAMPOS = {
   forma: "Forma", acertos: "Acertos", erros: "Erros", total: "Total", media: "TR médio (ms)", desvio: "Desvio padrão (ms)",
   mediaCongruente: "TR congruente (ms)", mediaIncongruente: "TR incongruente (ms)", custoInterferencia: "Custo interferência (ms)",
-  falsosPos: "Falsos positivos", falsosGo: "Falsos alarmes", omissoes: "Omissões", score: "Score", paginas: "Páginas", precisao: "Precisão (%)",
+  falsosPos: "Antecipações", mediana: "Mediana (ms)", melhor: "Melhor (ms)", lapsos: "Lapsos >500 ms", fadiga: "Fadiga fim-início (ms)", antecipacoes: "Antecipações", falsosGo: "Falsos alarmes", omissoes: "Omissões", score: "Score", paginas: "Páginas", precisao: "Precisão (%)",
   pct: "Percentual (%)", intrusions: "Intrusões", nivel: "Nível", mediaTempos: "TR médio (ms)", tempoA: "Tempo Parte A (s)", tempoB: "Tempo Parte B (s)",
   totalAcertos: "Acertos", totalAlvos: "Alvos", totalOmissoes: "Omissões", humor: "Humor (%)", ansiedade: "Ansiedade (%)", emocao: "Emoção", intensidade: "Intensidade"
 };
-const REL_ORDEM_CAMPOS = ["forma", "paginas", "acertos", "total", "erros", "precisao", "pct", "media", "mediaTempos", "desvio", "mediaCongruente", "mediaIncongruente", "custoInterferencia", "falsosPos", "falsosGo", "omissoes", "intrusions", "tempoA", "tempoB", "score", "nivel"];
+const REL_ORDEM_CAMPOS = ["forma", "paginas", "acertos", "total", "erros", "precisao", "pct", "media", "mediaTempos", "desvio", "mediaCongruente", "mediaIncongruente", "custoInterferencia", "mediana", "melhor", "lapsos", "falsosPos", "antecipacoes", "falsosGo", "omissoes", "fadiga", "intrusions", "tempoA", "tempoB", "score", "nivel"];
 // Frases em linguagem simples para a devolutiva à família: [a desenvolver, ponto forte]
 const REL_FRASES = {
   "csai2r.cognitiva": ["Lidar com as preocupações antes das competições", "Mantém a mente tranquila antes de competir"],
@@ -4409,7 +4409,7 @@ function relResumo(type, response, detalhado) {
     if (type === "tsci" || type === "ssci") partes.push("Máximo: 117");
     return nome + " · " + partes.join(", ");
   }
-  const chaves = Object.keys(response).filter(k => k !== "tipo" && k !== "escala" && (typeof response[k] === "number" || typeof response[k] === "string"));
+  const chaves = Object.keys(response).filter(k => k !== "tipo" && k !== "escala" && k !== "versao" && k !== "estimulo" && !(k === "falsosPos" && response.antecipacoes != null) && (typeof response[k] === "number" || typeof response[k] === "string"));
   chaves.sort((a, b) => { const ia = REL_ORDEM_CAMPOS.indexOf(a), ib = REL_ORDEM_CAMPOS.indexOf(b); return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib); });
   const partes = chaves.map(k => (REL_CAMPOS[k] || k) + ": " + response[k]);
   return partes.length ? nome + " · " + partes.join(", ") : nome;
@@ -5596,7 +5596,7 @@ function RespostasRecentesTab({ patients, onVerPaciente }) {
     const resp = r.response;
     if (!resp) return null;
     if (r.type === "escala") return `Humor ${resp.humor}% · Ansiedade ${resp.ansiedade}%`;
-    if (r.type === "tr") return `TR médio ${resp.media}ms · Acertos ${resp.acertos}/20`;
+    if (r.type === "tr") return `TR médio ${resp.media}ms · ${resp.versao === 2 ? "Lapsos " + (resp.lapsos || 0) + " · Antecip. " + (resp.antecipacoes || 0) : "Acertos " + resp.acertos + "/" + (resp.total || 20)}`;
     if (r.type === "stroop") return `${resp.acertos}/${resp.total || 24} corretos`;
     if (r.type === "nback") return `${resp.acertos} acertos · ${resp.omissoes} omissões`;
     if (r.type === "gonogo") return `${resp.acertos} acertos · ${resp.falsosGo} falsos alarmes`;
@@ -6337,7 +6337,8 @@ function PatientDetail({
       }
     }, "Resposta:"), React.createElement(ResponseView, {
       response: viewTask.response,
-      type: viewTask.type
+      type: viewTask.type,
+      historico: viewTask.type === "tr" ? Object.values(lp.tasks || {}).filter(t => t && t.type === "tr" && t.response).concat(Object.values(lp.respostas_arquivadas || {}).filter(t => t && t.type === "tr" && t.response)) : null
     })), React.createElement("div", {
       style: {
         marginTop: 20
@@ -6518,7 +6519,8 @@ function PatientDetail({
       }
     }, task.title), React.createElement(ResponseView, {
       response: task.response,
-      type: task.type
+      type: task.type,
+      compacto: true
     }), task.answeredAt && React.createElement("div", {
       style: {
         fontSize: 11,
@@ -7762,149 +7764,243 @@ function MiniScoreBar({
     }
   })));
 }
+// ══ Tempo de Reação v2: estímulo de futebol, tempos de cada tentativa, lapsos e antecipações ══
+const TR_CFG = { validas: 20, treino: 2, esperaMin: 1000, esperaMax: 3500, limite: 1500, lapso: 500, antecip: 100 };
+function trEstat(lista) {
+  const v = (lista || []).filter(x => typeof x === "number" && x > 0);
+  if (!v.length) return { media: 0, mediana: 0, desvio: 0, melhor: 0, pior: 0 };
+  const media = v.reduce((a, b) => a + b, 0) / v.length;
+  const o = v.slice().sort((a, b) => a - b);
+  const mediana = o.length % 2 ? o[(o.length - 1) / 2] : (o[o.length / 2 - 1] + o[o.length / 2]) / 2;
+  const desvio = v.length > 1 ? Math.sqrt(v.reduce((a, b) => a + (b - media) ** 2, 0) / v.length) : 0;
+  return { media: Math.round(media), mediana: Math.round(mediana), desvio: Math.round(desvio), melhor: o[0], pior: o[o.length - 1] };
+}
+// seq: um número por tentativa válida. >0 = tempo em ms; -1 = antecipação; -2 = omissão
+function trCalcular(seq) {
+  const tempos = seq.filter(x => x > 0);
+  const e = trEstat(tempos);
+  const antecipacoes = seq.filter(x => x === -1).length;
+  const omissoes = seq.filter(x => x === -2).length;
+  const lapsos = tempos.filter(x => x > TR_CFG.lapso).length;
+  const ini = trEstat(tempos.slice(0, 5)).media, fim = trEstat(tempos.slice(-5)).media;
+  const fadiga = tempos.length >= 10 ? fim - ini : 0;
+  const score = Math.max(0, Math.min(100, 100 - Math.round((e.media - 200) / 5) - antecipacoes * 5 - omissoes * 3));
+  return { tipo: "tr", versao: 2, estimulo: "bola", total: seq.length, tempos, seq,
+    media: e.media, mediana: e.mediana, desvio: e.desvio, melhor: e.melhor, pior: e.pior,
+    acertos: tempos.length, lapsos, antecipacoes, falsosPos: antecipacoes, omissoes, fadiga, score };
+}
+
 function TRForm({ color, onSubmit }) {
-  const TOTAL = 20;
-  const [fase, setFase] = useState("intro");
-  const [trial, setTrial] = useState(0);
-  const [tempos, setTempos] = useState([]);
-  const [falsosPos, setFalsosPos] = useState(0);
-  const [omissoes, setOmissoes] = useState(0);
-  const [alvoVis, setAlvoVis] = useState(false);
-  const [feedback, setFeedback] = useState(null);
-  const [tempoIni, setTempoIni] = useState(null);
-  const [ultimoTR, setUltimoTR] = useState(null);
-  const tRef = useRef(null), aRef = useRef(null);
+  const h = React.createElement;
+  const [fase, setFase] = useState("intro"); // intro | espera | alvo | feedback | resultado
+  const [n, setN] = useState(0);              // tentativa atual (inclui treino)
+  const [fb, setFb] = useState(null);         // { tipo, ms }
+  const [res, setRes] = useState(null);
+  const R = useRef({ seq: [], t0: 0, tEspera: null, tAlvo: null, fase: "intro", n: 0, pos: [50, 50] });
+  const total = TR_CFG.treino + TR_CFG.validas;
+  const emTreino = n < TR_CFG.treino;
 
-  function comecar() {
-    setFase("espera");
-    setAlvoVis(false);
-    setFeedback(null);
-    const e = 1000 + Math.random() * 3000;
-    tRef.current = setTimeout(() => {
-      setAlvoVis(true);
-      setTempoIni(Date.now());
-      setFase("alvo");
-      aRef.current = setTimeout(() => {
-        setAlvoVis(false);
-        setOmissoes(o => o + 1);
-        setFeedback("omissao");
-        setFase("feedback");
-        setTimeout(() => prox(), 1200);
-      }, 1500);
-    }, e);
+  function limpar() { clearTimeout(R.current.tEspera); clearTimeout(R.current.tAlvo); }
+  useEffect(() => () => limpar(), []);
+  function mudar(f) { R.current.fase = f; setFase(f); }
+  function registrar(valor) {
+    if (R.current.n >= TR_CFG.treino) R.current.seq.push(valor);
   }
-
-  function prox() {
-    const n = trial + 1;
-    if (n >= TOTAL) setFase("resultado");
-    else { setTrial(n); comecar(); }
+  function rodada() {
+    limpar();
+    setFb(null);
+    mudar("espera");
+    const espera = TR_CFG.esperaMin + Math.random() * (TR_CFG.esperaMax - TR_CFG.esperaMin);
+    R.current.tEspera = setTimeout(() => { R.current.t0 = 0; mudar("alvo"); }, espera);
   }
-
-  function click() {
-    if (fase === "espera") {
-      clearTimeout(tRef.current);
-      setFalsosPos(f => f + 1);
-      setFeedback("falso");
-      setFase("feedback");
-      setTimeout(() => prox(), 1200);
-    } else if (fase === "alvo") {
-      clearTimeout(aRef.current);
-      const tr = Date.now() - tempoIni;
-      setUltimoTR(tr);
-      setTempos(t => [...t, tr]);
-      setAlvoVis(false);
-      setFeedback("certo");
-      setFase("feedback");
-      setTimeout(() => prox(), 800);
+  // o relógio começa no quadro em que a bola é desenhada (depois que a tela foi atualizada)
+  useEffect(() => {
+    if (fase !== "alvo") return;
+    const id = requestAnimationFrame(() => {
+      if (R.current.fase !== "alvo") return;
+      R.current.t0 = performance.now();
+      R.current.tAlvo = setTimeout(() => {
+        if (R.current.fase !== "alvo") return;
+        registrar(-2);
+        feedback({ tipo: "omissao" });
+      }, TR_CFG.limite);
+    });
+    return () => cancelAnimationFrame(id);
+  }, [fase, n]);
+  function feedback(f) {
+    limpar();
+    setFb(f);
+    mudar("feedback");
+    R.current.tEspera = setTimeout(proxima, f.tipo === "certo" ? 650 : 1100);
+  }
+  function proxima() {
+    const prox = R.current.n + 1;
+    if (prox >= total) {
+      const r = trCalcular(R.current.seq);
+      setRes(r);
+      mudar("resultado");
+      return;
+    }
+    R.current.n = prox;
+    setN(prox);
+    rodada();
+  }
+  function toque(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    const f = R.current.fase;
+    if (f === "espera") { registrar(-1); feedback({ tipo: "cedo" }); }
+    else if (f === "alvo") {
+      if (!R.current.t0) return; // toque no mesmo instante em que a bola surge: ignora
+      const ms = Math.round(performance.now() - R.current.t0);
+      if (ms < TR_CFG.antecip) { registrar(-1); feedback({ tipo: "cedo" }); return; }
+      registrar(ms);
+      feedback({ tipo: "certo", ms });
     }
   }
-
-  useEffect(() => () => { clearTimeout(tRef.current); clearTimeout(aRef.current); }, []);
-
-  if (fase === "intro") return React.createElement("div", { style: { ...crd, textAlign: "center" } },
-    React.createElement("div", { style: { fontSize: 52, marginBottom: 12 } }, "⚡"),
-    React.createElement("h3", { style: { fontSize: 18, fontWeight: 800, color: "#1f2937", marginBottom: 8 } }, "Tempo de Reação"),
-    React.createElement("p", { style: { fontSize: 13, color: "#6b7280", marginBottom: 20, lineHeight: 1.6 } },
-      "Toque em qualquer lugar da tela quando aparecer o círculo verde. ", React.createElement("strong", null, "Não toque antes!")
-    ),
-    React.createElement("button", {
-      className: "btn-main", style: { background: color },
-      onClick: () => { setTrial(0); setTempos([]); setFalsosPos(0); setOmissoes(0); comecar(); }
-    }, "Começar")
-  );
-
-  if (fase === "resultado") {
-    const media = tempos.length ? Math.round(tempos.reduce((a, b) => a + b, 0) / tempos.length) : 0;
-    const desvio = tempos.length > 1 ? Math.round(Math.sqrt(tempos.reduce((a, b) => a + (b - media) ** 2, 0) / tempos.length)) : 0;
-    const score = Math.max(0, 100 - Math.round((media - 200) / 5) - falsosPos * 5 - omissoes * 3);
-    return React.createElement("div", { style: crd },
-      React.createElement("div", { style: { textAlign: "center", marginBottom: 16 } },
-        React.createElement("div", { style: { fontSize: 48, marginBottom: 8 } }, score >= 75 ? "🏆" : score >= 50 ? "🎯" : "💪"),
-        React.createElement("h3", { style: { fontSize: 18, fontWeight: 800, color: "#1f2937" } }, score >= 75 ? "Excelente!" : score >= 50 ? "Muito bem!" : "Continue!")
-      ),
-      React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 } },
-        [[media + "ms", "TR Médio", color], [desvio + "ms", "Desvio", color], [tempos.length, "Acertos", "#059669"], [falsosPos, "Falsos", "#e11d48"]].map(([v, l, c]) =>
-          React.createElement("div", { key: l, style: { background: "#f9fafb", borderRadius: 12, padding: 10, textAlign: "center" } },
-            React.createElement("div", { style: { fontSize: 18, fontWeight: 900, color: c } }, v),
-            React.createElement("div", { style: { fontSize: 10, color: "#9ca3af" } }, l)
-          ))
-      ),
-      React.createElement("button", {
-        className: "btn-main", style: { background: color },
-        onClick: () => onSubmit({ media, desvio, acertos: tempos.length, falsosPos, omissoes, score, tipo: "tr" })
-      }, "Salvar resultado")
-    );
+  function iniciar() {
+    R.current = { seq: [], t0: 0, tEspera: null, tAlvo: null, fase: "espera", n: 0 };
+    setN(0);
+    setRes(null);
+    rodada();
   }
 
-  // ── Fases de jogo: tela cheia ──────────────────────────────────────────
-  const bg = feedback === "certo" ? "#d1fae5" : feedback === "falso" ? "#fee2e2" : feedback === "omissao" ? "#fef3c7" : alvoVis ? "#d1fae5" : "#f9fafb";
-  const pct = Math.round(trial / TOTAL * 100);
+  if (fase === "intro") return h("div", { style: { ...crd, textAlign: "center", padding: 24 } },
+    h("div", { style: { width: 86, height: 86, margin: "0 auto 14px", borderRadius: 43, background: "radial-gradient(circle at 35% 30%,#22c55e,#14532d)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 46, boxShadow: "0 10px 30px rgba(21,128,61,.35)" } }, "⚽"),
+    h("h3", { style: { fontSize: 20, fontWeight: 800, color: "#1f2937", marginBottom: 8 } }, "Tempo de Reação"),
+    h("p", { style: { fontSize: 14, color: "#4b5563", marginBottom: 6, lineHeight: 1.6 } }, "Toque na tela o mais rápido possível quando a ", h("b", null, "bola"), " aparecer no campo."),
+    h("p", { style: { fontSize: 13, color: "#e11d48", fontWeight: 700, marginBottom: 6 } }, "Não toque antes da bola aparecer!"),
+    h("p", { style: { fontSize: 12, color: "#9ca3af", marginBottom: 20 } }, TR_CFG.treino, " tentativas de treino + ", TR_CFG.validas, " valendo · cerca de 1 minuto. Use o dedo que você mais usa e mantenha o celular apoiado."),
+    h("button", { className: "btn-main", style: { background: "linear-gradient(135deg,#15803d,#22c55e)" }, onClick: iniciar }, "Começar"));
 
-  return React.createElement("div", {
-    onClick: click,
-    style: {
-      position: "fixed", inset: 0, zIndex: 300,
-      background: bg, display: "flex", flexDirection: "column",
-      alignItems: "center", justifyContent: "center",
-      transition: "background .15s", cursor: "pointer"
-    }
-  },
-    // Barra de progresso no topo
-    React.createElement("div", { style: { position: "absolute", top: 0, left: 0, right: 0, padding: "16px 20px" } },
-      React.createElement("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: 8 } },
-        React.createElement("span", { style: { fontSize: 13, fontWeight: 700, color: "#374151" } }, trial + 1, "/", TOTAL),
-        React.createElement("span", { style: { fontSize: 13, fontWeight: 700, color } }, pct, "%")
-      ),
-      React.createElement("div", { style: { background: "rgba(0,0,0,.08)", borderRadius: 20, height: 8, overflow: "hidden" } },
-        React.createElement("div", { style: { width: `${pct}%`, background: color, height: "100%", borderRadius: 20 } })
-      )
-    ),
-    // Conteúdo central
-    alvoVis && React.createElement("div", {
-      style: {
-        width: 180, height: 180, borderRadius: "50%",
-        background: "linear-gradient(135deg,#059669,#34d399)",
-        boxShadow: "0 0 60px rgba(5,150,105,.6)",
-        display: "flex", alignItems: "center", justifyContent: "center", fontSize: 64
-      }
-    }, "👆"),
-    !alvoVis && !feedback && React.createElement("div", { style: { textAlign: "center" } },
-      React.createElement("div", { style: { fontSize: 64, marginBottom: 10 } }, "⏳"),
-      React.createElement("p", { style: { fontSize: 16, color: "#9ca3af", fontWeight: 700 } }, "Aguarde...")
-    ),
-    feedback === "certo" && React.createElement("div", { style: { textAlign: "center" } },
-      React.createElement("div", { style: { fontSize: 72 } }, "✅"),
-      React.createElement("div", { style: { fontSize: 28, fontWeight: 900, color: "#059669" } }, ultimoTR, "ms")
-    ),
-    feedback === "falso" && React.createElement("div", { style: { textAlign: "center" } },
-      React.createElement("div", { style: { fontSize: 72 } }, "⚠️"),
-      React.createElement("div", { style: { fontSize: 20, fontWeight: 800, color: "#e11d48" } }, "Muito cedo!")
-    ),
-    feedback === "omissao" && React.createElement("div", { style: { textAlign: "center" } },
-      React.createElement("div", { style: { fontSize: 72 } }, "😴"),
-      React.createElement("div", { style: { fontSize: 20, fontWeight: 800, color: "#d97706" } }, "Perdeu!")
-    )
-  );
+  if (fase === "resultado" && res) return h("div", { style: crd },
+    h("div", { style: { textAlign: "center", marginBottom: 14 } },
+      h("div", { style: { fontSize: 46, marginBottom: 6 } }, res.score >= 75 ? "🏆" : res.score >= 50 ? "🎯" : "💪"),
+      h("h3", { style: { fontSize: 18, fontWeight: 800, color: "#1f2937" } }, res.score >= 75 ? "Reflexo de goleiro!" : res.score >= 50 ? "Muito bem!" : "Bom treino!")),
+    h(TRResultado, { response: res }),
+    h("button", { className: "btn-main", style: { background: "linear-gradient(135deg,#15803d,#22c55e)", marginTop: 14 }, onClick: () => onSubmit(res) }, "Salvar resultado"));
+
+  // ── Tela cheia: campo de futebol
+  const cor = fb ? (fb.tipo === "certo" ? "#166534" : fb.tipo === "cedo" ? "#7f1d1d" : "#78350f") : "#14532d";
+  const progresso = Math.max(0, n - TR_CFG.treino) / TR_CFG.validas;
+  return h("div", { onPointerDown: toque, onContextMenu: e => e.preventDefault(), style: { position: "fixed", inset: 0, zIndex: 300, background: cor, transition: "background .12s", cursor: "pointer", userSelect: "none", WebkitUserSelect: "none", touchAction: "manipulation", overflow: "hidden" } },
+    // linhas do campo
+    h("svg", { viewBox: "0 0 100 160", preserveAspectRatio: "xMidYMid slice", style: { position: "absolute", inset: 0, width: "100%", height: "100%", opacity: .18, pointerEvents: "none" } },
+      [0, 1, 2, 3, 4, 5, 6, 7].map(i => h("rect", { key: i, x: 0, y: i * 20, width: 100, height: 10, fill: "#fff", opacity: .25 })),
+      h("rect", { x: 6, y: 6, width: 88, height: 148, fill: "none", stroke: "#fff", strokeWidth: .8 }),
+      h("line", { x1: 6, y1: 80, x2: 94, y2: 80, stroke: "#fff", strokeWidth: .8 }),
+      h("circle", { cx: 50, cy: 80, r: 14, fill: "none", stroke: "#fff", strokeWidth: .8 }),
+      h("rect", { x: 28, y: 6, width: 44, height: 20, fill: "none", stroke: "#fff", strokeWidth: .8 }),
+      h("rect", { x: 28, y: 134, width: 44, height: 20, fill: "none", stroke: "#fff", strokeWidth: .8 })),
+    // topo
+    h("div", { style: { position: "absolute", top: 0, left: 0, right: 0, padding: "18px 20px", color: "#fff", pointerEvents: "none" } },
+      h("div", { style: { display: "flex", justifyContent: "space-between", fontSize: 13, fontWeight: 800, marginBottom: 8, opacity: .9 } },
+        h("span", null, emTreino ? `Treino ${n + 1}/${TR_CFG.treino}` : `Tentativa ${n - TR_CFG.treino + 1}/${TR_CFG.validas}`),
+        h("span", null, emTreino ? "não conta" : Math.round(progresso * 100) + "%")),
+      h("div", { style: { background: "rgba(255,255,255,.2)", borderRadius: 20, height: 7, overflow: "hidden" } },
+        h("div", { style: { width: progresso * 100 + "%", background: "#fff", height: "100%", borderRadius: 20, transition: "width .2s" } }))),
+    // centro
+    h("div", { style: { position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" } },
+      fase === "alvo" && h("div", { style: { width: 170, height: 170, borderRadius: 85, background: "radial-gradient(circle,rgba(255,255,255,.35),rgba(255,255,255,0) 70%)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 120, lineHeight: 1 } }, "⚽"),
+      fase === "espera" && h("div", { style: { textAlign: "center", color: "rgba(255,255,255,.75)" } },
+        h("div", { style: { width: 18, height: 18, borderRadius: 9, background: "rgba(255,255,255,.8)", margin: "0 auto 14px" } }),
+        h("div", { style: { fontSize: 16, fontWeight: 800, letterSpacing: .5 } }, "Atenção...")),
+      fase === "feedback" && fb && h("div", { style: { textAlign: "center", color: "#fff" } },
+        fb.tipo === "certo" && h(React.Fragment, null, h("div", { style: { fontSize: 46, fontWeight: 900 } }, fb.ms, h("span", { style: { fontSize: 20 } }, " ms")), h("div", { style: { fontSize: 14, fontWeight: 700, opacity: .85 } }, fb.ms > TR_CFG.lapso ? "Um pouco lento" : fb.ms < 250 ? "Muito rápido!" : "Boa!")),
+        fb.tipo === "cedo" && h(React.Fragment, null, h("div", { style: { fontSize: 54 } }, "✋"), h("div", { style: { fontSize: 22, fontWeight: 900 } }, "Cedo demais!"), h("div", { style: { fontSize: 13, opacity: .85 } }, "Espere a bola aparecer")),
+        fb.tipo === "omissao" && h(React.Fragment, null, h("div", { style: { fontSize: 54 } }, "😴"), h("div", { style: { fontSize: 22, fontWeight: 900 } }, "Passou!")))));
+}
+
+function TRGraficoTentativas({ seq, tempos }) {
+  const h = React.createElement;
+  const s = seq && seq.length ? seq : (tempos || []);
+  if (!s.length) return null;
+  const W = 320, H = 150, L = 34, B = 20, T = 10;
+  const vals = s.filter(x => x > 0);
+  const maxV = Math.max(600, ...vals.map(v => Math.min(v, 1500))) * 1.08;
+  const x = i => L + (s.length === 1 ? (W - L - 8) / 2 : i * (W - L - 8) / (s.length - 1));
+  const y = v => T + (H - T - B) * (1 - Math.min(v, maxV) / maxV);
+  const pts = s.map((v, i) => v > 0 ? [x(i), y(v), v] : null);
+  const linha = pts.filter(Boolean).map((p, i) => (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" ");
+  const med = trEstat(vals).mediana;
+  const marcas = [0, 250, 500, 750, 1000, 1250].filter(v => v <= maxV);
+  return h("svg", { viewBox: `0 0 ${W} ${H}`, style: { width: "100%", height: "auto", display: "block" }, role: "img", "aria-label": "Tempo de cada tentativa" },
+    marcas.map(v => h("g", { key: v },
+      h("line", { x1: L, x2: W - 4, y1: y(v), y2: y(v), stroke: "#f1f5f9", strokeWidth: 1 }),
+      h("text", { x: L - 5, y: y(v) + 3, fontSize: 8, fill: "#94a3b8", textAnchor: "end" }, v))),
+    h("line", { x1: L, x2: W - 4, y1: y(TR_CFG.lapso), y2: y(TR_CFG.lapso), stroke: "#f59e0b", strokeWidth: 1, strokeDasharray: "4 3" }),
+    h("text", { x: W - 6, y: y(TR_CFG.lapso) - 3, fontSize: 7.5, fill: "#d97706", textAnchor: "end", fontWeight: 700 }, "lapso (500 ms)"),
+    med > 0 && h("line", { x1: L, x2: W - 4, y1: y(med), y2: y(med), stroke: "#16a34a", strokeWidth: 1, opacity: .5 }),
+    h("path", { d: linha, fill: "none", stroke: "#16a34a", strokeWidth: 1.6, strokeLinejoin: "round" }),
+    s.map((v, i) => v > 0
+      ? h("circle", { key: i, cx: x(i), cy: y(v), r: 2.8, fill: v > TR_CFG.lapso ? "#f59e0b" : "#16a34a", stroke: "#fff", strokeWidth: .8 }, h("title", null, `Tentativa ${i + 1}: ${v} ms`))
+      : h("text", { key: i, x: x(i), y: v === -1 ? H - B - 2 : T + 8, fontSize: 9, textAnchor: "middle", fill: v === -1 ? "#dc2626" : "#d97706", fontWeight: 800 }, v === -1 ? "✕" : "○", h("title", null, `Tentativa ${i + 1}: ${v === -1 ? "antecipação" : "omissão"}`))),
+    h("text", { x: L, y: H - 5, fontSize: 8, fill: "#94a3b8" }, "1ª"),
+    h("text", { x: W - 6, y: H - 5, fontSize: 8, fill: "#94a3b8", textAnchor: "end" }, s.length + "ª tentativa"));
+}
+
+function TREvolucao({ historico }) {
+  const h = React.createElement;
+  const apps = (historico || []).filter(t => t && t.response && t.response.media > 0)
+    .map(t => ({ d: parseDataBR(t.answeredAt || t.createdAt), r: t.response }))
+    .filter(a => a.d).sort((a, b) => a.d - b.d).slice(-12);
+  if (apps.length < 2) return h("div", { style: { fontSize: 12, color: "#94a3b8" } }, "A evolução aparece a partir da segunda aplicação.");
+  const W = 320, H = 150, L = 34, B = 22, T = 12;
+  const max = Math.max(...apps.map(a => a.r.media + (a.r.desvio || 0))) * 1.1, min = Math.max(0, Math.min(...apps.map(a => a.r.media - (a.r.desvio || 0))) * 0.85);
+  const x = i => L + i * (W - L - 10) / (apps.length - 1);
+  const y = v => T + (H - T - B) * (1 - (v - min) / (max - min || 1));
+  const faixa = apps.map((a, i) => [x(i), y(a.r.media + (a.r.desvio || 0))]).concat(apps.map((a, i) => [x(i), y(Math.max(min, a.r.media - (a.r.desvio || 0)))]).reverse());
+  const caminho = (arr) => arr.map((p, i) => (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" ");
+  const ticks = [min, (min + max) / 2, max].map(v => Math.round(v / 10) * 10);
+  const ult = apps[apps.length - 1].r, ant = apps[apps.length - 2].r;
+  const dif = (ult.media || 0) - (ant.media || 0);
+  return h("div", null,
+    h("svg", { viewBox: `0 0 ${W} ${H}`, style: { width: "100%", height: "auto", display: "block" }, role: "img", "aria-label": "Evolução do tempo de reação" },
+      ticks.map((v, i) => h("g", { key: i }, h("line", { x1: L, x2: W - 4, y1: y(v), y2: y(v), stroke: "#f1f5f9" }), h("text", { x: L - 5, y: y(v) + 3, fontSize: 8, fill: "#94a3b8", textAnchor: "end" }, v))),
+      h("path", { d: caminho(faixa) + " Z", fill: "#7c3aed", opacity: .1 }),
+      h("path", { d: caminho(apps.map((a, i) => [x(i), y(a.r.media)])), fill: "none", stroke: "#7c3aed", strokeWidth: 1.8 }),
+      apps.map((a, i) => h("g", { key: i },
+        h("circle", { cx: x(i), cy: y(a.r.media), r: 3, fill: "#7c3aed", stroke: "#fff", strokeWidth: 1 }, h("title", null, `${a.d.toLocaleDateString("pt-BR")}: média ${a.r.media} ms, desvio ${a.r.desvio || 0} ms`)),
+        (i === 0 || i === apps.length - 1 || apps.length <= 6) && h("text", { x: x(i), y: H - 6, fontSize: 7.5, fill: "#94a3b8", textAnchor: i === 0 ? "start" : i === apps.length - 1 ? "end" : "middle" }, a.d.toLocaleDateString("pt-BR").slice(0, 5))))),
+    h("div", { style: { display: "flex", gap: 12, fontSize: 11, color: "#64748b", marginTop: 4, flexWrap: "wrap" } },
+      h("span", null, h("span", { style: { color: "#7c3aed", fontWeight: 800 } }, "●"), " TR médio"),
+      h("span", null, h("span", { style: { display: "inline-block", width: 10, height: 8, background: "#7c3aed", opacity: .2, borderRadius: 2 } }), " variação (± desvio)"),
+      h("span", { style: { marginLeft: "auto", fontWeight: 700, color: dif > 15 ? "#dc2626" : dif < -15 ? "#059669" : "#64748b" } }, dif > 15 ? `▲ ${dif} ms mais lento que a anterior` : dif < -15 ? `▼ ${-dif} ms mais rápido que a anterior` : "estável em relação à anterior")));
+}
+
+function TRResultado({ response, historico, compacto }) {
+  const h = React.createElement;
+  const r = response || {};
+  const v2 = r.versao === 2;
+  const card = (v, rot, cor, dica) => h("div", { title: dica || "", style: { background: "#f8fafc", borderRadius: 12, padding: "10px 8px", textAlign: "center" } },
+    h("div", { style: { fontSize: 18, fontWeight: 900, color: cor || "#0f172a" } }, v),
+    h("div", { style: { fontSize: 10, color: "#94a3b8", fontWeight: 700 } }, rot));
+  const ant = r.antecipacoes != null ? r.antecipacoes : r.falsosPos || 0;
+  const cards = [
+    card((r.media || 0) + " ms", "TR médio", "#15803d"),
+    v2 && card((r.mediana || 0) + " ms", "Mediana", "#15803d"),
+    card((r.desvio || 0) + " ms", "Variação (desvio)", "#7c3aed", "Quanto menor, mais constante"),
+    v2 && card((r.melhor || 0) + " ms", "Melhor", "#0891b2"),
+    v2 && card(r.lapsos || 0, "Lapsos >500 ms", (r.lapsos || 0) > 2 ? "#d97706" : "#0f172a", "Respostas lentas, sinal de desatenção ou cansaço"),
+    card(ant, "Antecipações", ant > 2 ? "#dc2626" : "#0f172a", "Toques antes da bola: impulsividade"),
+    card(r.omissoes || 0, "Omissões", (r.omissoes || 0) > 1 ? "#d97706" : "#0f172a"),
+    card((r.acertos || 0) + "/" + (r.total || 20), "Válidas")
+  ].filter(Boolean);
+  const fadiga = v2 && r.fadiga ? (r.fadiga > 40 ? `Ficou ${r.fadiga} ms mais lento no fim do teste: possível queda de atenção ou cansaço.` : r.fadiga < -40 ? `Ficou ${-r.fadiga} ms mais rápido no fim: aqueceu ao longo do teste.` : "") : "";
+  return h("div", null,
+    h("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(88px,1fr))", gap: 8, marginBottom: 12 } }, cards),
+    !compacto && (r.seq || r.tempos) && h("div", { style: { background: "#fff", border: "1px solid #f1f5f9", borderRadius: 14, padding: 12, marginBottom: 10 } },
+      h("div", { style: { fontSize: 13, fontWeight: 800, color: "#0f172a", marginBottom: 6 } }, "Tentativa a tentativa"),
+      h(TRGraficoTentativas, { seq: r.seq, tempos: r.tempos }),
+      h("div", { style: { display: "flex", gap: 10, fontSize: 11, color: "#64748b", marginTop: 4, flexWrap: "wrap" } },
+        h("span", null, h("span", { style: { color: "#16a34a" } }, "●"), " resposta"),
+        h("span", null, h("span", { style: { color: "#f59e0b" } }, "●"), " lapso"),
+        h("span", null, h("span", { style: { color: "#dc2626", fontWeight: 800 } }, "✕"), " antecipação"),
+        h("span", null, h("span", { style: { color: "#d97706", fontWeight: 800 } }, "○"), " omissão"))),
+    !compacto && !(r.seq || r.tempos) && h("div", { style: { fontSize: 12, color: "#94a3b8", marginBottom: 10 } }, "Aplicação feita na versão antiga do teste: os tempos de cada tentativa não foram salvos."),
+    fadiga && h("div", { style: { fontSize: 12, color: "#92400e", background: "#fffbeb", borderRadius: 10, padding: "8px 10px", marginBottom: 10 } }, fadiga),
+    !compacto && historico && h("div", { style: { background: "#fff", border: "1px solid #f1f5f9", borderRadius: 14, padding: 12 } },
+      h("div", { style: { fontSize: 13, fontWeight: 800, color: "#0f172a", marginBottom: 6 } }, "Evolução entre aplicações"),
+      h(TREvolucao, { historico })));
 }
 
 function StroopForm({ color, onSubmit }) {
@@ -10606,9 +10702,12 @@ function AtencaoForm({
 }
 function ResponseView({
   response,
-  type
+  type,
+  historico,
+  compacto
 }) {
   if (!response) return null;
+  if (type === "tr") return React.createElement(TRResultado, { response, historico, compacto });
   const items = [];
   if (type === "pensamentos") items.push(["Situação", response.situacao], ["Pensamento", response.pensamento], ["Emoção", response.emocao], ["Intensidade", `${response.intensidade}/10`], ["Alternativo", response.pensamentoAlternativo]);
   if (type === "atencao") items.push(["Páginas", response.paginas], ["Acertos", response.acertos], ["Erros", response.erros], ["Precisão", `${response.precisao}%`]);
