@@ -5300,6 +5300,7 @@ const BUSCA_FUNCOES = [
   { rot: "Visão geral", ic: "📈", chaves: "progresso tarefas concluidas", acao: { tab: "overview" } },
   { rot: "Respostas recentes", ic: "📬", chaves: "novas respostas hoje semana", acao: { tab: "respostas" } },
   { rot: "Exportar dados (planilha)", ic: "📥", chaves: "csv excel baixar exportar", acao: { exportar: true } },
+  { rot: "Atualizações", ic: "🔔", chaves: "novidades avisos sino noticias", acao: { tab: "atualizacoes" } },
   { rot: "Configurações e segurança", ic: "⚙️", chaves: "senha login seguro banco acesso", acao: { tab: "config" } }
 ];
 function BuscaGlobal({ patients, grupos, onAtleta, onFuncao }) {
@@ -5341,6 +5342,146 @@ function BuscaGlobal({ patients, grupos, onAtleta, onFuncao }) {
       funcoes.map((f, i) => item("f" + i, f.ic, f.rot, null, () => onFuncao(f.acao))),
       atletas.length + funcoes.length === 0 && h("div", { style: { padding: 14, fontSize: 13, color: "#9ca3af" } }, "Nada encontrado para \"", q, "\".")
     )
+  );
+}
+
+// ══ Saudação ══
+function saudacaoHora() {
+  const h = new Date().getHours();
+  return h >= 5 && h < 12 ? "Bom dia" : h >= 12 && h < 18 ? "Boa tarde" : "Boa noite";
+}
+function primeiroNome(n) {
+  return String(n || "").trim().split(/\s+/)[0] || "";
+}
+function SaudacaoTerapeuta({ patients }) {
+  const h = React.createElement;
+  const hojeStr = new Date().toLocaleDateString("pt-BR");
+  let respHoje = 0, pend = 0;
+  (patients || []).forEach(p => Object.values((p && p.tasks) || {}).forEach(t => { if (!t) return; if (t.response && t.answeredAt === hojeStr) respHoje++; if (!t.response) pend++; }));
+  const data = new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
+  return h("div", { className: "fade-in", style: { background: "linear-gradient(135deg,#6d28d9,#0ea5e9)", borderRadius: 18, padding: "16px 20px", marginBottom: 16, color: "#fff", boxShadow: "0 6px 20px rgba(109,40,217,.25)" } },
+    h("div", { style: { fontSize: 20, fontWeight: 800 } }, saudacaoHora(), ", João! ", saudacaoHora() === "Boa noite" ? "🌙" : "☀️"),
+    h("div", { style: { fontSize: 13, opacity: .9, marginTop: 4 } }, data.charAt(0).toUpperCase() + data.slice(1), " · ", respHoje, respHoje === 1 ? " resposta hoje" : " respostas hoje", " · ", pend, pend === 1 ? " tarefa pendente" : " tarefas pendentes")
+  );
+}
+
+// ══ Atualizações (sino no topo, como no MeuCT) ══
+const CATEGORIAS_ATUALIZACAO = [
+  { id: "atleta", label: "Atleta", cor: "#0891b2", bg: "#ecfeff" },
+  { id: "jogo", label: "Resultado de jogo", cor: "#059669", bg: "#ecfdf5" },
+  { id: "aviso", label: "Aviso", cor: "#d97706", bg: "#fffbeb" },
+  { id: "nova", label: "Nova funcionalidade", cor: "#6d28d9", bg: "#f5f3ff" },
+  { id: "melhoria", label: "Melhoria", cor: "#2563eb", bg: "#eff6ff" },
+  { id: "correcao", label: "Correção", cor: "#e11d48", bg: "#fff1f2" }
+];
+// Novidades da plataforma (já entram na lista, sem precisar cadastrar)
+const ATUALIZACOES_SISTEMA = [
+  { id: "s11", titulo: "Sino de atualizações e saudação", descricao: "Novidades da plataforma e seus avisos agora ficam no sino do topo. Ao entrar, o painel mostra a saudação do dia com respostas de hoje e tarefas pendentes.", categoria: "nova", em: "2026-11-04T09:00" },
+  { id: "s10", titulo: "Login seguro corrigido", descricao: "A chave do Firebase estava com um erro de digitação e o login por e-mail e senha foi ativado. Já é possível criar os acessos seguros dos atletas em Configurações.", categoria: "correcao", em: "2026-11-04T08:10" },
+  { id: "s9", titulo: "Escala SAS-2", descricao: "Nova escala de ansiedade esportiva com 15 itens (somática, preocupação e concentração), com resultado no Dashboard, Alertas, relatórios e planilha.", categoria: "nova", em: "2026-10-26T13:00" },
+  { id: "s8", titulo: "Botão voltar do celular", descricao: "O voltar do celular leva à última tela visitada em vez de sair do app.", categoria: "melhoria", em: "2026-10-20T16:00" },
+  { id: "s7", titulo: "Busca, mesclar duplicados e login seguro", descricao: "Busca de atleta ou função no topo (Ctrl+K), botão para mesclar cadastros duplicados em Alertas e cartão de segurança em Configurações.", categoria: "nova", em: "2026-10-07T11:00" },
+  { id: "s6", titulo: "Relatórios em PDF e controle de prontuários", descricao: "Relatório à Coordenação, individual, devolutiva à família e prontuário completo em PDF. Sessões datadas com assinatura e painel de pendências.", categoria: "nova", em: "2026-10-06T14:00" },
+  { id: "s5", titulo: "Tela de Alertas", descricao: "Quem está sem avaliação em dia e quem está em alerta pelos resultados das escalas.", categoria: "nova", em: "2026-10-06T11:00" }
+];
+const ATU_CHAVE_VISTO = "meupsi_atualizacoes_visto";
+function atuDataMs(a) {
+  const t = a.criadoEm != null ? a.criadoEm : a.em ? new Date(a.em).getTime() : 0;
+  return typeof t === "number" ? t : new Date(t).getTime() || 0;
+}
+function atuLista(doBanco) {
+  const banco = Object.entries(doBanco || {}).filter(([k, v]) => v && v.titulo).map(([k, v]) => ({ ...v, id: k, doBanco: true }));
+  return banco.concat(ATUALIZACOES_SISTEMA).sort((a, b) => atuDataMs(b) - atuDataMs(a));
+}
+function atuVisto() {
+  try { return Number(localStorage.getItem(ATU_CHAVE_VISTO) || 0); } catch (e) { return 0; }
+}
+function atuMarcarVisto() {
+  try { localStorage.setItem(ATU_CHAVE_VISTO, String(Date.now())); } catch (e) {}
+}
+function useAtualizacoes() {
+  const [dados, setDados] = useState(null);
+  useEffect(() => {
+    let u = () => {};
+    try { u = fbListen("atualizacoes", d => setDados(d || {})); } catch (e) { setDados({}); }
+    return () => u();
+  }, []);
+  return dados;
+}
+function atuFormatar(a) {
+  const d = new Date(atuDataMs(a));
+  if (isNaN(d.getTime()) || !atuDataMs(a)) return "";
+  const p = n => String(n).padStart(2, "0");
+  return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} às ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+function SinoAtualizacoes({ naoLidas, onClick, claro }) {
+  const h = React.createElement;
+  return h("button", { onClick, "aria-label": "Atualizações", title: "Atualizações",
+    style: { position: "relative", width: 38, height: 38, borderRadius: 10, border: claro ? "1.5px solid rgba(255,255,255,.35)" : "1.5px solid #e5e7eb", background: claro ? "rgba(255,255,255,.12)" : "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flex: "0 0 auto", color: claro ? "#fff" : "#374151" } },
+    h("svg", { width: 20, height: 20, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round" },
+      h("path", { d: "M6 9a6 6 0 1 1 12 0c0 6.2 2.6 8 2.6 8H3.4S6 15.2 6 9z" }),
+      h("path", { d: "M10.2 20.5a2 2 0 0 0 3.6 0" })),
+    naoLidas > 0 && h("span", { style: { position: "absolute", top: -6, right: -6, background: "#e11d48", color: "#fff", borderRadius: 20, fontSize: 10, fontWeight: 800, padding: "1px 6px", minWidth: 18, textAlign: "center", border: "2px solid #fff" } }, naoLidas > 99 ? "99+" : naoLidas)
+  );
+}
+function AtualizacoesTab({ dados }) {
+  const h = React.createElement;
+  const [novo, setNovo] = useState(false);
+  const [titulo, setTitulo] = useState("");
+  const [descricao, setDescricao] = useState("");
+  const [categoria, setCategoria] = useState("aviso");
+  const [salvando, setSalvando] = useState(false);
+  const [confirmar, setConfirmar] = useState(null);
+  const [filtro, setFiltro] = useState("todas");
+  const [mostrar, setMostrar] = useState(10);
+  const vistoAntes = useRef(atuVisto());
+  useEffect(() => { atuMarcarVisto(); }, []);
+  const lista = atuLista(dados).filter(a => filtro === "todas" || a.categoria === filtro);
+  async function publicar() {
+    if (!titulo.trim() || salvando) return;
+    setSalvando(true);
+    try {
+      const id = "a" + Date.now();
+      await fbSet(`atualizacoes/${id}`, { titulo: titulo.trim(), descricao: descricao.trim(), categoria, criadoEm: Date.now() });
+      setTitulo(""); setDescricao(""); setCategoria("aviso"); setNovo(false);
+      atuMarcarVisto();
+    } finally { setSalvando(false); }
+  }
+  const cat = id => CATEGORIAS_ATUALIZACAO.find(c => c.id === id) || CATEGORIAS_ATUALIZACAO[4];
+  const pill = on => ({ padding: "6px 12px", borderRadius: 20, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 12, background: on ? "#6d28d9" : "#f3f4f6", color: on ? "#fff" : "#6b7280" });
+  return h("div", null,
+    confirmar && h(ConfirmModal, { msg: `Excluir "${confirmar.titulo}"?`, onConfirm: async () => { const c = confirmar; setConfirmar(null); await fbSet(`atualizacoes/${c.id}`, null); }, onCancel: () => setConfirmar(null) }),
+    h("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, flexWrap: "wrap", marginBottom: 14 } },
+      h("div", null,
+        h("h2", { style: { ...h2s, marginBottom: 2 } }, "🔔 Atualizações"),
+        h("div", { style: { fontSize: 12, color: "#9ca3af" } }, "Novidades sobre atletas, jogos, avisos e a plataforma")),
+      !novo && h("button", { onClick: () => setNovo(true), style: { ...btn(), padding: "9px 16px", borderRadius: 10 } }, "+ Nova atualização")),
+    novo && h("div", { style: { ...crd, marginBottom: 14 } },
+      h("div", { style: { fontSize: 15, fontWeight: 800, color: "#1f2937", marginBottom: 10 } }, "Nova atualização"),
+      h("input", { className: "inp", value: titulo, onChange: e => setTitulo(e.target.value), placeholder: "Título" }),
+      h("select", { className: "inp", value: categoria, onChange: e => setCategoria(e.target.value) }, CATEGORIAS_ATUALIZACAO.map(c => h("option", { key: c.id, value: c.id }, c.label))),
+      h("textarea", { className: "inp", value: descricao, onChange: e => setDescricao(e.target.value), placeholder: "Explique em poucas linhas o que aconteceu ou mudou.", style: { minHeight: 80, resize: "vertical" } }),
+      h("div", { style: { display: "flex", gap: 8 } },
+        h("button", { className: "btn-main", onClick: publicar, disabled: !titulo.trim() || salvando, style: { flex: 1 } }, salvando ? "Publicando..." : "Publicar atualização"),
+        h("button", { onClick: () => setNovo(false), style: { ...btn("#9ca3af"), padding: "12px 18px", borderRadius: 12 } }, "Cancelar"))),
+    h("div", { style: { display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 } },
+      h("button", { onClick: () => setFiltro("todas"), style: pill(filtro === "todas") }, "Todas"),
+      CATEGORIAS_ATUALIZACAO.map(c => h("button", { key: c.id, onClick: () => setFiltro(c.id), style: pill(filtro === c.id) }, c.label))),
+    dados === null && h(Spinner, null),
+    dados !== null && lista.length === 0 && h(EmptyState, { icon: "🔔", text: "Nenhuma atualização nesta categoria." }),
+    lista.slice(0, mostrar).map(a => {
+      const c = cat(a.categoria);
+      const nova = atuDataMs(a) > vistoAntes.current;
+      return h("div", { key: a.id, style: { ...crd, marginBottom: 10, borderLeft: `4px solid ${c.cor}` } },
+        h("div", { style: { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 6 } },
+          h("span", { style: { fontSize: 11, fontWeight: 800, color: c.cor, background: c.bg, borderRadius: 20, padding: "2px 9px" } }, c.label),
+          h("span", { style: { fontSize: 11, color: "#9ca3af" } }, atuFormatar(a)),
+          nova && h("span", { style: { fontSize: 10, fontWeight: 800, color: "#fff", background: "#e11d48", borderRadius: 20, padding: "1px 7px" } }, "NOVA"),
+          a.doBanco && h("button", { onClick: () => setConfirmar(a), title: "Excluir", style: { marginLeft: "auto", border: "none", background: "none", cursor: "pointer", color: "#9ca3af", fontSize: 14 } }, "🗑")),
+        h("div", { style: { fontSize: 15, fontWeight: 800, color: "#1f2937" } }, a.titulo),
+        a.descricao && h("div", { style: { fontSize: 13, color: "#4b5563", marginTop: 4, whiteSpace: "pre-wrap", lineHeight: 1.5 } }, a.descricao));
+    }),
+    lista.length > mostrar && h("button", { onClick: () => setMostrar(mostrar + 10), style: { ...pill(false), width: "100%", padding: "10px 0" } }, "Ver mais (", lista.length - mostrar, ")")
   );
 }
 
@@ -5597,6 +5738,11 @@ function TherapistApp({
     if (a.tab) setTab(a.tab);
     if (a.novo) setModal("new");
   }
+  const atuDados = useAtualizacoes();
+  const [atuVistoEm, setAtuVistoEm] = useState(atuVisto());
+  useEffect(() => { if (tab === "atualizacoes") setAtuVistoEm(Date.now()); }, [tab]);
+  const atuNaoLidas = atuDados ? atuLista(atuDados).filter(a => atuDataMs(a) > atuVistoEm).length : 0;
+  const sino = (claro) => React.createElement(SinoAtualizacoes, { naoLidas: tab === "atualizacoes" ? 0 : atuNaoLidas, claro, onClick: () => { setSel(null); setTab("atualizacoes"); } });
   const busca = React.createElement(BuscaGlobal, { patients: patients, grupos: grupos, onAtleta: pid => { setTab("patients"); setSel(pid); }, onFuncao: irParaFuncao });
 
   useEffect(() => {
@@ -5707,6 +5853,8 @@ function TherapistApp({
     }),
 
     // Pacientes
+    tab === "atualizacoes" && React.createElement(AtualizacoesTab, { dados: atuDados }),
+    tab === "patients" && React.createElement(SaudacaoTerapeuta, { patients: patients }),
     tab === "patients" && React.createElement(React.Fragment, null,
       React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 } },
         React.createElement("h2", { style: h2s }, "Meus Pacientes"),
@@ -5882,12 +6030,13 @@ function TherapistApp({
         React.createElement("div", { className: "desktop-topbar" },
           React.createElement("div", null,
             React.createElement("div", { style: { fontWeight: 800, fontSize: 18, color: "#1f2937" } },
-              NAV_ITEMS.find(n => n.id === tab)?.icon, " ", NAV_ITEMS.find(n => n.id === tab)?.label
+              tab === "atualizacoes" ? "🔔 Atualizações" : [NAV_ITEMS.find(n => n.id === tab)?.icon, " ", NAV_ITEMS.find(n => n.id === tab)?.label]
             ),
             React.createElement("div", { style: { fontSize: 12, color: "#9ca3af", marginTop: 2 } }, "João Rosa · CRP 06/227336")
           ),
           React.createElement("div", { style: { flex: "1 1 260px", display: "flex", justifyContent: "center", margin: "0 16px", minWidth: 0 } }, busca),
           React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 12 } },
+            sino(false),
             React.createElement("button", {
               onClick: () => setShowExport(true),
               style: { display: "flex", alignItems: "center", gap: 6, background: "linear-gradient(135deg,#059669,#34d399)", color: "#fff", border: "none", borderRadius: 10, padding: "8px 14px", cursor: "pointer", fontWeight: 700, fontSize: 13, boxShadow: "0 2px 8px rgba(5,150,105,.3)" }
@@ -5910,7 +6059,7 @@ function TherapistApp({
         onClick: () => setShowExport(true),
         style: { width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, background: "linear-gradient(135deg,#059669,#34d399)", color: "#fff", border: "none", borderRadius: 10, padding: "10px 0", cursor: "pointer", fontWeight: 700, fontSize: 13, boxShadow: "0 2px 8px rgba(5,150,105,.3)" }
       }, "📥 Exportar dados"),
-      React.createElement("div", { style: { marginTop: 10, display: "flex" } }, busca)
+      React.createElement("div", { style: { marginTop: 10, display: "flex", gap: 8, alignItems: "center" } }, busca, sino(false))
     ),
     React.createElement(TabBar, {
       tabs: [["patients", "👥 Pacientes"], ["alertas", "🚨 Alertas"], ["relatorios", "📄 Relatórios"], ["groups", "🗂 Grupos"], ["dashboard", "📊 Dashboard"], ["overview", "📈 Visão Geral"], ["respostas", "📬 Respostas"], ["config", "⚙️ Config"]],
@@ -6989,7 +7138,7 @@ function PatientApp({
   return React.createElement("div", {
     style: aw
   }, React.createElement(WhatsAppButton, { patientName: patient.name }), React.createElement(Header, {
-    title: `Olá, ${patient.name}! 👋`,
+    title: `${saudacaoHora()}, ${primeiroNome(patient.name)}! ${saudacaoHora() === "Boa noite" ? "🌙" : "☀️"}`,
     subtitle: "MeuPsi · João Rosa",
     onBack: onLogout
   }), React.createElement(TabBar, {
