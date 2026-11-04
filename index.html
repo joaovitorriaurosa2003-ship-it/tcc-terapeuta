@@ -4788,6 +4788,12 @@ function pdfProntuario(jsPDF, d) {
   secaoCampos("Demanda", [["Queixa principal", dem.queixa], ["Objetivos", dem.objetivos], ["CID / Hipótese", dem.cid], ["Medicações", dem.medicacoes]]);
   secaoCampos("História clínica", [["História familiar", hist.familiar], ["História social", hist.social], ["Histórico de saúde", hist.saude], ["Histórico psicológico", hist.psico]]);
   secaoCampos("Procedimentos e observações", [["Procedimentos técnico-científicos adotados", evr.procedimentos], ["Instrumentos de avaliação", evr.instrumentos], ["Observações clínicas", evr.observacoes]]);
+  const plano = Object.values(pr.plano || {}).filter(m => m && m.texto);
+  if (plano.length) {
+    p.secao("Plano terapêutico");
+    p.lista(plano.map(m => m.texto + " (" + ((PR_STATUS_META[m.status] || PR_STATUS_META.andamento).rot.toLowerCase()) + ")"));
+    p.y += 4;
+  }
   const sess = d.sessoes.slice().sort((a, b) => ((parseDataBR(a.data) || 0) - (parseDataBR(b.data) || 0)));
   p.secao("Registro de sessões");
   if (!sess.length) p.texto("Nenhuma sessão registrada.", { estilo: "italic", cor: [90, 90, 90] });
@@ -4797,11 +4803,20 @@ function pdfProntuario(jsPDF, d) {
     p.texto(cab, { estilo: "bold", tam: 10, depois: 1, cor: [27, 38, 68] });
     p.texto(s.status === "assinado" ? "Assinado em " + (s.assinadoEm || "-") : "RASCUNHO (não assinado)", { estilo: "italic", tam: 8.5, depois: 3, cor: s.status === "assinado" ? [90, 90, 90] : [170, 40, 40] });
     p.campo("Tema", s.tema);
+    p.campo("Objetivo", s.objetivo);
+    if ((s.tecnicas || []).length) p.campo("Técnicas utilizadas", s.tecnicas.join(", "));
+    if ((s.metas || []).length) p.campo("Metas trabalhadas", s.metas.map(id => ((pr.plano || {})[id] || {}).texto).filter(Boolean).join("; "));
     p.campo("Relato", s.relato);
     p.campo("Parecer", s.parecer);
     Object.values(s.complementos || {}).forEach(c => p.campo("Complemento em " + (c.data || "-"), c.texto));
     p.y += 4;
   });
+  const anx = Object.values(pr.anexos_idx || {}).filter(a => a && a.nome);
+  if (anx.length) {
+    p.secao("Documentos anexados");
+    p.lista(anx.map(a => [a.nome, a.categoria, a.data].filter(Boolean).join(" · ")));
+    p.y += 4;
+  }
   const antigas = pr.evolucao ? Object.values(pr.evolucao) : [];
   if (antigas.length) {
     p.secao("Anotações de evolução");
@@ -4867,7 +4882,7 @@ async function relGerar(montar, arquivo) {
 const REL_ROT = { fontSize: 11, fontWeight: 700, color: "#9ca3af", marginBottom: 6, textTransform: "uppercase", letterSpacing: ".5px" };
 const REL_TIPOS_SESSAO = ["Individual", "Grupo", "Observação em campo", "Contato com responsável", "Contato com comissão técnica", "Outro"];
 
-function BotaoPdfProntuario({ patient }) {
+function BotaoPdfProntuario({ patient, compacto }) {
   const [estado, setEstado] = useState("");
   async function exportar() {
     setEstado("Gerando...");
@@ -4883,6 +4898,7 @@ function BotaoPdfProntuario({ patient }) {
       setEstado("Erro: " + (e && e.message ? e.message : "não foi possível gerar"));
     }
   }
+  if (compacto) return React.createElement("button", { onClick: exportar, title: estado || "Exportar prontuário em PDF", style: { flex: "0 0 auto", border: "1.5px solid rgba(255,255,255,.4)", background: "rgba(255,255,255,.14)", color: "#fff", borderRadius: 12, padding: "8px 12px", cursor: "pointer", fontWeight: 700, fontSize: 12 } }, estado ? "⏳" : "📄 PDF");
   return React.createElement("div", { style: { marginBottom: 14 } },
     React.createElement("button", { onClick: exportar, style: { ...btn("#1b2644"), padding: "9px 16px", borderRadius: 10 } }, "📄 Exportar prontuário em PDF"),
     estado && React.createElement("span", { style: { marginLeft: 10, fontSize: 12, color: "#6b7280" } }, estado)
@@ -5237,6 +5253,11 @@ async function mesclarPacientes(dest, orig) {
   }
   if (m.prontuario) for (const [sec, obj] of Object.entries(m.prontuario)) for (const [k, v] of Object.entries(obj)) await fbSet(`patients/${dest.id}/prontuario/${sec}/${k}`, v);
   if (m.dataNasc) await fbSet(`patients/${dest.id}/dataNasc`, m.dataNasc);
+  try {
+    const ax = await fbGet(`anexos/${orig.id}`);
+    for (const [k, v] of Object.entries(ax || {})) await fbSet(`anexos/${dest.id}/${k}`, v);
+    if (ax) await fbSet(`anexos/${orig.id}`, null);
+  } catch (e) {}
   // grupos: o destino ocupa o lugar da origem
   const all = await fbGet("grupos");
   for (const g of (all ? Object.values(all) : [])) {
@@ -5816,6 +5837,7 @@ function TherapistApp({
       try { await segRemoverConta(antes.name, antes.password || "1234", antes.authUid); } catch (e) {}
     }
     await fbSet(`patients/${id}`, null);
+    try { await fbSet(`anexos/${id}`, null); } catch (e) {}
     setConfirmDel(null);
     // tira o atleta excluído dos grupos, para não receber tarefas de novo
     try {
@@ -6578,268 +6600,459 @@ function PatientDetail({
     patient: { ...lp, id: patient.id }
   })));
 }
-function ProntuarioTab({
-  patientId,
-  prontuario,
-  patient
-}) {
-  const [ptab, setPtab] = useNavState("Prontuario.aba", "sessoes");
-  const [data, setData] = useState(prontuario);
-  const [saved, setSaved] = useState(false);
-  const [evo, setEvo] = useState("");
-  const sections = [["sessoes", "🗓 Sessões"], ["identificacao", "🪪 Ident."], ["demanda", "🎯 Demanda"], ["evolucao_reg", "📋 Evolução"], ["encerramento", "🔚 Encerr."], ["anexos", "📎 Anexos"]];
-  const fields = {
-    identificacao: [["nome", "Nome completo", ""], ["nasc", "Data de nascimento", ""], ["instituicao", "Instituição", ""], ["contato", "Contato", ""], ["responsavel", "Responsável", ""], ["tcle", "Termo de consentimento (data da assinatura)", ""]],
-    demanda: [["queixa", "Queixa principal", "Descreva a demanda..."], ["objetivos", "Objetivos", "Defina os objetivos..."], ["cid", "CID / Hipótese", ""], ["medicacoes", "Medicações", ""]],
-    evolucao_reg: [["procedimentos", "Procedimentos técnico-científicos adotados", "Técnicas e abordagens..."], ["instrumentos", "Instrumentos de avaliação", ""], ["observacoes", "Observações clínicas", ""]],
-    encerramento: [["encaminhamento", "Encaminhamento", ""], ["motivo", "Motivo do encerramento", ""], ["data_enc", "Data de encerramento", ""], ["consideracoes", "Considerações finais", ""]]
-  };
-  async function save(sec) {
-    // salva só a seção editada, para não sobrescrever sessões e evoluções com dados antigos
-    const s = typeof sec === "string" ? sec : ptab;
-    await fbSet(`patients/${patientId}/prontuario/${s}`, data[s] || {});
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-  }
-  async function addEvo() {
-    if (!evo.trim()) return;
-    const id = "e" + Date.now();
-    await fbSet(`patients/${patientId}/prontuario/evolucao/${id}`, {
-      date: new Date().toLocaleDateString("pt-BR"),
-      text: evo
-    });
-    setEvo("");
-  }
-  const evolucao = prontuario && prontuario.evolucao ? Object.values(prontuario.evolucao).reverse() : [];
-  return React.createElement("div", null, React.createElement("h2", {
-    style: h2s
-  }, "📁 Prontuário"), React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 8,
-      marginBottom: 16,
-      overflowX: "auto",
-      paddingBottom: 4
-    }
-  }, sections.map(([id, label]) => React.createElement("button", {
-    key: id,
-    onClick: () => setPtab(id),
-    style: {
-      whiteSpace: "nowrap",
-      padding: "8px 14px",
-      borderRadius: 20,
-      border: "none",
-      cursor: "pointer",
-      fontWeight: 700,
-      fontSize: 12,
-      background: ptab === id ? "#6d28d9" : "#fff",
-      color: ptab === id ? "#fff" : "#6b7280",
-      boxShadow: ptab === id ? "0 4px 12px rgba(109,40,217,.3)" : "0 1px 4px rgba(0,0,0,.08)"
-    }
-  }, label))), patient && React.createElement(BotaoPdfProntuario, {
-    patient: patient
-  }), ptab === "sessoes" && React.createElement(SessoesProntuario, {
-    patientId: patientId,
-    sessoes: prontuario && prontuario.sessoes
-  }), ptab !== "anexos" && fields[ptab] && React.createElement("div", {
-    className: "fade-in",
-    style: {
-      ...crd,
-      marginBottom: 14
-    }
-  }, fields[ptab].map(([f, l, ph]) => React.createElement("div", {
-    key: f,
-    style: {
-      marginBottom: 14
-    }
-  }, React.createElement("div", {
-    style: {
-      fontSize: 11,
-      fontWeight: 700,
-      color: "#9ca3af",
-      marginBottom: 6,
-      textTransform: "uppercase",
-      letterSpacing: ".5px"
-    }
-  }, l), ph ? React.createElement("textarea", {
-    className: "inp",
-    placeholder: ph,
-    value: (data[ptab] || {})[f] || "",
-    onChange: e => setData({
-      ...data,
-      [ptab]: {
-        ...(data[ptab] || {}),
-        [f]: e.target.value
-      }
-    }),
-    style: {
-      minHeight: 70,
-      resize: "vertical",
-      marginBottom: 0
-    }
-  }) : React.createElement("input", {
-    className: "inp",
-    placeholder: "Digite...",
-    value: (data[ptab] || {})[f] || "",
-    onChange: e => setData({
-      ...data,
-      [ptab]: {
-        ...(data[ptab] || {}),
-        [f]: e.target.value
-      }
-    }),
-    style: {
-      marginBottom: 0
-    }
-  }))), React.createElement("button", {
-    className: "btn-main",
-    onClick: save,
-    style: {
-      marginTop: 4
-    }
-  }, saved ? "✅ Salvo!" : "Salvar")), ptab === "anexos" && React.createElement("div", {
-    className: "fade-in",
-    style: {
-      ...crd,
-      marginBottom: 14
-    }
-  }, React.createElement("h3", {
-    style: {
-      fontSize: 15,
-      fontWeight: 800,
-      color: "#1f2937",
-      marginBottom: 4
-    }
-  }, "📎 Anexar Documento"), React.createElement("p", {
-    style: {
-      fontSize: 12,
-      color: "#9ca3af",
-      marginBottom: 14
-    }
-  }, "PDF, PNG, JPG"), React.createElement("div", {
-    style: {
-      border: "2px dashed #e5e7eb",
-      borderRadius: 14,
-      padding: 28,
-      textAlign: "center",
-      cursor: "pointer"
-    }
-  }, React.createElement("div", {
-    style: {
-      fontSize: 36,
-      marginBottom: 8
-    }
-  }, "📄"), React.createElement("div", {
-    style: {
-      fontWeight: 700,
-      color: "#374151",
-      fontSize: 14
-    }
-  }, "Clique para selecionar")), React.createElement("select", {
-    className: "inp",
-    style: {
-      marginTop: 12
-    }
-  }, React.createElement("option", null, "Tipo: Teste psicológico"), React.createElement("option", null, "Tipo: Atividade TCC"), React.createElement("option", null, "Tipo: Relatório"), React.createElement("option", null, "Tipo: Outro")), React.createElement("button", {
-    className: "btn-main"
-  }, "Anexar")), React.createElement("div", {
-    style: {
-      ...crd,
-      marginBottom: 14
-    }
-  }, React.createElement("h3", {
-    style: {
-      fontSize: 15,
-      fontWeight: 800,
-      color: "#1f2937",
-      marginBottom: 4
-    }
-  }, "🗂 História Clínica"), [["familiar", "História familiar", "Dinâmica familiar..."], ["social", "História social", "Escolaridade, trabalho..."], ["saude", "Histórico de saúde", "Doenças, tratamentos..."], ["psico", "Histórico psicológico", "Tratamentos anteriores..."]].map(([f, l, ph]) => React.createElement("div", {
-    key: f,
-    style: {
-      marginBottom: 14
-    }
-  }, React.createElement("div", {
-    style: {
-      fontSize: 11,
-      fontWeight: 700,
-      color: "#9ca3af",
-      marginBottom: 6,
-      textTransform: "uppercase",
-      letterSpacing: ".5px"
-    }
-  }, l), React.createElement("textarea", {
-    className: "inp",
-    placeholder: ph,
-    value: (data.historia || {})[f] || "",
-    onChange: e => setData({
-      ...data,
-      historia: {
-        ...(data.historia || {}),
-        [f]: e.target.value
-      }
-    }),
-    style: {
-      minHeight: 60,
-      resize: "vertical",
-      marginBottom: 0
-    }
-  }))), React.createElement("button", {
-    className: "btn-main",
-    onClick: () => save("historia")
-  }, saved ? "✅ Salvo!" : "Salvar História Clínica")), React.createElement("div", {
-    style: crd
-  }, React.createElement("h3", {
-    style: {
-      fontSize: 15,
-      fontWeight: 800,
-      color: "#1f2937",
-      marginBottom: 4
-    }
-  }, "📝 Anotação rápida"), React.createElement("textarea", {
-    className: "inp",
-    value: evo,
-    onChange: e => setEvo(e.target.value),
-    placeholder: `Registro — ${new Date().toLocaleDateString("pt-BR")}`,
-    style: {
-      minHeight: 80,
-      resize: "vertical",
-      marginTop: 12
-    }
-  }), React.createElement("button", {
-    className: "btn-main",
-    onClick: addEvo,
-    style: {
-      marginBottom: 14
-    }
-  }, "+ Adicionar"), evolucao.length === 0 && React.createElement("p", {
-    style: {
-      color: "#aaa",
-      fontSize: 13
-    }
-  }, "Nenhum registro ainda."), evolucao.map((ev, i) => React.createElement("div", {
-    key: i,
-    style: {
-      background: "#f9fafb",
-      borderRadius: 12,
-      padding: 14,
-      marginBottom: 8,
-      borderLeft: "3px solid #6d28d9"
-    }
-  }, React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "#9ca3af",
-      marginBottom: 4
-    }
-  }, ev.date), React.createElement("div", {
-    style: {
-      fontSize: 13,
-      color: "#374151",
-      whiteSpace: "pre-wrap"
-    }
-  }, ev.text)))));
+// ══ Prontuário individual (linha do tempo) ══
+const PR_TECNICAS = ["Psicoeducação", "Reestruturação cognitiva", "Registro de pensamentos", "Respiração", "Relaxamento muscular", "Visualização", "Diálogo interno", "Rotina pré-jogo", "Definição de metas", "Solução de problemas", "Exposição gradual", "Mindfulness", "Treino de foco", "Feedback de avaliação"];
+const PR_DURACOES = ["30", "40", "50", "60"];
+const PR_STATUS_META = {
+  andamento: { rot: "Em andamento", cor: "#2563eb", bg: "#eff6ff" },
+  atingida: { rot: "Atingida", cor: "#059669", bg: "#ecfdf5" },
+  pausada: { rot: "Pausada", cor: "#9ca3af", bg: "#f3f4f6" }
+};
+const PR_TIPOS_ITEM = {
+  sessao: { rot: "Sessões", ic: "🗓", cor: "#6d28d9" },
+  avaliacao: { rot: "Avaliações", ic: "📋", cor: "#0891b2" },
+  diario: { rot: "Diário", ic: "📔", cor: "#d97706" },
+  anotacao: { rot: "Anotações", ic: "📝", cor: "#64748b" },
+  anexo: { rot: "Anexos", ic: "📎", cor: "#0d9488" },
+  meta: { rot: "Metas", ic: "🎯", cor: "#059669" }
+};
+const PR_MAX_ANEXO = 4 * 1024 * 1024;
+function prTempo(br, hora) {
+  const d = parseDataBR(br);
+  if (!d) return 0;
+  if (hora) { const m = String(hora).match(/(\d{1,2}):(\d{2})/); if (m) d.setHours(+m[1], +m[2]); }
+  return d.getTime();
 }
+function prRelativo(ms) {
+  if (!ms) return "";
+  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  const d = new Date(ms); d.setHours(0, 0, 0, 0);
+  const dias = Math.round((hoje - d) / 86400000);
+  if (dias === 0) return "hoje";
+  if (dias === 1) return "ontem";
+  if (dias > 1 && dias < 31) return `há ${dias} dias`;
+  return "";
+}
+function prIniciais(n) {
+  const p = String(n || "?").trim().split(/\s+/);
+  return ((p[0] || "")[0] || "?").toUpperCase() + ((p.length > 1 ? p[p.length - 1][0] : "") || "").toUpperCase();
+}
+function prTamanho(b) {
+  return b > 1048576 ? (b / 1048576).toFixed(1) + " MB" : Math.max(1, Math.round(b / 1024)) + " KB";
+}
+function prLerArquivo(file) {
+  return new Promise((ok, erro) => {
+    const r = new FileReader();
+    r.onload = () => ok(r.result);
+    r.onerror = () => erro(new Error("Não foi possível ler o arquivo."));
+    r.readAsDataURL(file);
+  });
+}
+// Fotos são reduzidas para no máximo 1600 px antes de salvar
+async function prPrepararArquivo(file) {
+  if (/^image\//.test(file.type) && file.type !== "image/gif") {
+    const url = await prLerArquivo(file);
+    const img = await new Promise((ok, erro) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => erro(new Error("Imagem inválida.")); i.src = url; });
+    const esc = Math.min(1, 1600 / Math.max(img.width, img.height));
+    const c = document.createElement("canvas");
+    c.width = Math.round(img.width * esc); c.height = Math.round(img.height * esc);
+    c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+    const dados = c.toDataURL("image/jpeg", 0.82);
+    return { dados, tipo: "image/jpeg", tamanho: Math.round(dados.length * 0.75) };
+  }
+  if (file.size > PR_MAX_ANEXO) throw new Error("Arquivo maior que 4 MB.");
+  return { dados: await prLerArquivo(file), tipo: file.type || "application/octet-stream", tamanho: file.size };
+}
+async function prAbrirAnexo(pid, aid) {
+  const a = await fbGet(`anexos/${pid}/${aid}`);
+  if (!a || !a.dados) throw new Error("Anexo não encontrado.");
+  const bin = atob(a.dados.split(",")[1] || "");
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  const url = URL.createObjectURL(new Blob([bytes], { type: a.tipo || "application/octet-stream" }));
+  const w = window.open(url, "_blank");
+  if (!w) { const l = document.createElement("a"); l.href = url; l.download = a.nome || "anexo"; document.body.appendChild(l); l.click(); l.remove(); }
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
+function ProntuarioTab({ patientId, prontuario, patient }) {
+  const h = React.createElement;
+  const pr = prontuario || {};
+  const p = patient || {};
+  const [painel, setPainel] = useState(null); // sessao | anotacao | anexo | ficha | meta
+  const [filtro, setFiltro] = useState("tudo");
+  const [mostrar, setMostrar] = useState(12);
+  const [abertos, setAbertos] = useState({});
+  const [confirma, setConfirma] = useState(null);
+  const [compl, setCompl] = useState(null);
+  const [msg, setMsg] = useState("");
+  const [custom, setCustom] = useState([]);
+  useEffect(() => {
+    const u = fbListen("modelos_texto", d => setCustom(d ? Object.values(d).filter(Boolean) : []));
+    return () => u();
+  }, []);
+  const aviso = t => { setMsg(t); setTimeout(() => setMsg(""), 3500); };
+  const base = `patients/${patientId}/prontuario`;
+  const sessoes = Object.values(pr.sessoes || {}).filter(s => s && typeof s === "object");
+  const metas = Object.entries(pr.plano || {}).filter(([k, v]) => v && v.texto).map(([k, v]) => ({ ...v, id: k })).sort((a, b) => (a.criadoEm || 0) - (b.criadoEm || 0));
+  const anexos = Object.entries(pr.anexos_idx || {}).filter(([k, v]) => v && v.nome).map(([k, v]) => ({ ...v, id: k }));
+  const assinadas = sessoes.filter(s => s.status === "assinado");
+  const rascunhos = sessoes.filter(s => s.status !== "assinado");
+  const ultima = assinadas.map(s => prTempo(s.data)).sort((a, b) => b - a)[0] || 0;
+  const avals = Object.values(p.tasks || {}).filter(t => t && t.response);
+
+  // ── itens da linha do tempo
+  const itens = [];
+  sessoes.forEach(s => itens.push({ k: "s" + s.id, tipo: "sessao", t: prTempo(s.data, s.criadoEm && s.criadoEm.split(" ")[1]), s }));
+  Object.entries(pr.evolucao || {}).forEach(([k, e]) => e && itens.push({ k: "e" + k, tipo: "anotacao", t: prTempo(e.date), e, id: k }));
+  avals.forEach(tk => itens.push({ k: "t" + tk.id, tipo: "avaliacao", t: prTempo(tk.answeredAt || tk.createdAt), tk }));
+  Object.entries(p.diarios || {}).forEach(([k, d]) => d && itens.push({ k: "d" + k, tipo: "diario", t: prTempo(d.data, d.hora), d }));
+  anexos.forEach(a => itens.push({ k: "a" + a.id, tipo: "anexo", t: a.criadoEm || prTempo(a.data), a }));
+  metas.filter(m => m.status === "atingida" && m.atingidaEm).forEach(m => itens.push({ k: "m" + m.id, tipo: "meta", t: m.atingidaEm, m }));
+  itens.sort((a, b) => b.t - a.t);
+  const contagem = {};
+  itens.forEach(i => { contagem[i.tipo] = (contagem[i.tipo] || 0) + 1; });
+  const filtrados = filtro === "tudo" ? itens : itens.filter(i => i.tipo === filtro);
+
+  async function confirmar() {
+    const c = confirma;
+    setConfirma(null);
+    if (c.acao === "assinar") { await fbUpdate(`${base}/sessoes/${c.id}`, { status: "assinado", assinadoEm: relAgora(), assinadoPor: REL_CFG.psicologo + " · " + REL_CFG.crp }); aviso("Sessão assinada e travada."); }
+    if (c.acao === "apagarSessao") await fbSet(`${base}/sessoes/${c.id}`, null);
+    if (c.acao === "apagarAnotacao") await fbSet(`${base}/evolucao/${c.id}`, null);
+    if (c.acao === "apagarMeta") await fbSet(`${base}/plano/${c.id}`, null);
+    if (c.acao === "apagarAnexo") { await fbSet(`anexos/${patientId}/${c.id}`, null); await fbSet(`${base}/anexos_idx/${c.id}`, null); }
+  }
+  async function salvarComplemento() {
+    if (!compl || !compl.texto.trim()) return;
+    await fbSet(`${base}/sessoes/${compl.id}/complementos/c${Date.now()}`, { data: relAgora(), texto: compl.texto.trim() });
+    setCompl(null);
+  }
+  async function mudarMeta(m, status) {
+    await fbUpdate(`${base}/plano/${m.id}`, { status, atingidaEm: status === "atingida" ? Date.now() : null });
+  }
+
+  // ── estilos
+  const card = { background: "#fff", borderRadius: 18, padding: 18, boxShadow: "0 2px 14px rgba(15,23,42,.06)", border: "1px solid #f1f5f9" };
+  const chip = (txt, cor, bg) => h("span", { style: { fontSize: 11, fontWeight: 700, color: cor, background: bg, borderRadius: 20, padding: "3px 10px", whiteSpace: "nowrap" } }, txt);
+  const botaoAcao = (ic, rot, id, cor) => h("button", { onClick: () => setPainel(painel === id ? null : id), style: { flex: "1 1 120px", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px 10px", borderRadius: 14, cursor: "pointer", fontWeight: 700, fontSize: 13, border: painel === id ? `2px solid ${cor}` : "2px solid #eef2f7", background: painel === id ? cor : "#fff", color: painel === id ? "#fff" : "#334155", transition: "all .15s" } }, h("span", { style: { fontSize: 16 } }, ic), rot);
+  const linkBtn = (txt, fn, cor) => h("button", { onClick: fn, style: { border: "none", background: "none", cursor: "pointer", color: cor || "#6d28d9", fontWeight: 700, fontSize: 12, padding: "4px 6px" } }, txt);
+  const stat = (n, rot, cor) => h("div", { style: { flex: "1 1 calc(50% - 8px)", minWidth: 90, maxWidth: "calc(25% + 60px)", background: "rgba(255,255,255,.14)", borderRadius: 12, padding: "10px 12px" } },
+    h("div", { style: { fontSize: 20, fontWeight: 800, color: "#fff", lineHeight: 1.1 } }, n),
+    h("div", { style: { fontSize: 11, color: "rgba(255,255,255,.85)", marginTop: 2 } }, rot));
+
+  const demanda = (pr.demanda || {}).queixa || (pr.demanda || {}).objetivos || "";
+  const idade = typeof calcIdade === "function" ? calcIdade(p.dataNasc) : null;
+  const anexoTcle = anexos.find(a => a.categoria === "Termo de consentimento");
+
+  return h("div", { className: "fade-in" },
+    confirma && h(ConfirmModal, { msg: confirma.msg, okLabel: confirma.ok, onConfirm: confirmar, onCancel: () => setConfirma(null) }),
+
+    // Cabeçalho
+    h("div", { style: { background: "linear-gradient(135deg,#4c1d95,#6d28d9 55%,#0ea5e9)", borderRadius: 22, padding: 20, marginBottom: 16, color: "#fff", boxShadow: "0 10px 30px rgba(76,29,149,.25)" } },
+      h("div", { style: { display: "flex", alignItems: "center", gap: 14 } },
+        h("div", { style: { width: 54, height: 54, borderRadius: 16, background: "rgba(255,255,255,.18)", border: "2px solid rgba(255,255,255,.35)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 19, flex: "0 0 auto" } }, prIniciais(p.name)),
+        h("div", { style: { minWidth: 0, flex: 1 } },
+          h("div", { style: { fontSize: 11, letterSpacing: 1, textTransform: "uppercase", opacity: .8, fontWeight: 700 } }, "Prontuário"),
+          h("div", { style: { fontSize: 19, fontWeight: 800, lineHeight: 1.2 } }, (p.name || "").trim()),
+          h("div", { style: { fontSize: 12, opacity: .85 } }, [idade != null ? idade + " anos" : null, ultima ? "última sessão " + (prRelativo(ultima) || new Date(ultima).toLocaleDateString("pt-BR")) : "nenhuma sessão assinada"].filter(Boolean).join(" · "))),
+        h(BotaoPdfProntuario, { patient: { ...p, id: patientId }, compacto: true })),
+      demanda && h("div", { style: { marginTop: 14, background: "rgba(255,255,255,.12)", borderRadius: 12, padding: "10px 12px", fontSize: 13, lineHeight: 1.45 } }, h("span", { style: { fontWeight: 800 } }, "Demanda: "), demanda.length > 180 ? demanda.slice(0, 180) + "..." : demanda),
+      h("div", { style: { display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" } },
+        stat(assinadas.length, "sessões assinadas"),
+        stat(metas.filter(m => m.status !== "atingida").length + "/" + metas.length, "metas em aberto"),
+        stat(avals.length, "avaliações"),
+        stat(anexos.length, "anexos")),
+      (rascunhos.length > 0 || !(pr.identificacao || {}).tcle) && h("div", { style: { display: "flex", gap: 6, flexWrap: "wrap", marginTop: 12 } },
+        rascunhos.length > 0 && chip(`✍️ ${rascunhos.length} rascunho(s) sem assinar`, "#92400e", "#fef3c7"),
+        !(pr.identificacao || {}).tcle && chip(anexoTcle ? "📎 Termo anexado, falta registrar a data" : "⚠️ Termo de consentimento não registrado", "#991b1b", "#fee2e2"))
+    ),
+
+    msg && h("div", { style: { ...card, marginBottom: 12, background: "#ecfdf5", color: "#065f46", fontWeight: 700, fontSize: 13, padding: 12 } }, msg),
+
+    // Ações
+    h("div", { style: { display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 } },
+      botaoAcao("🗓", "Nova sessão", "sessao", "#6d28d9"),
+      botaoAcao("📝", "Anotação", "anotacao", "#475569"),
+      botaoAcao("📎", "Anexar", "anexo", "#0d9488"),
+      botaoAcao("🪪", "Ficha", "ficha", "#0891b2")),
+
+    painel === "sessao" && h(PrFormSessao, { base, metas, modelos: TEXTOS_MODELO_PADRAO.concat(custom), onFechar: () => setPainel(null), onSalvo: t => { setPainel(null); aviso(t); } }),
+    painel === "anotacao" && h(PrFormAnotacao, { base, onFechar: () => setPainel(null), onSalvo: () => { setPainel(null); aviso("Anotação salva."); } }),
+    painel === "anexo" && h(PrFormAnexo, { base, patientId, onFechar: () => setPainel(null), onSalvo: () => { setPainel(null); aviso("Anexo salvo."); } }),
+    painel === "ficha" && h(PrFicha, { base, prontuario: pr, onFechar: () => setPainel(null), onSalvo: t => aviso(t) }),
+    painel === "editar" && abertos.__editar && h(PrFormSessao, { base, metas, modelos: TEXTOS_MODELO_PADRAO.concat(custom), inicial: abertos.__editar, onFechar: () => setPainel(null), onSalvo: t => { setPainel(null); aviso(t); } }),
+
+    // Plano terapêutico
+    h(PrPlano, { base, metas, sessoes: assinadas, onApagar: m => setConfirma({ acao: "apagarMeta", id: m.id, msg: `Apagar a meta "${m.texto}"?` }), onStatus: mudarMeta }),
+
+    // Linha do tempo
+    h("div", { style: { ...card, marginTop: 14 } },
+      h("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap", marginBottom: 12 } },
+        h("div", { style: { fontSize: 16, fontWeight: 800, color: "#0f172a" } }, "Linha do tempo"),
+        h("div", { style: { fontSize: 12, color: "#94a3b8" } }, itens.length, " registro(s)")),
+      h("div", { style: { display: "flex", gap: 6, overflowX: "auto", paddingBottom: 6, marginBottom: 10 } },
+        [["tudo", "Tudo", itens.length]].concat(Object.keys(PR_TIPOS_ITEM).filter(k => contagem[k]).map(k => [k, PR_TIPOS_ITEM[k].rot, contagem[k]])).map(([id, rot, n]) =>
+          h("button", { key: id, onClick: () => { setFiltro(id); setMostrar(12); }, style: { whiteSpace: "nowrap", padding: "6px 12px", borderRadius: 20, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 12, background: filtro === id ? "#0f172a" : "#f1f5f9", color: filtro === id ? "#fff" : "#475569" } }, rot, " ", h("span", { style: { opacity: .6 } }, n)))),
+      filtrados.length === 0 && h("div", { style: { textAlign: "center", padding: "28px 10px", color: "#94a3b8", fontSize: 13 } }, h("div", { style: { fontSize: 30, marginBottom: 6 } }, "🗂"), "Nada registrado ainda. Use os botões acima para começar."),
+      h("div", { style: { position: "relative" } },
+        filtrados.length > 0 && h("div", { style: { position: "absolute", left: 15, top: 6, bottom: 6, width: 2, background: "#eef2f7" } }),
+        filtrados.slice(0, mostrar).map(it => {
+          const tp = PR_TIPOS_ITEM[it.tipo];
+          const aberto = !!abertos[it.k];
+          const quando = it.t ? new Date(it.t).toLocaleDateString("pt-BR") : "";
+          let titulo = "", sub = "", corpo = null, tag = null, acoes = null, cor = tp.cor;
+          if (it.tipo === "sessao") {
+            const s = it.s, ass = s.status === "assinado";
+            titulo = s.tema || s.objetivo || "Sessão";
+            sub = [s.tipo, s.duracao ? s.duracao + " min" : ""].filter(Boolean).join(" · ");
+            tag = ass ? chip("🔒 Assinada", "#065f46", "#d1fae5") : chip("Rascunho", "#92400e", "#fef3c7");
+            if (s.sinal && s.sinal !== "informativo" && SINAIS[s.sinal]) tag = h(React.Fragment, null, tag, " ", chip(SINAIS[s.sinal].rot, "#fff", `rgb(${SINAIS[s.sinal].cor.join(",")})`));
+            const metasS = (s.metas || []).map(id => (metas.find(m => m.id === id) || {}).texto).filter(Boolean);
+            corpo = h("div", null,
+              s.objetivo && h("div", { style: { fontSize: 13, color: "#334155", marginBottom: 6 } }, h("b", null, "Objetivo: "), s.objetivo),
+              (s.tecnicas || []).length > 0 && h("div", { style: { display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 8 } }, s.tecnicas.map(t => h("span", { key: t, style: { fontSize: 11, fontWeight: 600, color: "#5b21b6", background: "#f5f3ff", borderRadius: 8, padding: "2px 8px" } }, t))),
+              metasS.length > 0 && h("div", { style: { fontSize: 12, color: "#047857", marginBottom: 6 } }, "🎯 ", metasS.join(" · ")),
+              s.relato && h("div", { style: { fontSize: 13, color: "#334155", whiteSpace: "pre-wrap", lineHeight: 1.5 } }, s.relato),
+              s.parecer && h("div", { style: { fontSize: 13, color: "#334155", whiteSpace: "pre-wrap", marginTop: 8, background: "#f8fafc", borderRadius: 10, padding: "8px 12px" } }, h("b", null, "Parecer: "), s.parecer),
+              Object.values(s.complementos || {}).map((c, i) => h("div", { key: i, style: { fontSize: 13, color: "#334155", whiteSpace: "pre-wrap", marginTop: 8, borderLeft: "3px solid #c4b5fd", paddingLeft: 10 } }, h("div", { style: { fontSize: 11, color: "#94a3b8" } }, "Complemento em ", c.data), c.texto)),
+              ass && s.assinadoEm && h("div", { style: { fontSize: 11, color: "#94a3b8", marginTop: 8 } }, "Assinada em ", s.assinadoEm),
+              compl && compl.id === s.id && h("div", { style: { marginTop: 10 } },
+                h("textarea", { className: "inp", value: compl.texto, onChange: e => setCompl({ ...compl, texto: e.target.value }), placeholder: "Complemento ao registro assinado...", style: { minHeight: 70, resize: "vertical" } }),
+                h("div", null, linkBtn("Salvar complemento", salvarComplemento, "#059669"), linkBtn("Cancelar", () => setCompl(null), "#94a3b8"))));
+            acoes = ass
+              ? [linkBtn("+ Complemento", () => { setAbertos({ ...abertos, [it.k]: true }); setCompl({ id: s.id, texto: "" }); })]
+              : [linkBtn("Editar", () => { setAbertos({ ...abertos, __editar: s }); setPainel("editar"); window.scrollTo && window.scrollTo({ top: 0, behavior: "smooth" }); }),
+                 linkBtn("🔒 Assinar", () => setConfirma({ acao: "assinar", id: s.id, ok: "🔒 Assinar", msg: "Assinar esta sessão? Depois de assinada ela não pode mais ser editada nem apagada, só complementada." }), "#059669"),
+                 linkBtn("Apagar", () => setConfirma({ acao: "apagarSessao", id: s.id, msg: "Apagar este rascunho?" }), "#e11d48")];
+          } else if (it.tipo === "avaliacao") {
+            const tk = it.tk;
+            titulo = relNomeTipo(tk.type);
+            const sn = relSinalAuto(relIndicadores(tk.type, tk.response));
+            if (sn !== "informativo") { tag = chip(SINAIS[sn].rot, "#fff", `rgb(${SINAIS[sn].cor.join(",")})`); cor = `rgb(${SINAIS[sn].cor.join(",")})`; }
+            sub = relResumo(tk.type, tk.response, true).replace(titulo + " · ", "");
+            if (sub.length > 90 && !aberto) sub = sub.slice(0, 90) + "...";
+          } else if (it.tipo === "diario") {
+            const d = it.d;
+            titulo = `${d.emoji || "📔"} ${d.emocao || "Registro"}`;
+            sub = [d.intensidade != null ? "Intensidade " + d.intensidade + "/10" : "", d.hora].filter(Boolean).join(" · ");
+            if (d.contexto || d.pensamento) corpo = h("div", { style: { fontSize: 13, color: "#334155", whiteSpace: "pre-wrap" } }, d.contexto, d.contexto && d.pensamento ? "\n\n" : "", d.pensamento ? "Pensamento: " + d.pensamento : "");
+          } else if (it.tipo === "anotacao") {
+            titulo = "Anotação rápida";
+            sub = (it.e.text || "").split("\n")[0].slice(0, 90);
+            corpo = h("div", { style: { fontSize: 13, color: "#334155", whiteSpace: "pre-wrap" } }, it.e.text);
+            acoes = [linkBtn("Apagar", () => setConfirma({ acao: "apagarAnotacao", id: it.id, msg: "Apagar esta anotação?" }), "#e11d48")];
+          } else if (it.tipo === "anexo") {
+            const a = it.a;
+            titulo = a.nome;
+            sub = [a.categoria, prTamanho(a.tamanho || 0)].filter(Boolean).join(" · ");
+            if (a.descricao) corpo = h("div", { style: { fontSize: 13, color: "#334155" } }, a.descricao);
+            acoes = [linkBtn("Abrir", async () => { try { await prAbrirAnexo(patientId, a.id); } catch (e) { aviso("Erro: " + e.message); } }, "#0d9488"),
+                     linkBtn("Apagar", () => setConfirma({ acao: "apagarAnexo", id: a.id, msg: `Apagar o anexo "${a.nome}"?` }), "#e11d48")];
+          } else if (it.tipo === "meta") {
+            titulo = "Meta atingida";
+            sub = it.m.texto;
+          }
+          const temMais = !!corpo || it.tipo === "avaliacao";
+          return h("div", { key: it.k, style: { position: "relative", paddingLeft: 42, paddingBottom: 14 } },
+            h("div", { style: { position: "absolute", left: 4, top: 2, width: 24, height: 24, borderRadius: 12, background: "#fff", border: `2px solid ${cor}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12 } }, tp.ic),
+            h("div", { onClick: () => temMais && setAbertos({ ...abertos, [it.k]: !aberto }), style: { cursor: temMais ? "pointer" : "default", background: aberto ? "#fafaff" : "transparent", borderRadius: 12, padding: aberto ? "8px 10px" : "2px 0", transition: "background .15s" } },
+              h("div", { style: { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" } },
+                h("span", { style: { fontSize: 14, fontWeight: 700, color: "#0f172a" } }, titulo),
+                tag,
+                h("span", { style: { fontSize: 11, color: "#94a3b8", marginLeft: "auto" } }, quando, prRelativo(it.t) && prRelativo(it.t) !== quando ? " · " + prRelativo(it.t) : "")),
+              sub && h("div", { style: { fontSize: 12, color: "#64748b", marginTop: 2 } }, sub),
+              aberto && corpo && h("div", { style: { marginTop: 10 }, onClick: e => e.stopPropagation() }, corpo),
+              (aberto || it.tipo === "anexo") && acoes && h("div", { style: { display: "flex", gap: 2, flexWrap: "wrap", marginTop: 6, marginLeft: -6 }, onClick: e => e.stopPropagation() }, acoes.map((b, i) => h(React.Fragment, { key: i }, b)))));
+        })),
+      filtrados.length > mostrar && h("button", { onClick: () => setMostrar(mostrar + 12), style: { width: "100%", padding: "10px 0", borderRadius: 12, border: "none", background: "#f1f5f9", color: "#334155", fontWeight: 700, fontSize: 13, cursor: "pointer" } }, "Ver mais (", filtrados.length - mostrar, ")"))
+  );
+}
+
+function PrCampo({ rot, children, dica }) {
+  return React.createElement("div", { style: { marginBottom: 12 } },
+    React.createElement("div", { style: REL_ROT }, rot, dica && React.createElement("span", { style: { textTransform: "none", letterSpacing: 0, fontWeight: 500, color: "#cbd5e1", marginLeft: 6 } }, dica)),
+    children);
+}
+function PrChips({ opcoes, valor, multi, onChange, cor }) {
+  const h = React.createElement;
+  const sel = v => multi ? (valor || []).includes(v) : valor === v;
+  return h("div", { style: { display: "flex", flexWrap: "wrap", gap: 6 } }, opcoes.map(o => {
+    const v = Array.isArray(o) ? o[0] : o, rot = Array.isArray(o) ? o[1] : o;
+    return h("button", { key: v, type: "button", onClick: () => onChange(multi ? (sel(v) ? valor.filter(x => x !== v) : (valor || []).concat(v)) : v),
+      style: { padding: "7px 12px", borderRadius: 20, cursor: "pointer", fontWeight: 600, fontSize: 12, border: sel(v) ? `1.5px solid ${cor || "#6d28d9"}` : "1.5px solid #e2e8f0", background: sel(v) ? (cor || "#6d28d9") : "#fff", color: sel(v) ? "#fff" : "#475569" } }, rot);
+  }));
+}
+function PrPainel({ titulo, cor, onFechar, children }) {
+  const h = React.createElement;
+  return h("div", { className: "fade-in", style: { background: "#fff", borderRadius: 18, padding: 18, marginBottom: 14, boxShadow: "0 8px 30px rgba(15,23,42,.10)", border: `1.5px solid ${cor}33` } },
+    h("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 } },
+      h("div", { style: { fontSize: 16, fontWeight: 800, color: "#0f172a" } }, titulo),
+      h("button", { onClick: onFechar, "aria-label": "Fechar", style: { border: "none", background: "#f1f5f9", width: 30, height: 30, borderRadius: 15, cursor: "pointer", fontSize: 14, color: "#64748b" } }, "✕")),
+    children);
+}
+function PrFormSessao({ base, metas, modelos, inicial, onFechar, onSalvo }) {
+  const h = React.createElement;
+  const [f, setF] = useState(() => inicial ? {
+    id: inicial.id, data: relBRParaIso(inicial.data), duracao: inicial.duracao || "", tipo: inicial.tipo || "Individual", tema: inicial.tema || "", objetivo: inicial.objetivo || "",
+    tecnicas: inicial.tecnicas || [], metas: inicial.metas || [], relato: inicial.relato || "", parecer: inicial.parecer || "", sinal: SINAIS[inicial.sinal] ? inicial.sinal : "informativo", criadoEm: inicial.criadoEm || ""
+  } : { id: "", data: relHojeIso(), duracao: "40", tipo: "Individual", tema: "", objetivo: "", tecnicas: [], metas: [], relato: "", parecer: "", sinal: "informativo", criadoEm: "" });
+  const [mais, setMais] = useState(!!(inicial && (inicial.parecer || inicial.sinal && inicial.sinal !== "informativo")));
+  const [erro, setErro] = useState("");
+  const [salvando, setSalvando] = useState(false);
+  const [confAss, setConfAss] = useState(false);
+  const set = (k, v) => setF({ ...f, [k]: v });
+  function aplicarModelo(id) {
+    const m = modelos.find(x => x.id === id);
+    if (!m) return;
+    setF({ ...f, tipo: m.tipo && REL_TIPOS_SESSAO.includes(m.tipo) ? m.tipo : f.tipo, tema: f.tema || m.nome, relato: (f.relato ? f.relato + "\n" : "") + (m.relato || ""), parecer: (f.parecer ? f.parecer + "\n" : "") + (m.parecer || "") });
+    if (m.parecer) setMais(true);
+  }
+  async function salvar(assinar) {
+    if (!f.relato.trim() && !f.objetivo.trim()) { setErro("Escreva ao menos o objetivo ou o relato."); return; }
+    if (assinar && !confAss) { setConfAss(true); return; }
+    setSalvando(true);
+    try {
+      const id = f.id || "s" + Date.now();
+      const reg = { id, data: relIsoParaBR(f.data) || new Date().toLocaleDateString("pt-BR"), duracao: f.duracao || "", tipo: f.tipo, tema: f.tema.trim(), objetivo: f.objetivo.trim(), tecnicas: f.tecnicas, metas: f.metas, relato: f.relato.trim(), parecer: f.parecer.trim(), sinal: f.sinal, status: "rascunho", criadoEm: f.criadoEm || relAgora(), atualizadoEm: relAgora() };
+      if (assinar) Object.assign(reg, { status: "assinado", assinadoEm: relAgora(), assinadoPor: REL_CFG.psicologo + " · " + REL_CFG.crp });
+      await fbSet(`${base}/sessoes/${id}`, reg);
+      onSalvo(assinar ? "Sessão salva e assinada." : "Rascunho salvo. Assine quando revisar.");
+    } catch (e) { setErro("Erro ao salvar: " + (e && e.message ? e.message : "tente novamente")); }
+    setSalvando(false);
+  }
+  const area = (k, ph, alt) => h("textarea", { className: "inp", value: f[k], placeholder: ph, onChange: e => set(k, e.target.value), style: { minHeight: alt, resize: "vertical", marginBottom: 0 } });
+  return h(PrPainel, { titulo: f.id ? "Editar sessão" : "Nova sessão", cor: "#6d28d9", onFechar },
+    h("div", { style: { display: "flex", gap: 10, flexWrap: "wrap" } },
+      h("div", { style: { flex: "1 1 150px" } }, h(PrCampo, { rot: "Data" }, h("input", { type: "date", className: "inp", value: f.data, onChange: e => set("data", e.target.value), style: { marginBottom: 0 } }))),
+      h("div", { style: { flex: "2 1 220px" } }, h(PrCampo, { rot: "Duração (min)" }, h(PrChips, { opcoes: PR_DURACOES, valor: f.duracao, onChange: v => set("duracao", v) })))),
+    h(PrCampo, { rot: "Tipo" }, h(PrChips, { opcoes: REL_TIPOS_SESSAO, valor: f.tipo, onChange: v => set("tipo", v) })),
+    h(PrCampo, { rot: "Tema" }, h("input", { className: "inp", value: f.tema, onChange: e => set("tema", e.target.value), placeholder: "Ex.: Confiança após erro", style: { marginBottom: 0 } })),
+    h(PrCampo, { rot: "Objetivo da sessão" }, area("objetivo", "O que você pretende trabalhar hoje...", 52)),
+    h(PrCampo, { rot: "Técnicas TCC", dica: "toque para marcar" }, h(PrChips, { opcoes: PR_TECNICAS, valor: f.tecnicas, multi: true, onChange: v => set("tecnicas", v), cor: "#7c3aed" })),
+    metas.filter(m => m.status !== "pausada").length > 0 && h(PrCampo, { rot: "Metas trabalhadas" }, h(PrChips, { opcoes: metas.filter(m => m.status !== "pausada").map(m => [m.id, m.texto.length > 40 ? m.texto.slice(0, 40) + "..." : m.texto]), valor: f.metas, multi: true, onChange: v => set("metas", v), cor: "#059669" })),
+    h(PrCampo, { rot: "Relato", dica: modelos.length ? "" : "" },
+      h("select", { className: "inp", value: "", onChange: e => aplicarModelo(e.target.value), style: { marginBottom: 6, fontSize: 13 } },
+        h("option", { value: "" }, "✨ Inserir um texto-modelo..."), modelos.map(m => h("option", { key: m.id, value: m.id }, m.nome))),
+      area("relato", "Como foi a sessão e como o atleta respondeu...", 100)),
+    !mais && h("button", { type: "button", onClick: () => setMais(true), style: { border: "none", background: "none", color: "#6d28d9", fontWeight: 700, fontSize: 13, cursor: "pointer", padding: "0 0 12px" } }, "+ Parecer e sinal para relatórios"),
+    mais && h(PrCampo, { rot: "Parecer" }, area("parecer", "Sua leitura profissional e os próximos passos...", 64)),
+    mais && h(PrCampo, { rot: "Sinal para relatórios" }, h(PrChips, { opcoes: ["informativo", "regular", "atencao", "prioritario"].map(k => [k, SINAIS[k].rot]), valor: f.sinal, onChange: v => set("sinal", v), cor: "#0f172a" })),
+    erro && h("div", { style: { color: "#e11d48", fontSize: 13, fontWeight: 700, marginBottom: 10 } }, erro),
+    confAss && h("div", { style: { background: "#ecfdf5", color: "#065f46", borderRadius: 12, padding: "10px 12px", fontSize: 13, marginBottom: 10 } }, "Depois de assinada, a sessão não pode mais ser editada nem apagada, só complementada. Toque de novo em ", h("b", null, "Confirmar assinatura"), " para concluir."),
+    h("div", { style: { display: "flex", gap: 8, flexWrap: "wrap" } },
+      h("button", { className: "btn-main", disabled: salvando, onClick: () => salvar(false), style: { flex: "1 1 160px", width: "auto", background: "#fff", color: "#6d28d9", border: "2px solid #6d28d9", boxShadow: "none" } }, "Salvar rascunho"),
+      h("button", { className: "btn-main", disabled: salvando, onClick: () => salvar(true), style: { flex: "1 1 160px", width: "auto", background: confAss ? "linear-gradient(135deg,#059669,#10b981)" : undefined } }, confAss ? "✓ Confirmar assinatura" : "🔒 Salvar e assinar")));
+}
+function PrFormAnotacao({ base, onFechar, onSalvo }) {
+  const h = React.createElement;
+  const [t, setT] = useState("");
+  async function salvar() {
+    if (!t.trim()) return;
+    await fbSet(`${base}/evolucao/e${Date.now()}`, { date: new Date().toLocaleDateString("pt-BR"), text: t.trim() });
+    onSalvo();
+  }
+  return h(PrPainel, { titulo: "Anotação rápida", cor: "#475569", onFechar },
+    h("textarea", { className: "inp", value: t, onChange: e => setT(e.target.value), autoFocus: true, placeholder: "Algo que você quer lembrar: um comentário do treinador, um comportamento em campo...", style: { minHeight: 90, resize: "vertical" } }),
+    h("button", { className: "btn-main", onClick: salvar, disabled: !t.trim() }, "Salvar anotação"));
+}
+function PrFormAnexo({ base, patientId, onFechar, onSalvo }) {
+  const h = React.createElement;
+  const [arq, setArq] = useState(null);
+  const [nome, setNome] = useState("");
+  const [categoria, setCategoria] = useState("Termo de consentimento");
+  const [descricao, setDescricao] = useState("");
+  const [estado, setEstado] = useState("");
+  const ref = useRef(null);
+  async function salvar() {
+    if (!arq) return;
+    setEstado("Enviando...");
+    try {
+      const prep = await prPrepararArquivo(arq);
+      if (prep.tamanho > PR_MAX_ANEXO) throw new Error("Arquivo maior que 4 MB.");
+      const id = "x" + Date.now();
+      const nm = (nome.trim() || arq.name).slice(0, 120);
+      await fbSet(`anexos/${patientId}/${id}`, { nome: nm, tipo: prep.tipo, dados: prep.dados });
+      await fbSet(`${base}/anexos_idx/${id}`, { nome: nm, tipo: prep.tipo, tamanho: prep.tamanho, categoria, descricao: descricao.trim(), data: new Date().toLocaleDateString("pt-BR"), criadoEm: Date.now() });
+      onSalvo();
+    } catch (e) { setEstado("Erro: " + (e && e.message ? e.message : "não foi possível salvar")); }
+  }
+  return h(PrPainel, { titulo: "Anexar documento", cor: "#0d9488", onFechar },
+    h("input", { ref, type: "file", accept: "application/pdf,image/*", style: { display: "none" }, onChange: e => { const f = e.target.files && e.target.files[0]; if (f) { setArq(f); setNome(f.name.replace(/\.[^.]+$/, "")); setEstado(""); } } }),
+    h("button", { type: "button", onClick: () => ref.current && ref.current.click(), style: { width: "100%", border: "2px dashed #99f6e4", background: "#f0fdfa", borderRadius: 14, padding: "22px 12px", cursor: "pointer", marginBottom: 12, color: "#0f766e", fontWeight: 700, fontSize: 14 } },
+      arq ? `📄 ${arq.name} · ${prTamanho(arq.size)}` : "📎 Escolher PDF ou foto", h("div", { style: { fontSize: 12, fontWeight: 500, color: "#5eead4", marginTop: 4 } }, "Até 4 MB. Fotos são reduzidas automaticamente.")),
+    h(PrCampo, { rot: "Nome" }, h("input", { className: "inp", value: nome, onChange: e => setNome(e.target.value), placeholder: "Ex.: Termo assinado pela mãe", style: { marginBottom: 0 } })),
+    h(PrCampo, { rot: "Tipo" }, h(PrChips, { opcoes: ["Termo de consentimento", "Laudo ou relatório", "Avaliação", "Atividade TCC", "Outro"], valor: categoria, onChange: setCategoria, cor: "#0d9488" })),
+    h(PrCampo, { rot: "Descrição", dica: "opcional" }, h("input", { className: "inp", value: descricao, onChange: e => setDescricao(e.target.value), style: { marginBottom: 0 } })),
+    estado && h("div", { style: { fontSize: 13, fontWeight: 700, color: estado.startsWith("Erro") ? "#e11d48" : "#0f766e", marginBottom: 10 } }, estado),
+    h("button", { className: "btn-main", onClick: salvar, disabled: !arq || estado === "Enviando...", style: { background: "linear-gradient(135deg,#0d9488,#14b8a6)" } }, "Salvar anexo"));
+}
+function PrPlano({ base, metas, sessoes, onApagar, onStatus }) {
+  const h = React.createElement;
+  const [nova, setNova] = useState("");
+  const [aberto, setAberto] = useState(metas.length > 0);
+  const usos = {};
+  sessoes.forEach(s => (s.metas || []).forEach(id => { usos[id] = (usos[id] || 0) + 1; }));
+  async function adicionar() {
+    if (!nova.trim()) return;
+    await fbSet(`${base}/plano/m${Date.now()}`, { texto: nova.trim(), status: "andamento", criadoEm: Date.now() });
+    setNova("");
+  }
+  const atingidas = metas.filter(m => m.status === "atingida").length;
+  const pct = metas.length ? Math.round(atingidas / metas.length * 100) : 0;
+  return h("div", { style: { background: "#fff", borderRadius: 18, padding: 18, boxShadow: "0 2px 14px rgba(15,23,42,.06)", border: "1px solid #f1f5f9" } },
+    h("div", { onClick: () => setAberto(!aberto), style: { display: "flex", alignItems: "center", gap: 10, cursor: "pointer" } },
+      h("div", { style: { fontSize: 16, fontWeight: 800, color: "#0f172a", flex: 1 } }, "🎯 Plano terapêutico"),
+      metas.length > 0 && h("span", { style: { fontSize: 12, fontWeight: 700, color: "#059669" } }, atingidas, "/", metas.length, " atingidas"),
+      h("span", { style: { color: "#94a3b8", fontSize: 13, transform: aberto ? "rotate(180deg)" : "none", transition: "transform .2s" } }, "▾")),
+    metas.length > 0 && h("div", { style: { height: 6, background: "#f1f5f9", borderRadius: 6, marginTop: 10, overflow: "hidden" } }, h("div", { style: { width: pct + "%", height: "100%", background: "linear-gradient(90deg,#10b981,#34d399)", borderRadius: 6, transition: "width .3s" } })),
+    aberto && h("div", { style: { marginTop: 12 } },
+      metas.length === 0 && h("div", { style: { fontSize: 13, color: "#94a3b8", marginBottom: 10 } }, "Defina as metas do acompanhamento. Elas aparecem para marcar em cada sessão."),
+      metas.map(m => {
+        const st = PR_STATUS_META[m.status] || PR_STATUS_META.andamento;
+        return h("div", { key: m.id, style: { display: "flex", alignItems: "center", gap: 10, padding: "10px 0", borderTop: "1px solid #f1f5f9", flexWrap: "wrap" } },
+          h("button", { title: "Marcar como atingida", onClick: () => onStatus(m, m.status === "atingida" ? "andamento" : "atingida"), style: { width: 24, height: 24, borderRadius: 12, cursor: "pointer", border: m.status === "atingida" ? "none" : "2px solid #cbd5e1", background: m.status === "atingida" ? "#10b981" : "#fff", color: "#fff", fontSize: 13, flex: "0 0 auto" } }, m.status === "atingida" ? "✓" : ""),
+          h("div", { style: { flex: "1 1 160px", minWidth: 0 } },
+            h("div", { style: { fontSize: 14, color: m.status === "atingida" ? "#94a3b8" : "#0f172a", textDecoration: m.status === "atingida" ? "line-through" : "none", fontWeight: 600 } }, m.texto),
+            h("div", { style: { fontSize: 11, color: "#94a3b8" } }, usos[m.id] ? `trabalhada em ${usos[m.id]} sessão(ões)` : "ainda não trabalhada")),
+          h("select", { value: m.status || "andamento", onChange: e => onStatus(m, e.target.value), style: { fontSize: 12, fontWeight: 700, color: st.cor, background: st.bg, border: "none", borderRadius: 20, padding: "4px 8px", cursor: "pointer" } },
+            Object.entries(PR_STATUS_META).map(([k, v]) => h("option", { key: k, value: k }, v.rot))),
+          h("button", { onClick: () => onApagar(m), title: "Apagar", style: { border: "none", background: "none", cursor: "pointer", color: "#cbd5e1", fontSize: 14 } }, "🗑"));
+      }),
+      h("div", { style: { display: "flex", gap: 8, marginTop: 10 } },
+        h("input", { className: "inp", value: nova, onChange: e => setNova(e.target.value), onKeyDown: e => e.key === "Enter" && adicionar(), placeholder: "Nova meta, ex.: Reduzir a ansiedade pré-jogo", style: { marginBottom: 0 } }),
+        h("button", { onClick: adicionar, disabled: !nova.trim(), style: { ...btn("#059669"), padding: "0 16px", borderRadius: 12, flex: "0 0 auto" } }, "+"))));
+}
+function PrFicha({ base, prontuario, onFechar, onSalvo }) {
+  const h = React.createElement;
+  const secoes = [
+    ["identificacao", "🪪 Identificação", [["nome", "Nome completo"], ["nasc", "Data de nascimento"], ["instituicao", "Instituição"], ["responsavel", "Responsável"], ["contato", "Contato"], ["tcle", "Termo de consentimento (data da assinatura)"]]],
+    ["demanda", "🎯 Demanda", [["queixa", "Queixa principal", 1], ["objetivos", "Objetivos", 1], ["cid", "CID / Hipótese"], ["medicacoes", "Medicações"]]],
+    ["historia", "🗂 História clínica", [["familiar", "História familiar", 1], ["social", "História social", 1], ["saude", "Histórico de saúde", 1], ["psico", "Histórico psicológico", 1]]],
+    ["evolucao_reg", "🧭 Procedimentos", [["procedimentos", "Procedimentos técnico-científicos adotados", 1], ["instrumentos", "Instrumentos de avaliação", 1], ["observacoes", "Observações clínicas", 1]]],
+    ["encerramento", "🔚 Encerramento", [["encaminhamento", "Encaminhamento", 1], ["motivo", "Motivo do encerramento", 1], ["data_enc", "Data de encerramento"], ["consideracoes", "Considerações finais", 1]]]
+  ];
+  const [dados, setDados] = useState(() => { const o = {}; secoes.forEach(([k]) => { o[k] = { ...(prontuario[k] || {}) }; }); return o; });
+  const [aberta, setAberta] = useState("identificacao");
+  const [salvando, setSalvando] = useState("");
+  const preenchidos = k => Object.values(dados[k] || {}).filter(v => v && String(v).trim()).length;
+  async function salvar(k) {
+    setSalvando(k);
+    await fbSet(`${base}/${k}`, dados[k] || {});
+    setSalvando("");
+    onSalvo("Ficha salva.");
+  }
+  return h(PrPainel, { titulo: "Ficha do atleta", cor: "#0891b2", onFechar },
+    secoes.map(([k, rot, campos]) => h("div", { key: k, style: { border: "1px solid #eef2f7", borderRadius: 14, marginBottom: 8, overflow: "hidden" } },
+      h("button", { onClick: () => setAberta(aberta === k ? null : k), style: { width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "12px 14px", background: aberta === k ? "#f0f9ff" : "#fff", border: "none", cursor: "pointer", textAlign: "left" } },
+        h("span", { style: { fontWeight: 700, fontSize: 14, color: "#0f172a", flex: 1 } }, rot),
+        h("span", { style: { fontSize: 11, color: preenchidos(k) ? "#0891b2" : "#cbd5e1", fontWeight: 700 } }, preenchidos(k), "/", campos.length),
+        h("span", { style: { color: "#94a3b8", transform: aberta === k ? "rotate(180deg)" : "none" } }, "▾")),
+      aberta === k && h("div", { style: { padding: "4px 14px 14px" } },
+        campos.map(([f, l, longo]) => h(PrCampo, { key: f, rot: l }, h(longo ? "textarea" : "input", { className: "inp", value: (dados[k] || {})[f] || "", onChange: e => setDados({ ...dados, [k]: { ...(dados[k] || {}), [f]: e.target.value } }), style: longo ? { minHeight: 64, resize: "vertical", marginBottom: 0 } : { marginBottom: 0 } }))),
+        h("button", { className: "btn-main", onClick: () => salvar(k), disabled: salvando === k, style: { background: "linear-gradient(135deg,#0891b2,#0ea5e9)" } }, salvando === k ? "Salvando..." : "Salvar " + rot.replace(/^\S+\s/, "").toLowerCase())))));
+}
+
 function EscalaPsiForm({
   tipo,
   color,
