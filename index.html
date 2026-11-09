@@ -3312,7 +3312,7 @@ function csvPaciente(p) {
     ["TR médio (ms)", r => r.media], ["Mediana (ms)", r => r.mediana != null ? r.mediana : "—"], ["Desvio padrão (ms)", r => r.desvio], ["Melhor (ms)", r => r.melhor != null ? r.melhor : "—"], ["Lapsos >500ms", r => r.lapsos != null ? r.lapsos : "—"], ["Fadiga fim-início (ms)", r => r.fadiga != null ? r.fadiga : "—"], ["Tempos por tentativa", r => (r.seq || r.tempos || []).join(" ")], ["Acertos", r => r.acertos], ["Falsos positivos", r => r.falsosPos], ["Omissões", r => r.omissoes], ["Score", r => r.score]
   ]);
   csv += historicoCSV("TESTE DE STROOP (HISTÓRICO)", tasks.filter(t => t.type === "stroop" && t.response), [
-    ["Forma", r => r.forma || "—"], ["Acertos", r => r.acertos], ["Erros", r => r.erros], ["TR médio (ms)", r => r.media],
+    ["Forma", r => r.forma || "—"], ["Acertos", r => r.acertos], ["Total", r => r.total || "—"], ["Precisão (%)", r => r.precisao != null ? r.precisao : "—"], ["Erros", r => r.erros], ["Leu a palavra", r => r.erroLeitura != null ? r.erroLeitura : "—"], ["Sem resposta", r => r.omissoes != null ? r.omissoes : "—"], ["TR neutro (ms)", r => r.mediaNeutro != null ? r.mediaNeutro : "—"], ["Dificuldade com cores", r => r.daltonismo || "—"], ["TR médio (ms)", r => r.media],
     ["TR congruente (ms)", r => r.mediaCongruente], ["TR incongruente (ms)", r => r.mediaIncongruente], ["Custo interferência (ms)", r => r.custoInterferencia]
   ]);
   csv += historicoCSV("TRAIL MAKING TEST (HISTÓRICO)", tasks.filter(t => t.type === "tmt" && t.response), [
@@ -4293,7 +4293,7 @@ const REL_TIPOS = {
 const REL_CAMPOS = {
   forma: "Forma", acertos: "Acertos", erros: "Erros", total: "Total", media: "TR médio (ms)", desvio: "Desvio padrão (ms)",
   mediaCongruente: "TR congruente (ms)", mediaIncongruente: "TR incongruente (ms)", custoInterferencia: "Custo interferência (ms)",
-  falsosPos: "Antecipações", mediana: "Mediana (ms)", melhor: "Melhor (ms)", lapsos: "Lapsos >500 ms", fadiga: "Fadiga fim-início (ms)", antecipacoes: "Antecipações", falsosGo: "Falsos alarmes", omissoes: "Omissões", score: "Score", paginas: "Páginas", precisao: "Precisão (%)",
+  falsosPos: "Antecipações", precisao: "Precisão (%)", erroLeitura: "Leu a palavra", erroOutro: "Outros erros", mediaNeutro: "TR neutro (ms)", interferenciaNeutro: "Interferência vs neutro (ms)", mediana: "Mediana (ms)", melhor: "Melhor (ms)", lapsos: "Lapsos >500 ms", fadiga: "Fadiga fim-início (ms)", antecipacoes: "Antecipações", falsosGo: "Falsos alarmes", omissoes: "Omissões", score: "Score", paginas: "Páginas", precisao: "Precisão (%)",
   pct: "Percentual (%)", intrusions: "Intrusões", nivel: "Nível", mediaTempos: "TR médio (ms)", tempoA: "Tempo Parte A (s)", tempoB: "Tempo Parte B (s)",
   totalAcertos: "Acertos", totalAlvos: "Alvos", totalOmissoes: "Omissões", humor: "Humor (%)", ansiedade: "Ansiedade (%)", emocao: "Emoção", intensidade: "Intensidade"
 };
@@ -4409,7 +4409,7 @@ function relResumo(type, response, detalhado) {
     if (type === "tsci" || type === "ssci") partes.push("Máximo: 117");
     return nome + " · " + partes.join(", ");
   }
-  const chaves = Object.keys(response).filter(k => k !== "tipo" && k !== "escala" && k !== "versao" && k !== "estimulo" && !(k === "falsosPos" && response.antecipacoes != null) && (typeof response[k] === "number" || typeof response[k] === "string"));
+  const chaves = Object.keys(response).filter(k => k !== "tipo" && k !== "escala" && k !== "versao" && k !== "estimulo" && k !== "seqTipo" && k !== "daltonismo" && !(k === "falsosPos" && response.antecipacoes != null) && (typeof response[k] === "number" || typeof response[k] === "string"));
   chaves.sort((a, b) => { const ia = REL_ORDEM_CAMPOS.indexOf(a), ib = REL_ORDEM_CAMPOS.indexOf(b); return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib); });
   const partes = chaves.map(k => (REL_CAMPOS[k] || k) + ": " + response[k]);
   return partes.length ? nome + " · " + partes.join(", ") : nome;
@@ -5597,7 +5597,7 @@ function RespostasRecentesTab({ patients, onVerPaciente }) {
     if (!resp) return null;
     if (r.type === "escala") return `Humor ${resp.humor}% · Ansiedade ${resp.ansiedade}%`;
     if (r.type === "tr") return `TR médio ${resp.media}ms · ${resp.versao === 2 ? "Lapsos " + (resp.lapsos || 0) + " · Antecip. " + (resp.antecipacoes || 0) : "Acertos " + resp.acertos + "/" + (resp.total || 20)}`;
-    if (r.type === "stroop") return `${resp.acertos}/${resp.total || 24} corretos`;
+    if (r.type === "stroop") return resp.versao === 2 ? `Interferência ${resp.custoInterferencia} ms · Precisão ${resp.precisao}%` : `${resp.acertos}/${resp.total || 24} corretos`;
     if (r.type === "nback") return `${resp.acertos} acertos · ${resp.omissoes} omissões`;
     if (r.type === "gonogo") return `${resp.acertos} acertos · ${resp.falsosGo} falsos alarmes`;
     if (r.type === "flanker") return `${resp.acertos}/${resp.total || 24} corretos`;
@@ -6338,7 +6338,7 @@ function PatientDetail({
     }, "Resposta:"), React.createElement(ResponseView, {
       response: viewTask.response,
       type: viewTask.type,
-      historico: viewTask.type === "tr" ? Object.values(lp.tasks || {}).filter(t => t && t.type === "tr" && t.response).concat(Object.values(lp.respostas_arquivadas || {}).filter(t => t && t.type === "tr" && t.response)) : null
+      historico: ["tr", "stroop"].includes(viewTask.type) ? Object.values(lp.tasks || {}).filter(t => t && t.type === viewTask.type && t.response).concat(Object.values(lp.respostas_arquivadas || {}).filter(t => t && t.type === viewTask.type && t.response)) : null
     })), React.createElement("div", {
       style: {
         marginTop: 20
@@ -8003,153 +8003,306 @@ function TRResultado({ response, historico, compacto }) {
       h(TREvolucao, { historico })));
 }
 
-function StroopForm({ color, onSubmit }) {
-  const TOTAL = 24;
-  const [fase, setFase] = useState("intro");
-  const [forma, setForma] = useState("A");
-  const [trial, setTrial] = useState(0);
-  const [item, setItem] = useState(null);
-  const [acertos, setAcertos] = useState(0);
-  const [erros, setErros] = useState(0);
-  const [tempos, setTempos] = useState({ congruente: [], incongruente: [] });
-  const [feedback, setFeedback] = useState(null);
-  const [treinoRestante, setTreinoRestante] = useState(60);
-  const rngRef = useRef(null);
-  const treinandoRef = useRef(false);
-  const treinoFimRef = useRef(0);
-  const treinoTickRef = useRef(null);
-
-  function gerar() {
-    const rnd = rngRef.current;
-    const p = CORES_STROOP[Math.floor(rnd() * 4)];
-    const c = CORES_STROOP[Math.floor(rnd() * 4)];
-    return { palavra: p, cor: c, congruente: p === c, inicio: Date.now() };
+// ══ Stroop v2: tutorial, treino curto, 60 itens balanceados, erros por tipo e gráficos ══
+const STROOP_CFG = { congruente: 20, incongruente: 28, neutro: 12, limite: 3000, intervalo: 300, treino: 6 };
+const STROOP_ROT = { vermelho: "VERMELHO", verde: "VERDE", azul: "AZUL", amarelo: "AMARELO" };
+// Monta a sequência balanceada: no máximo 2 itens seguidos com a mesma cor de tinta e 3 do mesmo tipo
+function stroopSequencia(rnd, nC, nI, nN) {
+  const tipos = [].concat(Array(nC).fill("C"), Array(nI).fill("I"), Array(nN).fill("N"));
+  for (let tentativa = 0; tentativa < 200; tentativa++) {
+    const t = tipos.slice();
+    for (let i = t.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [t[i], t[j]] = [t[j], t[i]]; }
+    let ok = true;
+    for (let i = 3; i < t.length; i++) if (t[i] === t[i - 1] && t[i] === t[i - 2] && t[i] === t[i - 3]) { ok = false; break; }
+    if (!ok) continue;
+    const itens = [];
+    for (let i = 0; i < t.length; i++) {
+      let cor, palavra, k = 0;
+      do {
+        cor = CORES_STROOP[Math.floor(rnd() * 4)];
+        k++;
+      } while (k < 20 && itens.length >= 2 && itens[itens.length - 1].cor === cor && itens[itens.length - 2].cor === cor);
+      if (t[i] === "C") palavra = cor;
+      else if (t[i] === "N") palavra = null;
+      else { const outras = CORES_STROOP.filter(c => c !== cor); palavra = outras[Math.floor(rnd() * outras.length)]; }
+      itens.push({ tipo: t[i], cor, palavra });
+    }
+    return itens;
   }
-  function prox(t, a, e, ts) {
-    const emTreino = treinandoRef.current;
-    const acabou = emTreino ? Date.now() >= treinoFimRef.current : t >= TOTAL;
-    if (acabou) {
-      clearInterval(treinoTickRef.current);
-      if (emTreino) {
-        treinandoRef.current = false;
-        setFase("pronto");
-        return;
-      }
-      const mC = ts.congruente.length ? Math.round(ts.congruente.reduce((x, y) => x + y, 0) / ts.congruente.length) : 0;
-      const mI = ts.incongruente.length ? Math.round(ts.incongruente.reduce((x, y) => x + y, 0) / ts.incongruente.length) : 0;
-      const todos = [...ts.congruente, ...ts.incongruente];
-      onSubmit({
-        acertos: a, erros: e,
-        media: todos.length ? Math.round(todos.reduce((x, y) => x + y, 0) / todos.length) : 0,
-        mediaCongruente: mC, mediaIncongruente: mI, custoInterferencia: mI - mC,
-        forma, total: TOTAL, tipo: "stroop"
-      });
-      setFase("fim");
+  return [];
+}
+function stroopMedia(v) { return v.length ? Math.round(v.reduce((a, b) => a + b, 0) / v.length) : 0; }
+function stroopCalcular(itens, forma, daltonismo) {
+  const ok = tp => itens.filter(x => x.tipo === tp && x.r === "ok").map(x => x.t);
+  const C = ok("C"), I = ok("I"), N = ok("N");
+  const acertos = itens.filter(x => x.r === "ok").length;
+  const erroLeitura = itens.filter(x => x.r === "leitura").length;
+  const erroOutro = itens.filter(x => x.r === "erro").length;
+  const omissoes = itens.filter(x => x.r === "omissao").length;
+  const mC = stroopMedia(C), mI = stroopMedia(I), mN = stroopMedia(N);
+  const total = itens.length;
+  const precisao = total ? Math.round(acertos / total * 100) : 0;
+  const acI = itens.filter(x => x.tipo === "I").length ? Math.round(I.length / itens.filter(x => x.tipo === "I").length * 100) : 0;
+  const custo = mI && mC ? mI - mC : 0;
+  const score = Math.max(0, Math.min(100, Math.round(precisao - Math.max(0, custo - 80) / 6 - erroLeitura * 2)));
+  return {
+    tipo: "stroop", versao: 2, forma, total, acertos, erros: erroLeitura + erroOutro, erroLeitura, erroOutro, omissoes, precisao, precisaoIncongruente: acI,
+    media: stroopMedia(C.concat(I, N)), mediaCongruente: mC, mediaIncongruente: mI, mediaNeutro: mN,
+    custoInterferencia: custo, interferenciaNeutro: mI && mN ? mI - mN : 0, score,
+    daltonismo: daltonismo || "nao",
+    seqTipo: itens.map(x => x.tipo).join(""),
+    seqT: itens.map(x => x.r === "ok" ? x.t : x.r === "leitura" ? -1 : x.r === "omissao" ? -2 : -3)
+  };
+}
+
+function StroopTinta({ item, tam }) {
+  return React.createElement("div", { style: { fontSize: tam || 54, fontWeight: 900, letterSpacing: 2, color: CORES_CSS[item.cor], fontFamily: "Inter, system-ui, sans-serif", lineHeight: 1.1, textAlign: "center", userSelect: "none" } }, item.palavra ? STROOP_ROT[item.palavra] : "XXXXX");
+}
+function StroopBotoes({ onEscolher, destaque, desativado }) {
+  const h = React.createElement;
+  return h("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, width: "100%", maxWidth: 420 } },
+    CORES_STROOP.map(c => h("button", {
+      key: c, "aria-label": STROOP_ROT[c], disabled: desativado,
+      onPointerDown: e => { e.preventDefault(); if (!desativado) onEscolher(c); },
+      style: { height: 86, borderRadius: 20, border: destaque === c ? "4px solid #fff" : "4px solid rgba(255,255,255,0)", background: CORES_CSS[c], cursor: "pointer", boxShadow: destaque === c ? `0 0 0 4px ${CORES_CSS[c]}, 0 10px 24px rgba(0,0,0,.25)` : "0 6px 16px rgba(0,0,0,.15)", transform: destaque === c ? "scale(1.04)" : "none", transition: "transform .15s, box-shadow .15s", touchAction: "manipulation" }
+    })));
+}
+function StroopTutorial() {
+  const h = React.createElement;
+  const exemplos = [
+    { item: { palavra: "verde", cor: "vermelho" }, txt: ["A palavra diz ", "VERDE", ", mas a tinta é ", "VERMELHA", "."] },
+    { item: { palavra: "azul", cor: "azul" }, txt: ["Aqui a palavra e a tinta são iguais: ", "AZUL", "", "", "."] },
+    { item: { palavra: null, cor: "amarelo" }, txt: ["Sem palavra, só a tinta: ", "AMARELO", "", "", "."] }
+  ];
+  const [i, setI] = useState(0);
+  useEffect(() => { const t = setInterval(() => setI(x => (x + 1) % exemplos.length), 3200); return () => clearInterval(t); }, []);
+  const ex = exemplos[i];
+  return h("div", { style: { background: "#0f172a", borderRadius: 18, padding: "18px 14px", marginBottom: 16 } },
+    h("div", { key: i, className: "fade-in", style: { minHeight: 64, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 10 } }, h(StroopTinta, { item: ex.item, tam: 38 })),
+    h("div", { style: { fontSize: 13, color: "#cbd5e1", textAlign: "center", marginBottom: 12, minHeight: 36 } },
+      ex.txt[0], h("b", { style: { color: "#fff" } }, ex.txt[1]), ex.txt[2], ex.txt[3] && h("b", { style: { color: CORES_CSS[ex.item.cor] } }, ex.txt[3]), ex.txt[4], h("br"),
+      "Toque na cor da ", h("b", { style: { color: "#fff" } }, "TINTA"), ":"),
+    h("div", { style: { display: "flex", justifyContent: "center", gap: 10 } },
+      CORES_STROOP.map(c => h("div", { key: c, style: { width: 44, height: 44, borderRadius: 12, background: CORES_CSS[c], border: c === ex.item.cor ? "3px solid #fff" : "3px solid transparent", boxShadow: c === ex.item.cor ? `0 0 0 3px ${CORES_CSS[c]}` : "none", transform: c === ex.item.cor ? "scale(1.12)" : "none", transition: "all .3s" } }, c === ex.item.cor && h("div", { style: { fontSize: 20, textAlign: "center", lineHeight: "38px" } }, "👆")))),
+    h("div", { style: { display: "flex", justifyContent: "center", gap: 5, marginTop: 12 } }, exemplos.map((_, k) => h("div", { key: k, style: { width: 6, height: 6, borderRadius: 3, background: k === i ? "#fff" : "#475569" } }))));
+}
+
+function StroopForm({ color, onSubmit }) {
+  const h = React.createElement;
+  const [fase, setFase] = useState("intro"); // intro | treino | pronto | jogo | resultado
+  const [forma, setForma] = useState("A");
+  const [dalt, setDalt] = useState(null);
+  const [idx, setIdx] = useState(0);
+  const [mostrando, setMostrando] = useState(false);
+  const [fb, setFb] = useState(null);
+  const [res, setRes] = useState(null);
+  const [acTreino, setAcTreino] = useState(0);
+  const R = useRef({ itens: [], idx: 0, t0: 0, timer: null, fase: "intro", treino: [] });
+  useEffect(() => () => clearTimeout(R.current.timer), []);
+  const lista = () => (R.current.fase === "treino" ? R.current.treino : R.current.itens);
+
+  function mostrar(i) {
+    clearTimeout(R.current.timer);
+    R.current.idx = i;
+    R.current.t0 = 0;
+    setIdx(i);
+    setMostrando(false);
+    setFb(null);
+    R.current.timer = setTimeout(() => setMostrando(true), STROOP_CFG.intervalo);
+  }
+  // o relógio começa no quadro em que a palavra aparece
+  useEffect(() => {
+    if (!mostrando) return;
+    const id = requestAnimationFrame(() => {
+      R.current.t0 = performance.now();
+      if (R.current.fase === "jogo") R.current.timer = setTimeout(() => responder(null), STROOP_CFG.limite);
+    });
+    return () => cancelAnimationFrame(id);
+  }, [mostrando, idx, fase]);
+
+  function responder(cor) {
+    if (!R.current.t0) return;
+    const it = lista()[R.current.idx];
+    if (!it || it.r) return;
+    clearTimeout(R.current.timer);
+    const t = Math.round(performance.now() - R.current.t0);
+    R.current.t0 = 0;
+    it.t = t;
+    it.r = cor === null ? "omissao" : cor === it.cor ? "ok" : (it.tipo === "I" && cor === it.palavra ? "leitura" : "erro");
+    if (R.current.fase === "treino") {
+      setFb({ ok: it.r === "ok", cor: it.cor });
+      R.current.timer = setTimeout(() => {
+        const n = R.current.idx + 1;
+        if (n >= R.current.treino.length) {
+          setAcTreino(R.current.treino.filter(x => x.r === "ok").length);
+          R.current.fase = "pronto"; setFase("pronto"); return;
+        }
+        mostrar(n);
+      }, it.r === "ok" ? 700 : 1600);
       return;
     }
-    setFase(emTreino ? "treino" : "jogo");
-    setFeedback(null);
-    setTrial(t);
-    setItem(gerar());
-  }
-  function responder(c) {
-    const tr = Date.now() - item.inicio;
-    if (c === item.cor) {
-      setAcertos(a => {
-        const nt = { ...tempos, [item.congruente ? "congruente" : "incongruente"]: [...tempos[item.congruente ? "congruente" : "incongruente"], tr] };
-        setTempos(nt);
-        setFeedback("certo");
-        setTimeout(() => prox(trial + 1, a + 1, erros, nt), 500);
-        return a + 1;
-      });
-    } else {
-      setErros(e => {
-        setFeedback("errado");
-        setTimeout(() => prox(trial + 1, acertos, e + 1, tempos), 500);
-        return e + 1;
-      });
+    setMostrando(false);
+    const n = R.current.idx + 1;
+    if (n >= R.current.itens.length) {
+      const r = stroopCalcular(R.current.itens, forma, dalt);
+      setRes(r);
+      R.current.fase = "resultado"; setFase("resultado");
+      return;
     }
+    mostrar(n);
   }
   function iniciarTreino() {
-    treinandoRef.current = true;
-    treinoFimRef.current = Date.now() + 60000;
-    setTreinoRestante(60);
-    treinoTickRef.current = setInterval(() => {
-      setTreinoRestante(Math.max(0, Math.round((treinoFimRef.current - Date.now()) / 1000)));
-    }, 1000);
-    prox(0, 0, 0, { congruente: [], incongruente: [] });
+    const rnd = seededRandom((forma === "A" ? 20231 : 20232) + 7);
+    const tr = stroopSequencia(rnd, 1, 4, 1).slice(0, STROOP_CFG.treino);
+    R.current = { ...R.current, treino: tr, fase: "treino" };
+    setFase("treino");
+    mostrar(0);
   }
-  function iniciarReal() {
-    setAcertos(0); setErros(0); setTempos({ congruente: [], incongruente: [] });
-    prox(0, 0, 0, { congruente: [], incongruente: [] });
+  function iniciarTeste() {
+    const rnd = seededRandom(forma === "A" ? 20231 : 20232);
+    R.current = { ...R.current, itens: stroopSequencia(rnd, STROOP_CFG.congruente, STROOP_CFG.incongruente, STROOP_CFG.neutro), fase: "jogo" };
+    setFase("jogo");
+    mostrar(0);
   }
-  useEffect(() => () => clearInterval(treinoTickRef.current), []);
 
-  if (fase === "fim") return React.createElement("div", { style: { ...crd, textAlign: "center" } },
-    React.createElement("div", { style: { fontSize: 48, marginBottom: 8 } }, "✅"),
-    React.createElement("p", { style: { fontSize: 15, fontWeight: 700, color: "#6b7280" } }, "Respostas enviadas ao terapeuta.")
-  );
+  const pill = on => ({ padding: "8px 14px", borderRadius: 20, border: `2px solid ${on ? "#6d28d9" : "#e5e7eb"}`, background: on ? "#f5f3ff" : "#fff", color: on ? "#6d28d9" : "#6b7280", fontWeight: 700, fontSize: 13, cursor: "pointer" });
 
-  if (fase === "pronto") return React.createElement("div", { style: { ...crd, textAlign: "center" } },
-    React.createElement("div", { style: { fontSize: 48, marginBottom: 8 } }, "✅"),
-    React.createElement("h3", { style: { fontSize: 16, fontWeight: 800, color: "#1f2937", marginBottom: 8 } }, "Treino concluído!"),
-    React.createElement("p", { style: { fontSize: 13, color: "#6b7280", marginBottom: 16 } }, "Agora vamos começar a coleta real."),
-    React.createElement("button", { className: "btn-main", style: { background: color }, onClick: iniciarReal }, "Iniciar teste")
-  );
+  if (fase === "intro") return h("div", { style: { ...crd, padding: 22 } },
+    h("div", { style: { textAlign: "center", marginBottom: 14 } },
+      h("div", { style: { fontSize: 13, fontWeight: 800, letterSpacing: 1.5, color: "#7c3aed", textTransform: "uppercase" } }, "Teste de atenção"),
+      h("h3", { style: { fontSize: 22, fontWeight: 900, color: "#0f172a", margin: "4px 0 6px" } }, h("span", { style: { color: CORES_CSS.vermelho } }, "C"), h("span", { style: { color: CORES_CSS.azul } }, "O"), h("span", { style: { color: CORES_CSS.verde } }, "R"), h("span", { style: { color: CORES_CSS.amarelo } }, "E"), h("span", { style: { color: CORES_CSS.vermelho } }, "S"), " do Stroop"),
+      h("p", { style: { fontSize: 14, color: "#475569", lineHeight: 1.5 } }, "Ignore o que está escrito. Toque na ", h("b", null, "cor da tinta"), ".")),
+    h(StroopTutorial),
+    h("div", { style: { marginBottom: 14 } },
+      h("div", { style: { fontSize: 13, fontWeight: 700, color: "#334155", marginBottom: 8 } }, "Você tem dificuldade para diferenciar cores?"),
+      h("div", { style: { display: "flex", gap: 8, flexWrap: "wrap" } }, [["nao", "Não"], ["sim", "Sim"], ["nao_sei", "Não sei"]].map(([k, l]) => h("button", { key: k, onClick: () => setDalt(k), style: pill(dalt === k) }, l)))),
+    dalt === "sim" && h("div", { style: { fontSize: 12, color: "#92400e", background: "#fffbeb", borderRadius: 10, padding: "8px 10px", marginBottom: 12 } }, "Tudo bem, faça o teste normalmente. O psicólogo vai considerar isso no resultado."),
+    h("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 16, flexWrap: "wrap" } },
+      h("span", { style: { fontSize: 12, color: "#94a3b8", fontWeight: 700 } }, "Forma:"),
+      ["A", "B"].map(f => h("button", { key: f, onClick: () => setForma(f), style: { ...pill(forma === f), padding: "5px 14px" } }, f)),
+      h("span", { style: { fontSize: 11, color: "#94a3b8" } }, "use a que o psicólogo indicar")),
+    h("button", { className: "btn-main", disabled: !dalt, style: { background: "linear-gradient(135deg,#7c3aed,#2563eb)", opacity: dalt ? 1 : .5 }, onClick: iniciarTreino }, dalt ? "Fazer treino rápido (6 itens)" : "Responda a pergunta acima"));
 
-  if (fase === "intro") return React.createElement("div", { style: { ...crd, textAlign: "center" } },
-    React.createElement("div", { style: { fontSize: 52, marginBottom: 12 } }, "🎨"),
-    React.createElement("h3", { style: { fontSize: 18, fontWeight: 800, color: "#1f2937", marginBottom: 8 } }, "Teste de Stroop"),
-    React.createElement("p", { style: { fontSize: 13, color: "#6b7280", marginBottom: 16, lineHeight: 1.6 } },
-      "Selecione a ", React.createElement("strong", null, "COR DA TINTA"), ", ignorando o significado da palavra."
-    ),
-    React.createElement("div", { style: { background: "#ede9fe", borderRadius: 12, padding: 14, marginBottom: 14 } },
-      React.createElement("p", { style: { fontSize: 28, fontWeight: 900, color: "#ef4444", marginBottom: 6 } }, "AZUL"),
-      React.createElement("p", { style: { fontSize: 13, color: "#6d28d9" } }, "Resposta: ", React.createElement("strong", null, "Vermelho"))
-    ),
-    React.createElement("div", { style: { background: "#fef3c7", borderRadius: 10, padding: 10, marginBottom: 16, fontSize: 12, color: "#92400e", fontWeight: 600 } },
-      "⏱ 1 minuto de treino (não conta) antes da coleta real"
-    ),
-    React.createElement("div", { style: { display: "flex", justifyContent: "center", gap: 8, marginBottom: 20 } },
-      ["A", "B"].map(f => React.createElement("button", {
-        key: f, onClick: () => setForma(f),
-        style: { padding: "6px 18px", borderRadius: 20, border: `2px solid ${forma === f ? color : "#e5e7eb"}`, background: forma === f ? `${color}15` : "#fff", color: forma === f ? color : "#9ca3af", fontWeight: 800, fontSize: 13, cursor: "pointer" }
-      }, "Forma ", f))
-    ),
-    React.createElement("button", {
-      className: "btn-main", style: { background: color },
-      onClick: () => { rngRef.current = seededRandom(forma === "A" ? 20231 : 20232); iniciarTreino(); }
-    }, "Começar treino")
-  );
+  if (fase === "pronto") return h("div", { style: { ...crd, textAlign: "center", padding: 24 } },
+    h("div", { style: { fontSize: 46, marginBottom: 6 } }, acTreino >= 4 ? "👍" : "🤔"),
+    h("h3", { style: { fontSize: 19, fontWeight: 800, color: "#0f172a", marginBottom: 6 } }, acTreino >= 4 ? "Treino concluído!" : "Vamos treinar mais uma vez?"),
+    h("p", { style: { fontSize: 14, color: "#475569", marginBottom: 6 } }, "Você acertou ", acTreino, " de ", STROOP_CFG.treino, "."),
+    h("p", { style: { fontSize: 13, color: "#64748b", marginBottom: 18, lineHeight: 1.5 } }, "Agora valendo: ", STROOP_CFG.congruente + STROOP_CFG.incongruente + STROOP_CFG.neutro, " itens, cerca de 2 minutos. Responda rápido e sem errar. Não vai aparecer se acertou."),
+    h("button", { className: "btn-main", style: { background: "linear-gradient(135deg,#7c3aed,#2563eb)", marginBottom: 8 }, onClick: iniciarTeste }, "Começar o teste"),
+    h("button", { onClick: iniciarTreino, style: { border: "none", background: "none", color: "#7c3aed", fontWeight: 700, fontSize: 13, cursor: "pointer" } }, "Repetir o treino"));
 
-  const emTreino = fase === "treino";
-  const pct = emTreino ? Math.round((60 - treinoRestante) / 60 * 100) : Math.round(trial / TOTAL * 100);
-  const bg = feedback === "certo" ? "#d1fae5" : feedback === "errado" ? "#fee2e2" : "#f9fafb";
-  return React.createElement("div", null,
-    React.createElement("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: 6 } },
-      React.createElement("span", { style: { fontSize: 12, fontWeight: 700, color: emTreino ? "#d97706" : "#374151" } },
-        emTreino ? `🧪 Treino · ${treinoRestante}s` : `Forma ${forma} · ${trial + 1}/${TOTAL}`
-      ),
-      React.createElement("span", { style: { fontSize: 12, fontWeight: 700, color } }, pct, "%")
-    ),
-    React.createElement("div", { style: { background: "#f3f4f6", borderRadius: 20, height: 8, overflow: "hidden", marginBottom: 14 } },
-      React.createElement("div", { style: { width: `${pct}%`, background: emTreino ? "#d97706" : color, height: "100%", borderRadius: 20 } })
-    ),
-    React.createElement("div", { style: { background: bg, borderRadius: 16, padding: 32, textAlign: "center", marginBottom: 14, minHeight: 100, display: "flex", alignItems: "center", justifyContent: "center", transition: "background .15s" } },
-      item && React.createElement("div", { style: { fontSize: 52, fontWeight: 900, color: CORES_CSS[item.cor] } }, item.palavra.toUpperCase())
-    ),
-    React.createElement("p", { style: { textAlign: "center", fontSize: 13, fontWeight: 700, color: "#9ca3af", marginBottom: 10 } }, "Cor da tinta:"),
-    React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 } },
-      CORES_STROOP.map(c => React.createElement("button", {
-        key: c, onClick: () => responder(c),
-        style: { padding: "12px 0", borderRadius: 10, border: `2px solid ${CORES_CSS[c]}`, background: `${CORES_CSS[c]}15`, color: CORES_CSS[c], fontWeight: 800, fontSize: 14, cursor: "pointer" }
-      }, c.charAt(0).toUpperCase() + c.slice(1)))
-    ),
-    React.createElement("div", { style: { display: "flex", justifyContent: "space-around", marginTop: 10 } },
-      React.createElement("span", { style: { fontSize: 12, color: "#059669", fontWeight: 700 } }, "✓ ", acertos),
-      React.createElement("span", { style: { fontSize: 12, color: "#e11d48", fontWeight: 700 } }, "✗ ", erros)
-    )
-  );
+  if (fase === "resultado" && res) return h("div", { style: crd },
+    h("div", { style: { textAlign: "center", marginBottom: 14 } },
+      h("div", { style: { fontSize: 46, marginBottom: 4 } }, res.precisao >= 90 ? "🏆" : res.precisao >= 75 ? "🎯" : "💪"),
+      h("h3", { style: { fontSize: 19, fontWeight: 800, color: "#0f172a" } }, res.precisao >= 90 ? "Foco de campeão!" : res.precisao >= 75 ? "Muito bem!" : "Bom treino!"),
+      h("div", { style: { fontSize: 13, color: "#64748b", marginTop: 4 } }, res.acertos, " de ", res.total, " certos · ", res.mediaIncongruente || res.media, " ms nos itens difíceis")),
+    h(StroopResultado, { response: res, compacto: true }),
+    h("button", { className: "btn-main", style: { background: "linear-gradient(135deg,#7c3aed,#2563eb)", marginTop: 12 }, onClick: () => onSubmit(res) }, "Salvar resultado"));
+
+  // ── Tela cheia do treino / teste
+  const itens = fase === "treino" ? R.current.treino : R.current.itens;
+  const it = itens[idx];
+  const pct = itens.length ? idx / itens.length : 0;
+  return h("div", { style: { position: "fixed", inset: 0, zIndex: 300, background: "#0f172a", display: "flex", flexDirection: "column", alignItems: "center", padding: "18px 18px 28px", userSelect: "none", WebkitUserSelect: "none" } },
+    h("div", { style: { width: "100%", maxWidth: 420, color: "#cbd5e1" } },
+      h("div", { style: { display: "flex", justifyContent: "space-between", fontSize: 13, fontWeight: 800, marginBottom: 8 } },
+        h("span", null, fase === "treino" ? `Treino ${idx + 1}/${itens.length}` : `Forma ${forma}`),
+        h("span", null, fase === "treino" ? "toque na cor da TINTA" : Math.round(pct * 100) + "%")),
+      h("div", { style: { background: "#1e293b", borderRadius: 20, height: 7, overflow: "hidden" } }, h("div", { style: { width: pct * 100 + "%", height: "100%", background: "linear-gradient(90deg,#7c3aed,#2563eb)", transition: "width .2s" } }))),
+    h("div", { style: { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%" } },
+      it && mostrando && !fb && h(StroopTinta, { item: it, tam: 58 }),
+      !mostrando && !fb && h("div", { style: { fontSize: 36, color: "#475569", fontWeight: 300 } }, "+"),
+      fb && h("div", { style: { textAlign: "center" } },
+        h("div", { style: { fontSize: 50 } }, fb.ok ? "✅" : "❌"),
+        h("div", { style: { fontSize: 15, fontWeight: 800, color: fb.ok ? "#4ade80" : "#fca5a5", marginTop: 6 } }, fb.ok ? "Isso!" : "A tinta era ", !fb.ok && h("span", { style: { color: CORES_CSS[fb.cor] } }, STROOP_ROT[fb.cor])))),
+    h(StroopBotoes, { onEscolher: responder, destaque: fb && !fb.ok ? fb.cor : null, desativado: !mostrando || !!fb }));
+}
+
+function StroopGrafico({ seqTipo, seqT }) {
+  const h = React.createElement;
+  if (!seqTipo || !seqT || !seqT.length) return null;
+  const W = 320, H = 150, L = 34, B = 20, T = 10;
+  const COR = { C: "#16a34a", I: "#dc2626", N: "#94a3b8" };
+  const vals = seqT.filter(v => v > 0);
+  const maxV = Math.max(1000, ...vals) * 1.08;
+  const x = i => L + i * (W - L - 8) / Math.max(1, seqT.length - 1);
+  const y = v => T + (H - T - B) * (1 - Math.min(v, maxV) / maxV);
+  const media = tp => stroopMedia(seqT.filter((v, i) => v > 0 && seqTipo[i] === tp));
+  const marcas = [0, 500, 1000, 1500, 2000, 2500].filter(v => v <= maxV);
+  return h("svg", { viewBox: `0 0 ${W} ${H}`, style: { width: "100%", height: "auto", display: "block" }, role: "img", "aria-label": "Tempo de cada item do Stroop" },
+    marcas.map(v => h("g", { key: v }, h("line", { x1: L, x2: W - 4, y1: y(v), y2: y(v), stroke: "#f1f5f9" }), h("text", { x: L - 5, y: y(v) + 3, fontSize: 8, fill: "#94a3b8", textAnchor: "end" }, v))),
+    ["C", "I"].map(tp => media(tp) > 0 && h("line", { key: tp, x1: L, x2: W - 4, y1: y(media(tp)), y2: y(media(tp)), stroke: COR[tp], strokeWidth: 1, strokeDasharray: "4 3", opacity: .7 })),
+    seqT.map((v, i) => v > 0
+      ? h("circle", { key: i, cx: x(i), cy: y(v), r: 2.8, fill: COR[seqTipo[i]], stroke: "#fff", strokeWidth: .7 }, h("title", null, `Item ${i + 1} (${seqTipo[i] === "C" ? "congruente" : seqTipo[i] === "I" ? "incongruente" : "neutro"}): ${v} ms`))
+      : h("text", { key: i, x: x(i), y: v === -2 ? T + 8 : H - B - 2, fontSize: 9, textAnchor: "middle", fontWeight: 800, fill: v === -1 ? "#dc2626" : v === -2 ? "#d97706" : "#64748b" }, v === -2 ? "○" : "✕", h("title", null, `Item ${i + 1}: ${v === -1 ? "tocou a cor da palavra" : v === -2 ? "sem resposta" : "outro erro"}`))),
+    h("text", { x: L, y: H - 5, fontSize: 8, fill: "#94a3b8" }, "1º"),
+    h("text", { x: W - 6, y: H - 5, fontSize: 8, fill: "#94a3b8", textAnchor: "end" }, seqT.length + "º item"));
+}
+function StroopEvolucao({ historico }) {
+  const h = React.createElement;
+  const apps = (historico || []).filter(t => t && t.response && (t.response.mediaIncongruente || t.response.media))
+    .map(t => ({ d: parseDataBR(t.answeredAt || t.createdAt), r: t.response })).filter(a => a.d).sort((a, b) => a.d - b.d).slice(-12);
+  if (apps.length < 2) return h("div", { style: { fontSize: 12, color: "#94a3b8" } }, "A evolução aparece a partir da segunda aplicação.");
+  const W = 320, H = 140, L = 34, B = 22, T = 12, R2 = 30;
+  const custos = apps.map(a => a.r.custoInterferencia || 0);
+  const prec = apps.map(a => a.r.precisao != null ? a.r.precisao : a.r.total ? Math.round(a.r.acertos / a.r.total * 100) : 0);
+  const maxC = Math.max(100, ...custos) * 1.15, minC = Math.min(0, ...custos);
+  const x = i => L + i * (W - L - R2) / (apps.length - 1);
+  const yC = v => T + (H - T - B) * (1 - (v - minC) / (maxC - minC || 1));
+  const yP = v => T + (H - T - B) * (1 - v / 100);
+  const path = (arr, fy) => arr.map((v, i) => (i ? "L" : "M") + x(i).toFixed(1) + " " + fy(v).toFixed(1)).join(" ");
+  const dif = custos[custos.length - 1] - custos[custos.length - 2];
+  return h("div", null,
+    h("svg", { viewBox: `0 0 ${W} ${H}`, style: { width: "100%", height: "auto", display: "block" }, role: "img", "aria-label": "Evolução do Stroop" },
+      [minC, (minC + maxC) / 2, maxC].map((v, i) => h("g", { key: i }, h("line", { x1: L, x2: W - R2 + 4, y1: yC(v), y2: yC(v), stroke: "#f1f5f9" }), h("text", { x: L - 5, y: yC(v) + 3, fontSize: 8, fill: "#7c3aed", textAnchor: "end" }, Math.round(v)))),
+      [0, 50, 100].map(v => h("text", { key: v, x: W - R2 + 8, y: yP(v) + 3, fontSize: 8, fill: "#0891b2" }, v + "%")),
+      h("path", { d: path(prec, yP), fill: "none", stroke: "#0891b2", strokeWidth: 1.4, strokeDasharray: "4 3" }),
+      h("path", { d: path(custos, yC), fill: "none", stroke: "#7c3aed", strokeWidth: 1.8 }),
+      apps.map((a, i) => h("g", { key: i },
+        h("circle", { cx: x(i), cy: yC(custos[i]), r: 3, fill: "#7c3aed", stroke: "#fff" }, h("title", null, `${a.d.toLocaleDateString("pt-BR")}: custo ${custos[i]} ms, precisão ${prec[i]}%`)),
+        h("circle", { cx: x(i), cy: yP(prec[i]), r: 2.4, fill: "#0891b2", stroke: "#fff" }),
+        (i === 0 || i === apps.length - 1 || apps.length <= 6) && h("text", { x: x(i), y: H - 6, fontSize: 7.5, fill: "#94a3b8", textAnchor: i === 0 ? "start" : i === apps.length - 1 ? "end" : "middle" }, a.d.toLocaleDateString("pt-BR").slice(0, 5))))),
+    h("div", { style: { display: "flex", gap: 12, fontSize: 11, color: "#64748b", marginTop: 4, flexWrap: "wrap" } },
+      h("span", null, h("span", { style: { color: "#7c3aed", fontWeight: 800 } }, "●"), " custo de interferência (ms)"),
+      h("span", null, h("span", { style: { color: "#0891b2", fontWeight: 800 } }, "- -"), " precisão"),
+      h("span", { style: { marginLeft: "auto", fontWeight: 700, color: dif > 30 ? "#dc2626" : dif < -30 ? "#059669" : "#64748b" } }, dif > 30 ? `▲ interferência ${dif} ms maior que a anterior` : dif < -30 ? `▼ interferência ${-dif} ms menor que a anterior` : "estável em relação à anterior")));
+}
+function StroopResultado({ response, historico, compacto }) {
+  const h = React.createElement;
+  const r = response || {};
+  const v2 = r.versao === 2;
+  const card = (v, rot, cor, dica) => h("div", { title: dica || "", style: { background: "#f8fafc", borderRadius: 12, padding: "10px 8px", textAlign: "center" } },
+    h("div", { style: { fontSize: 17, fontWeight: 900, color: cor || "#0f172a" } }, v),
+    h("div", { style: { fontSize: 10, color: "#94a3b8", fontWeight: 700 } }, rot));
+  const prec = r.precisao != null ? r.precisao : r.total ? Math.round(r.acertos / r.total * 100) : 0;
+  const custo = r.custoInterferencia || 0;
+  const cards = [
+    card(custo + " ms", "Custo de interferência", custo > 200 ? "#dc2626" : custo > 120 ? "#d97706" : "#7c3aed", "Quanto mais lento nos itens incongruentes do que nos congruentes"),
+    card(prec + "%", "Precisão", prec < 80 ? "#dc2626" : "#059669"),
+    card((r.mediaCongruente || 0) + " ms", "Congruente", "#16a34a"),
+    card((r.mediaIncongruente || 0) + " ms", "Incongruente", "#dc2626"),
+    v2 && card((r.mediaNeutro || 0) + " ms", "Neutro (XXXXX)", "#64748b"),
+    v2 ? card(r.erroLeitura || 0, "Leu a palavra", (r.erroLeitura || 0) > 3 ? "#dc2626" : "#0f172a", "Tocou a cor escrita em vez da cor da tinta: impulsividade") : card(r.erros || 0, "Erros", "#0f172a"),
+    v2 && card(r.erroOutro || 0, "Outros erros"),
+    v2 && card(r.omissoes || 0, "Sem resposta", (r.omissoes || 0) > 2 ? "#d97706" : "#0f172a")
+  ].filter(Boolean);
+  return h("div", null,
+    v2 && r.daltonismo && r.daltonismo !== "nao" && h("div", { style: { fontSize: 12, color: "#92400e", background: "#fffbeb", borderRadius: 10, padding: "8px 10px", marginBottom: 10 } }, "⚠️ O atleta respondeu \"", r.daltonismo === "sim" ? "sim" : "não sei", "\" sobre dificuldade para diferenciar cores. Interprete com cautela."),
+    h("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(92px,1fr))", gap: 8, marginBottom: 12 } }, cards),
+    !compacto && v2 && h("div", { style: { background: "#fff", border: "1px solid #f1f5f9", borderRadius: 14, padding: 12, marginBottom: 10 } },
+      h("div", { style: { fontSize: 13, fontWeight: 800, color: "#0f172a", marginBottom: 6 } }, "Item a item ", h("span", { style: { fontWeight: 600, color: "#94a3b8", fontSize: 11 } }, "· Forma ", r.forma)),
+      h(StroopGrafico, { seqTipo: r.seqTipo, seqT: r.seqT }),
+      h("div", { style: { display: "flex", gap: 10, fontSize: 11, color: "#64748b", marginTop: 4, flexWrap: "wrap" } },
+        h("span", null, h("span", { style: { color: "#16a34a" } }, "●"), " congruente"),
+        h("span", null, h("span", { style: { color: "#dc2626" } }, "●"), " incongruente"),
+        h("span", null, h("span", { style: { color: "#94a3b8" } }, "●"), " neutro"),
+        h("span", null, h("span", { style: { color: "#dc2626", fontWeight: 800 } }, "✕"), " leu a palavra"),
+        h("span", null, h("span", { style: { color: "#64748b", fontWeight: 800 } }, "✕"), " outro erro"),
+        h("span", null, h("span", { style: { color: "#d97706", fontWeight: 800 } }, "○"), " sem resposta"))),
+    !compacto && !v2 && h("div", { style: { fontSize: 12, color: "#94a3b8", marginBottom: 10 } }, "Aplicação feita na versão antiga do teste: os tempos de cada item não foram salvos."),
+    !compacto && historico && h("div", { style: { background: "#fff", border: "1px solid #f1f5f9", borderRadius: 14, padding: 12 } },
+      h("div", { style: { fontSize: 13, fontWeight: 800, color: "#0f172a", marginBottom: 6 } }, "Evolução entre aplicações"),
+      h(StroopEvolucao, { historico })));
 }
 
 function TMTForm({
@@ -10708,6 +10861,7 @@ function ResponseView({
 }) {
   if (!response) return null;
   if (type === "tr") return React.createElement(TRResultado, { response, historico, compacto });
+  if (type === "stroop") return React.createElement(StroopResultado, { response, historico, compacto });
   const items = [];
   if (type === "pensamentos") items.push(["Situação", response.situacao], ["Pensamento", response.pensamento], ["Emoção", response.emocao], ["Intensidade", `${response.intensidade}/10`], ["Alternativo", response.pensamentoAlternativo]);
   if (type === "atencao") items.push(["Páginas", response.paginas], ["Acertos", response.acertos], ["Erros", response.erros], ["Precisão", `${response.precisao}%`]);
