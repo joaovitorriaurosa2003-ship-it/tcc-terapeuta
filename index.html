@@ -226,11 +226,11 @@ const TASK_TYPES = [{
   color: "#6d28d9"
 }, {
   id: "tmt",
-  label: "🔢 Trail Making Test",
+  label: "🔗 Trilhas (TMT A e B)",
   color: "#0891b2"
 }, {
   id: "nback",
-  label: "🧩 N-Back",
+  label: "🧩 N-Back adaptativo",
   color: "#d97706"
 }, {
   id: "gonogo",
@@ -2210,7 +2210,7 @@ const TASK_CATEGORIES = [
     label: "🧠 Testes Cognitivos",
     color: "#7c3aed",
     bg: "#ede9fe",
-    ids: ["tr", "gonogo", "flanker", "stroop", "tmt", "nback", "atencao", "cancelamento", "matrizes", "memoria_lista", "digit_span"]
+    ids: ["tr", "gonogo", "flanker", "stroop", "tmt", "nback", "atencao", "matrizes", "memoria_lista", "digit_span"]
   },
   {
     id: "escalas",
@@ -2386,8 +2386,8 @@ const PROTOCOLOS = [
     bg: "#cffafe",
     descricao: "N-Back · TMT · Memória de Lista",
     tarefas: [
-      { type: "nback",        title: "🧩 N-Back (2-Back)" },
-      { type: "tmt",          title: "🔢 Trail Making Test" },
+      { type: "nback",        title: "🧩 N-Back adaptativo" },
+      { type: "tmt",          title: "🔗 Trilhas (TMT A e B)" },
       { type: "memoria_lista",title: "🧠 Memória de Lista de Palavras" },
     ]
   },
@@ -2441,8 +2441,8 @@ const PROTOCOLOS = [
       { type: "matrizes",     title: "🧩 Matrizes Progressivas" },
       { type: "memoria_lista",title: "🧠 Memória de Lista de Palavras" },
       { type: "stroop",       title: "🎨 Teste de Stroop" },
-      { type: "tmt",          title: "🔢 Trail Making Test" },
-      { type: "nback",        title: "🧩 N-Back (2-Back)" },
+      { type: "tmt",          title: "🔗 Trilhas (TMT A e B)" },
+      { type: "nback",        title: "🧩 N-Back adaptativo" },
     ]
   },
 ];
@@ -3316,10 +3316,10 @@ function csvPaciente(p) {
     ["TR congruente (ms)", r => r.mediaCongruente], ["TR incongruente (ms)", r => r.mediaIncongruente], ["Custo interferência (ms)", r => r.custoInterferencia]
   ]);
   csv += historicoCSV("TRAIL MAKING TEST (HISTÓRICO)", tasks.filter(t => t.type === "tmt" && t.response), [
-    ["Tempo Parte A (s)", r => r.tempoA], ["Tempo Parte B (s)", r => r.tempoB], ["Diferença B-A (s)", r => (r.tempoB || 0) - (r.tempoA || 0)], ["Erros", r => r.erros]
+    ["Versão", r => r.versao === 2 ? "25 círculos" : "10 círculos"], ["Forma", r => r.forma || "—"], ["Tempo Parte A (s)", r => r.tempoA], ["Tempo Parte B (s)", r => r.tempoB], ["Diferença B-A (s)", r => Math.round(((r.tempoB || 0) - (r.tempoA || 0)) * 10) / 10], ["Razão B/A", r => r.razaoBA != null ? r.razaoBA : "—"], ["Erros", r => r.erros], ["Erros A", r => r.errosA != null ? r.errosA : "—"], ["Erros B", r => r.errosB != null ? r.errosB : "—"], ["Erros de alternância", r => r.errosAlternancia != null ? r.errosAlternancia : "—"]
   ]);
-  csv += historicoCSV("N-BACK — 2-BACK (HISTÓRICO)", tasks.filter(t => t.type === "nback" && t.response), [
-    ["Acertos", r => r.acertos], ["Erros", r => r.erros], ["Omissões", r => r.omissoes], ["Total de itens", r => r.total]
+  csv += historicoCSV("N-BACK (HISTÓRICO)", tasks.filter(t => t.type === "nback" && t.response), [
+    ["Versão", r => r.versao === 2 ? "adaptativo" : "2-back fixo"], ["Nível máximo", r => r.nivelMaximo != null ? r.nivelMaximo : "—"], ["Nível médio", r => r.nivelMedio != null ? r.nivelMedio : "—"], ["Acertos", r => r.acertos], ["Alvos", r => r.alvos || "—"], ["Toques errados", r => r.erros], ["Omissões", r => r.omissoes], ["Precisão (%)", r => r.precisao != null ? r.precisao : "—"], ["d'", r => r.dprime != null ? r.dprime : "—"], ["TR acertos (ms)", r => r.trMedio || "—"], ["Total de itens", r => r.total]
   ]);
   csv += historicoCSV("GO / NO-GO (HISTÓRICO)", tasks.filter(t => t.type === "gonogo" && t.response), [
     ["Forma", r => r.forma || "—"], ["Acertos", r => r.acertos], ["Falsos alarmes", r => r.falsosGo], ["Omissões", r => r.omissoes],
@@ -3332,7 +3332,7 @@ function csvPaciente(p) {
     ["Acertos", r => `${r.acertos}/${r.total}`], ["Percentual", r => `${r.pct}%`], ["Nível", r => r.nivel]
   ]);
   csv += historicoCSV("MEMÓRIA DE LISTA DE PALAVRAS (HISTÓRICO)", tasks.filter(t => t.type === "memoria_lista" && t.response), [
-    ["Palavras recordadas", r => `${r.acertos}/${r.total}`], ["Percentual", r => `${r.pct}%`], ["Intrusões", r => r.intrusions], ["Nível", r => r.nivel]
+    ["Versão", r => r.versao === 2 ? "3 tentativas + tardia" : "1 tentativa"], ["1ª vez", r => r.t1 != null ? r.t1 : "—"], ["2ª vez", r => r.t2 != null ? r.t2 : "—"], ["3ª vez", r => r.t3 != null ? r.t3 : "—"], ["Aprendizagem (de 36)", r => r.aprendizagem != null ? r.aprendizagem : "—"], ["Tardia", r => r.tardia != null ? r.tardia : r.acertos], ["Intervalo (min)", r => r.atrasoMin != null ? r.atrasoMin : "—"], ["Retenção (%)", r => r.retencao != null ? r.retencao : "—"], ["Palavras recordadas", r => `${r.acertos}/${r.total}`], ["Intrusões", r => r.intrusions], ["Nível", r => r.nivel]
   ]);
   csv += historicoCSV("TESTE DE CANCELAMENTO (HISTÓRICO)", tasks.filter(t => t.type === "cancelamento" && t.response), [
     ["Forma", r => r.forma || "—"], ["Total de acertos", r => `${r.totalAcertos}/${r.totalAlvos}`], ["Omissões", r => r.totalOmissoes], ["Erros", r => r.totalErros]
@@ -3341,7 +3341,7 @@ function csvPaciente(p) {
     ["Páginas", r => r.paginas], ["Acertos", r => r.acertos], ["Erros", r => r.erros], ["Precisão", r => `${r.precisao}%`]
   ]);
   csv += historicoCSV("SPAN DE DÍGITOS (HISTÓRICO)", tasks.filter(t => t.type === "digit_span" && t.response), [
-    ["Span Direto", r => r.spanDireto], ["Span Inverso", r => r.spanInverso], ["Span Total", r => r.spanTotal], ["Nível", r => r.nivel]
+    ["Forma", r => r.forma || "—"], ["Span Direto", r => r.spanDireto], ["Span Inverso", r => r.spanInverso], ["Span Total", r => r.spanTotal], ["Acertos direto", r => r.pontosDireto != null ? r.pontosDireto : "—"], ["Acertos inverso", r => r.pontosInverso != null ? r.pontosInverso : "—"], ["Tempo resposta (s)", r => r.tempoResposta != null ? r.tempoResposta : "—"], ["Nível", r => r.nivel]
   ]);
 
   // ── Técnicas TCC e autorrelatos — já eram histórico completo ────────────
@@ -4285,7 +4285,7 @@ const SINAIS = {
 const SINAIS_ORDEM = ["regular", "atencao", "prioritario", "informativo"];
 const REL_TIPOS = {
   tr: "TEMPO DE REAÇÃO", atencao: "TESTE DE ATENÇÃO VISUAL", stroop: "TESTE DE STROOP", memoria_lista: "MEMÓRIA DE LISTA DE PALAVRAS",
-  matrizes: "MATRIZES PROGRESSIVAS", tmt: "TRAIL MAKING TEST", nback: "N-BACK · 2-BACK", gonogo: "GO / NO-GO", flanker: "TESTE DE FLANKER",
+  matrizes: "MATRIZES PROGRESSIVAS", tmt: "TRILHAS (TMT A E B)", nback: "N-BACK", digit_span: "SPAN DE DÍGITOS", gonogo: "GO / NO-GO", flanker: "TESTE DE FLANKER",
   cancelamento: "TESTE DE CANCELAMENTO", span: "SPAN DE DÍGITOS", csai2r: "CSAI-2R", sas: "SAS", sas2: "SAS-2 · ANSIEDADE ESPORTIVA", acsi28: "ACSI-28", teosq: "TEOSQ · ORIENTAÇÃO DE META",
   siq: "SIQ · IMAGEM MENTAL", resiliencia: "RESILIÊNCIA ESPORTIVA", suporte_social: "SUPORTE SOCIAL PERCEBIDO", hama: "HAM-A",
   tsci: "TSCI · AUTOCONFIANÇA TRAÇO", ssci: "SSCI · AUTOCONFIANÇA ESTADO", trosci: "TROSCI · ROBUSTEZ DA CONFIANÇA"
@@ -4295,9 +4295,10 @@ const REL_CAMPOS = {
   mediaCongruente: "TR congruente (ms)", mediaIncongruente: "TR incongruente (ms)", custoInterferencia: "Custo interferência (ms)",
   falsosPos: "Antecipações", precisao: "Precisão (%)", erroLeitura: "Leu a palavra", erroOutro: "Outros erros", mediaNeutro: "TR neutro (ms)", interferenciaNeutro: "Interferência vs neutro (ms)", mediana: "Mediana (ms)", melhor: "Melhor (ms)", lapsos: "Lapsos >500 ms", fadiga: "Fadiga fim-início (ms)", antecipacoes: "Antecipações", falsosGo: "Falsos alarmes", omissoes: "Omissões", score: "Score", paginas: "Páginas", precisao: "Precisão (%)",
   pct: "Percentual (%)", intrusions: "Intrusões", nivel: "Nível", mediaTempos: "TR médio (ms)", tempoA: "Tempo Parte A (s)", tempoB: "Tempo Parte B (s)",
+  difBA: "Diferença B-A (s)", razaoBA: "Razão B/A", errosA: "Erros parte A", errosB: "Erros parte B", errosAlternancia: "Erros de alternância", errosSequencia: "Erros de sequência", itens: "Itens", nivelMaximo: "Nível máximo (n-back)", nivelMedio: "Nível médio (n-back)", falsosAlarmes: "Toques errados", alvos: "Alvos", dprime: "Sensibilidade (d')", trMedio: "TR nos acertos (ms)", spanDireto: "Span direto", spanInverso: "Span inverso", spanTotal: "Span total", pontosDireto: "Acertos direto", pontosInverso: "Acertos inverso", pontosTotal: "Acertos total", tempoResposta: "Tempo de resposta (s)", t1: "1ª vez", t2: "2ª vez", t3: "3ª vez", tardia: "Evocação tardia", aprendizagem: "Aprendizagem (de 36)", ganho: "Ganho 1ª→3ª", retencao: "Retenção (%)", atrasoMin: "Intervalo da tardia (min)", repeticoes: "Repetições", posInicio: "Início da lista (%)", posMeio: "Meio da lista (%)", posFim: "Fim da lista (%)",
   totalAcertos: "Acertos", totalAlvos: "Alvos", totalOmissoes: "Omissões", humor: "Humor (%)", ansiedade: "Ansiedade (%)", emocao: "Emoção", intensidade: "Intensidade"
 };
-const REL_ORDEM_CAMPOS = ["forma", "paginas", "acertos", "total", "erros", "precisao", "pct", "media", "mediaTempos", "desvio", "mediaCongruente", "mediaIncongruente", "custoInterferencia", "mediana", "melhor", "lapsos", "falsosPos", "antecipacoes", "falsosGo", "omissoes", "fadiga", "intrusions", "tempoA", "tempoB", "score", "nivel"];
+const REL_ORDEM_CAMPOS = ["forma", "paginas", "acertos", "total", "erros", "precisao", "pct", "media", "mediaTempos", "desvio", "mediaCongruente", "mediaIncongruente", "custoInterferencia", "mediana", "melhor", "lapsos", "falsosPos", "antecipacoes", "falsosGo", "omissoes", "fadiga", "intrusions", "tempoA", "tempoB", "difBA", "razaoBA", "errosA", "errosB", "errosAlternancia", "nivelMaximo", "nivelMedio", "dprime", "trMedio", "spanDireto", "spanInverso", "spanTotal", "t1", "t2", "t3", "aprendizagem", "tardia", "retencao", "atrasoMin", "score", "nivel"];
 // Frases em linguagem simples para a devolutiva à família: [a desenvolver, ponto forte]
 const REL_FRASES = {
   "csai2r.cognitiva": ["Lidar com as preocupações antes das competições", "Mantém a mente tranquila antes de competir"],
@@ -4409,7 +4410,7 @@ function relResumo(type, response, detalhado) {
     if (type === "tsci" || type === "ssci") partes.push("Máximo: 117");
     return nome + " · " + partes.join(", ");
   }
-  const chaves = Object.keys(response).filter(k => k !== "tipo" && k !== "escala" && k !== "versao" && k !== "estimulo" && k !== "seqTipo" && k !== "daltonismo" && !(k === "falsosPos" && response.antecipacoes != null) && (typeof response[k] === "number" || typeof response[k] === "string"));
+  const chaves = Object.keys(response).filter(k => k !== "tipo" && k !== "escala" && k !== "versao" && k !== "estimulo" && k !== "seqTipo" && k !== "daltonismo" && k !== "itens" && k !== "errosSequencia" && k !== "falsosAlarmes" && k !== "pontosTotal" && k !== "posInicio" && k !== "posMeio" && k !== "posFim" && k !== "ganho" && k !== "repeticoes" && k !== "pct" && !(k === "acertos" && response.tardia != null) && !(k === "nivel" && response.tardia != null) && !(k === "falsosPos" && response.antecipacoes != null) && (typeof response[k] === "number" || typeof response[k] === "string"));
   chaves.sort((a, b) => { const ia = REL_ORDEM_CAMPOS.indexOf(a), ib = REL_ORDEM_CAMPOS.indexOf(b); return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib); });
   const partes = chaves.map(k => (REL_CAMPOS[k] || k) + ": " + response[k]);
   return partes.length ? nome + " · " + partes.join(", ") : nome;
@@ -5397,6 +5398,7 @@ const CATEGORIAS_ATUALIZACAO = [
 ];
 // Novidades da plataforma (já entram na lista, sem precisar cadastrar)
 const ATUALIZACOES_SISTEMA = [
+  { id: "s12", titulo: "Testes de memória e flexibilidade reformulados", descricao: "Trilhas (TMT) com 25 círculos por parte, N-Back adaptativo (1 a 4-back), Span de Dígitos com 2 tentativas por tamanho e Memória de Lista com 3 tentativas e evocação após 20 minutos. Todos com tutorial, treino, formas A e B, gráficos e evolução. O Teste de Cancelamento saiu da lista de envio.", categoria: "melhoria", em: "2026-11-09T13:00" },
   { id: "s11", titulo: "Sino de atualizações e saudação", descricao: "Novidades da plataforma e seus avisos agora ficam no sino do topo. Ao entrar, o painel mostra a saudação do dia com respostas de hoje e tarefas pendentes.", categoria: "nova", em: "2026-11-04T09:00" },
   { id: "s10", titulo: "Login seguro corrigido", descricao: "A chave do Firebase estava com um erro de digitação e o login por e-mail e senha foi ativado. Já é possível criar os acessos seguros dos atletas em Configurações.", categoria: "correcao", em: "2026-11-04T08:10" },
   { id: "s9", titulo: "Escala SAS-2", descricao: "Nova escala de ansiedade esportiva com 15 itens (somática, preocupação e concentração), com resultado no Dashboard, Alertas, relatórios e planilha.", categoria: "nova", em: "2026-10-26T13:00" },
@@ -5582,7 +5584,7 @@ function RespostasRecentesTab({ patients, onVerPaciente }) {
 
   function getTypeIcon(type) {
     const icons = {
-      tr: "⚡", stroop: "🎨", tmt: "🔢", nback: "🧩", gonogo: "🚦",
+      tr: "⚡", stroop: "🎨", tmt: "🔗", nback: "🧩", gonogo: "🚦",
       flanker: "➡️", atencao: "🎯", cancelamento: "✂️", matrizes: "🧩", memoria_lista: "🧠",
       csai2r: "😰", sas: "📋", sas2: "📋", hama: "📊", acsi28: "💪", teosq: "🎯",
       siq: "🧘", resiliencia: "🛡️", suporte_social: "🤝",
@@ -5598,14 +5600,15 @@ function RespostasRecentesTab({ patients, onVerPaciente }) {
     if (r.type === "escala") return `Humor ${resp.humor}% · Ansiedade ${resp.ansiedade}%`;
     if (r.type === "tr") return `TR médio ${resp.media}ms · ${resp.versao === 2 ? "Lapsos " + (resp.lapsos || 0) + " · Antecip. " + (resp.antecipacoes || 0) : "Acertos " + resp.acertos + "/" + (resp.total || 20)}`;
     if (r.type === "stroop") return resp.versao === 2 ? `Interferência ${resp.custoInterferencia} ms · Precisão ${resp.precisao}%` : `${resp.acertos}/${resp.total || 24} corretos`;
-    if (r.type === "nback") return `${resp.acertos} acertos · ${resp.omissoes} omissões`;
+    if (r.type === "nback") return resp.versao === 2 ? `Nível máx. ${resp.nivelMaximo}-back · médio ${String(resp.nivelMedio).replace(".", ",")}` : `${resp.acertos} acertos · ${resp.omissoes} omissões`;
     if (r.type === "gonogo") return `${resp.acertos} acertos · ${resp.falsosGo} falsos alarmes`;
     if (r.type === "flanker") return `${resp.acertos}/${resp.total || 24} corretos`;
-    if (r.type === "tmt") return `Parte A: ${resp.tempoA}s · Parte B: ${resp.tempoB}s`;
+    if (r.type === "tmt") return `Parte A: ${resp.tempoA}s · Parte B: ${resp.tempoB}s` + (resp.versao === 2 ? ` · ${resp.erros} erros` : "");
+    if (r.type === "digit_span") return `Span direto ${resp.spanDireto} · inverso ${resp.spanInverso}`;
     if (r.type === "atencao") return `${resp.acertos} acertos · ${resp.precisao}% precisão`;
     if (r.type === "matrizes") return `${resp.acertos}/20 · ${resp.nivel}`;
     if (r.type === "cancelamento") return `${resp.totalAcertos}/${resp.totalAlvos} alvos · ${resp.totalOmissoes} omissões`;
-    if (r.type === "memoria_lista") return `${resp.acertos}/10 palavras · ${resp.nivel}`;
+    if (r.type === "memoria_lista") return resp.versao === 2 ? `${resp.t1}→${resp.t2}→${resp.t3} · ${resp.tardia}/12 após ${resp.atrasoMin} min` : `${resp.acertos}/${resp.total || 10} palavras · ${resp.nivel}`;
     if (r.type === "hama") {
       const total = (resp.totais?.ansiedade_psiquica || 0) + (resp.totais?.ansiedade_somatica || 0);
       const nivel = total <= 17 ? "Leve" : total <= 24 ? "Moderada" : total <= 30 ? "Grave" : "Muito Grave";
@@ -6095,10 +6098,13 @@ function ModoTeste({ patient, onClose }) {
   const [testeAtivo, setTesteAtivo] = useState(null); // { type, label, color }
   const [salvando, setSalvando] = useState(false);
   const [sucesso, setSucesso] = useState("");
+  const memTaskId = useRef(null);
+  const memPendente = Object.values((patient && patient.tasks) || {}).find(t => t && t.type === "memoria_lista" && t.parcial && !t.response);
 
   async function handleResult(response) {
     setSalvando(true);
-    const id = "t" + Date.now();
+    const id = (testeAtivo.id === "memoria_lista" && memTaskId.current) || "t" + Date.now();
+    memTaskId.current = null;
     const ti = getTypeInfo(testeAtivo.id);
     await fbSet(`patients/${patient.id}/tasks/${id}`, {
       id,
@@ -6119,6 +6125,7 @@ function ModoTeste({ patient, onClose }) {
   // Se um teste está ativo, renderiza ele em tela cheia
   if (testeAtivo) {
     const ti = getTypeInfo(testeAtivo.id);
+    if (testeAtivo.id === "memoria_lista" && memPendente && !memTaskId.current) memTaskId.current = memPendente.id;
     return React.createElement("div", { style: aw },
       React.createElement(Header, {
         title: ti.label,
@@ -6147,7 +6154,12 @@ function ModoTeste({ patient, onClose }) {
         testeAtivo.id === "gonogo"        && React.createElement(GoNoGoForm,        { color: ti.color, onSubmit: handleResult }),
         testeAtivo.id === "flanker"       && React.createElement(FlankerForm,       { color: ti.color, onSubmit: handleResult }),
         testeAtivo.id === "matrizes"      && React.createElement(MatrizesForm,      { color: ti.color, onSubmit: handleResult }),
-        testeAtivo.id === "memoria_lista" && React.createElement(MemoriaListaForm,  { color: ti.color, onSubmit: handleResult })
+        testeAtivo.id === "memoria_lista" && React.createElement(MemoriaListaForm,  { color: ti.color, onSubmit: handleResult, parcial: memPendente ? memPendente.parcial : null,
+          onParcial: async p => {
+            const id = (memPendente && memPendente.id) || memTaskId.current || "t" + Date.now();
+            memTaskId.current = id;
+            await fbUpdate(`patients/${patient.id}/tasks/${id}`, { id, type: "memoria_lista", title: getTypeInfo("memoria_lista").label, note: "Aplicado em sessão (Modo Teste) · falta a parte 2 (após 20 min)", createdAt: new Date().toLocaleDateString("pt-BR"), modoTeste: true, parcial: p });
+          } })
       )
     );
   }
@@ -6200,7 +6212,7 @@ function ModoTeste({ patient, onClose }) {
             },
               React.createElement("span", { style: { fontSize: 18 } },
                 t.id === "tr" ? "⚡" : t.id === "gonogo" ? "🚦" : t.id === "flanker" ? "➡️" :
-                t.id === "stroop" ? "🎨" : t.id === "tmt" ? "🔢" : t.id === "nback" ? "🧩" :
+                t.id === "stroop" ? "🎨" : t.id === "tmt" ? "🔗" : t.id === "nback" ? "🧩" :
                 t.id === "atencao" ? "🎯" : t.id === "cancelamento" ? "✂️" : t.id === "matrizes" ? "🧩" : t.id === "memoria_lista" ? "🧠" :
                 t.id === "csai2r" ? "😰" : t.id === "sas" ? "📋" : t.id === "sas2" ? "📋" : t.id === "hama" ? "📊" :
                 t.id === "acsi28" ? "💪" : t.id === "teosq" ? "🎯" : t.id === "siq" ? "🧘" :
@@ -6338,7 +6350,7 @@ function PatientDetail({
     }, "Resposta:"), React.createElement(ResponseView, {
       response: viewTask.response,
       type: viewTask.type,
-      historico: ["tr", "stroop"].includes(viewTask.type) ? Object.values(lp.tasks || {}).filter(t => t && t.type === viewTask.type && t.response).concat(Object.values(lp.respostas_arquivadas || {}).filter(t => t && t.type === viewTask.type && t.response)) : null
+      historico: ["tr", "stroop", "tmt", "nback", "digit_span", "memoria_lista"].includes(viewTask.type) ? Object.values(lp.tasks || {}).filter(t => t && t.type === viewTask.type && t.response).concat(Object.values(lp.respostas_arquivadas || {}).filter(t => t && t.type === viewTask.type && t.response)) : null
     })), React.createElement("div", {
       style: {
         marginTop: 20
@@ -7304,6 +7316,7 @@ function PatientApp({
     if (task) return React.createElement(TaskForm, {
       task: task,
       onSubmit: r => submitResponse(task.id, r),
+      onParcial: p => fbUpdate(`patients/${patientId}/tasks/${task.id}`, { parcial: p }),
       onBack: () => setSel(null)
     });
   }
@@ -7398,7 +7411,9 @@ function PatientApp({
         marginTop: 8,
         fontSize: 15
       }
-    }, task.title), task.note && React.createElement("div", {
+    }, task.title), task.parcial && task.parcial.salvoEm && React.createElement("div", {
+      style: { fontSize: 12, fontWeight: 700, color: "#db2777", background: "#fdf2f8", borderRadius: 10, padding: "6px 10px", marginTop: 8 }
+    }, Date.now() >= task.parcial.salvoEm + MEM_CFG.atrasoMin * 60000 ? "🔓 Parte 2 liberada: toque para terminar" : "⏳ Parte 2 libera às " + new Date(task.parcial.salvoEm + MEM_CFG.atrasoMin * 60000).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })), task.note && React.createElement("div", {
       style: {
         fontSize: 12,
         color: "#9ca3af",
@@ -8305,537 +8320,627 @@ function StroopResultado({ response, historico, compacto }) {
       h(StroopEvolucao, { historico })));
 }
 
-function TMTForm({
-  color,
-  onSubmit
-}) {
-  const [parte, setParte] = useState("A");
-  const [fase, setFase] = useState("intro");
-  const [proximo, setProximo] = useState(0);
-  const [erros, setErros] = useState(0);
-  const [inicio, setInicio] = useState(null);
-  const [tempoA, setTempoA] = useState(null);
-  const [posicoes, setPosicoes] = useState([]);
-  const [linhas, setLinhas] = useState([]);
-  const N = 10;
-  function gerarPos() {
-    const pos = [];
-    for (let i = 0; i < N; i++) {
-      let x, y, ok;
-      do {
-        x = 8 + Math.random() * 80;
-        y = 8 + Math.random() * 80;
-        ok = pos.every(p => Math.hypot(p.x - x, p.y - y) > 14);
-      } while (!ok);
-      pos.push({
-        x,
-        y
-      });
+// ══ Ferramentas comuns dos testes cognitivos v2 (TMT, N-Back, Span, Memória) ══
+const NX_CSS = "@keyframes nxPulso{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}@keyframes nxTreme{0%,100%{transform:translateX(0)}25%{transform:translateX(-1.2px)}75%{transform:translateX(1.2px)}}@keyframes nxSurge{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}.nx-pulso{transform-box:fill-box;transform-origin:center;animation:nxPulso .9s ease-in-out infinite}.nx-treme{transform-box:fill-box;transform-origin:center;animation:nxTreme .12s linear 3}.nx-surge{animation:nxSurge .18s ease-out}";
+function nxMedia(v) {
+  const a = (v || []).filter(x => typeof x === "number" && x > 0);
+  return a.length ? Math.round(a.reduce((s, x) => s + x, 0) / a.length) : 0;
+}
+// inversa da normal padrão (aproximação de Acklam), usada no d'
+function nxZ(p) {
+  p = Math.min(0.9999, Math.max(0.0001, p));
+  const a = [-39.69683028665376, 220.9460984245205, -275.9285104469687, 138.357751867269, -30.66479806614716, 2.506628277459239];
+  const b = [-54.47609879822406, 161.5858368580409, -155.6989798598866, 66.80131188771972, -13.28068155288572];
+  const c = [-0.007784894002430293, -0.3223964580411365, -2.400758277161838, -2.549732539343734, 4.374664141464968, 2.938163982698783];
+  const d = [0.007784695709041462, 0.3224671290700398, 2.445134137142996, 3.754408661907416];
+  const pl = 0.02425;
+  if (p < pl) { const q = Math.sqrt(-2 * Math.log(p)); return (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) / ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1); }
+  if (p > 1 - pl) { const q = Math.sqrt(-2 * Math.log(1 - p)); return -(((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) / ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1); }
+  const q = p - 0.5, r = q * q;
+  return (((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q / (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1);
+}
+function nxCard(v, rot, cor, dica) {
+  const h = React.createElement;
+  return h("div", { key: rot, title: dica || "", style: { background: "#f8fafc", borderRadius: 12, padding: "10px 8px", textAlign: "center" } },
+    h("div", { style: { fontSize: 17, fontWeight: 900, color: cor || "#0f172a" } }, v),
+    h("div", { style: { fontSize: 10, color: "#94a3b8", fontWeight: 700 } }, rot));
+}
+function nxGrade(cards) {
+  return React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(92px,1fr))", gap: 8, marginBottom: 12 } }, cards.filter(Boolean));
+}
+function NxCaixa({ titulo, extra, children }) {
+  const h = React.createElement;
+  return h("div", { style: { background: "#fff", border: "1px solid #f1f5f9", borderRadius: 14, padding: 12, marginBottom: 10 } },
+    h("div", { style: { fontSize: 13, fontWeight: 800, color: "#0f172a", marginBottom: 6 } }, titulo, extra ? h("span", { style: { fontWeight: 600, color: "#94a3b8", fontSize: 11 } }, " · ", extra) : null),
+    children);
+}
+function nxNota(txt, k) {
+  return React.createElement("div", { key: k, style: { fontSize: 12, color: "#92400e", background: "#fffbeb", borderRadius: 10, padding: "8px 10px", marginBottom: 8, lineHeight: 1.45 } }, txt);
+}
+function nxLegenda(itens) {
+  const h = React.createElement;
+  return h("div", { style: { display: "flex", gap: 10, fontSize: 11, color: "#64748b", marginTop: 4, flexWrap: "wrap" } },
+    itens.map(([cor, simb, txt], i) => h("span", { key: i }, h("span", { style: { color: cor, fontWeight: 800 } }, simb), " ", txt)));
+}
+function nxPill(on, cor) {
+  return { padding: "6px 14px", borderRadius: 20, border: `2px solid ${on ? cor : "#e5e7eb"}`, background: on ? cor + "12" : "#fff", color: on ? cor : "#6b7280", fontWeight: 700, fontSize: 13, cursor: "pointer" };
+}
+function nxFormaSeletor(forma, setForma, cor) {
+  const h = React.createElement;
+  return h("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 16, flexWrap: "wrap" } },
+    h("span", { style: { fontSize: 12, color: "#94a3b8", fontWeight: 700 } }, "Forma:"),
+    ["A", "B"].map(f => h("button", { key: f, onClick: () => setForma(f), style: nxPill(forma === f, cor) }, f)),
+    h("span", { style: { fontSize: 11, color: "#94a3b8" } }, "use a que o psicólogo indicar"));
+}
+function nxCabecalho(rotulo, titulo, texto, cor) {
+  const h = React.createElement;
+  return h("div", { style: { textAlign: "center", marginBottom: 14 } },
+    h("div", { style: { fontSize: 13, fontWeight: 800, letterSpacing: 1.5, color: cor, textTransform: "uppercase" } }, rotulo),
+    h("h3", { style: { fontSize: 22, fontWeight: 900, color: "#0f172a", margin: "4px 0 6px" } }, titulo),
+    h("p", { style: { fontSize: 14, color: "#475569", lineHeight: 1.5 } }, texto));
+}
+// Linha da evolução entre aplicações (até 2 séries)
+function NxEvolucao({ historico, ok, series, textoDif, min0, casas }) {
+  const h = React.createElement;
+  const apps = (historico || []).filter(t => t && t.response && ok(t.response))
+    .map(t => ({ d: parseDataBR(t.answeredAt || t.createdAt), r: t.response })).filter(a => a.d).sort((a, b) => a.d - b.d).slice(-12);
+  if (apps.length < 2) return h("div", { style: { fontSize: 12, color: "#94a3b8" } }, "A evolução aparece a partir da segunda aplicação nesta versão do teste.");
+  const W = 320, H = 140, L = 34, B = 22, T = 12;
+  const vals = series.map(s => apps.map(a => { const v = s.valor(a.r); return typeof v === "number" && isFinite(v) ? v : null; }));
+  const todos = [].concat(...vals).filter(v => v != null);
+  let max = Math.max(...todos), min = min0 ? 0 : Math.min(...todos);
+  if (max === min) { max += 1; if (!min0) min = Math.max(0, min - 1); }
+  const pad = (max - min) * 0.12; max += pad; if (!min0) min = Math.max(0, min - pad);
+  const x = i => L + i * (W - L - 10) / (apps.length - 1);
+  const y = v => T + (H - T - B) * (1 - (v - min) / (max - min || 1));
+  const fmt = v => casas ? v.toFixed(casas) : String(Math.round(v));
+  const caminho = arr => { let s = "", novo = true; arr.forEach((v, i) => { if (v == null) { novo = true; return; } s += (novo ? "M" : "L") + x(i).toFixed(1) + " " + y(v).toFixed(1) + " "; novo = false; }); return s; };
+  const v0 = vals[0].filter(v => v != null);
+  const dif = v0.length >= 2 ? v0[v0.length - 1] - v0[v0.length - 2] : 0;
+  const msg = textoDif ? textoDif(dif) : null;
+  return h("div", null,
+    h("svg", { viewBox: `0 0 ${W} ${H}`, style: { width: "100%", height: "auto", display: "block" }, role: "img", "aria-label": "Evolução entre aplicações" },
+      [min, (min + max) / 2, max].map((v, i) => h("g", { key: i }, h("line", { x1: L, x2: W - 4, y1: y(v), y2: y(v), stroke: "#f1f5f9" }), h("text", { x: L - 5, y: y(v) + 3, fontSize: 8, fill: "#94a3b8", textAnchor: "end" }, fmt(v)))),
+      series.map((s, k) => h("path", { key: "p" + k, d: caminho(vals[k]), fill: "none", stroke: s.cor, strokeWidth: k ? 1.4 : 1.8, strokeDasharray: k ? "4 3" : null })),
+      series.map((s, k) => apps.map((a, i) => vals[k][i] == null ? null : h("circle", { key: k + "c" + i, cx: x(i), cy: y(vals[k][i]), r: k ? 2.4 : 3, fill: s.cor, stroke: "#fff", strokeWidth: 1 }, h("title", null, `${a.d.toLocaleDateString("pt-BR")}: ${s.nome} ${fmt(vals[k][i])}`)))),
+      apps.map((a, i) => (i === 0 || i === apps.length - 1 || apps.length <= 6) ? h("text", { key: "d" + i, x: x(i), y: H - 6, fontSize: 7.5, fill: "#94a3b8", textAnchor: i === 0 ? "start" : i === apps.length - 1 ? "end" : "middle" }, a.d.toLocaleDateString("pt-BR").slice(0, 5)) : null)),
+    h("div", { style: { display: "flex", gap: 12, fontSize: 11, color: "#64748b", marginTop: 4, flexWrap: "wrap" } },
+      series.map((s, k) => h("span", { key: k }, h("span", { style: { color: s.cor, fontWeight: 800 } }, k ? "- -" : "●"), " ", s.nome)),
+      msg && h("span", { style: { marginLeft: "auto", fontWeight: 700, color: msg[1] } }, msg[0])));
+}
+// Tela cheia escura usada durante os testes
+function nxTela(children, claro) {
+  return React.createElement("div", { style: { position: "fixed", inset: 0, zIndex: 300, background: claro ? "#f1f5f9" : "#0f172a", display: "flex", flexDirection: "column", alignItems: "center", padding: "16px 14px 22px", userSelect: "none", WebkitUserSelect: "none", touchAction: "manipulation", overflow: "hidden" } },
+    React.createElement("style", null, NX_CSS), children);
+}
+function nxTopo(esq, dir, pct, claro, grad) {
+  const h = React.createElement;
+  return h("div", { style: { width: "100%", maxWidth: 480, color: claro ? "#334155" : "#cbd5e1", flexShrink: 0 } },
+    h("div", { style: { display: "flex", justifyContent: "space-between", fontSize: 13, fontWeight: 800, marginBottom: 8, gap: 8 } }, h("span", null, esq), h("span", null, dir)),
+    h("div", { style: { background: claro ? "#e2e8f0" : "#1e293b", borderRadius: 20, height: 7, overflow: "hidden" } },
+      h("div", { style: { width: Math.max(0, Math.min(1, pct)) * 100 + "%", height: "100%", background: grad, transition: "width .2s" } })));
+}
+
+// ══ Trilhas (TMT) v2: tutorial, treino, 25 círculos por parte, formas A/B fixas, erros por tipo e gráficos ══
+const TMT_CFG = { itens: 25, treino: 6, altura: 132, alturaTreino: 92, raio: 5.2, distMin: 15.5, margem: 7 };
+const TMT_LETRAS = "ABCDEFGHIJKLM";
+const TMT_COR = { A: "#0891b2", B: "#7c3aed" };
+function tmtRotulos(parte, n) {
+  return Array.from({ length: n }, (_, i) => parte === "A" ? String(i + 1) : (i % 2 === 0 ? String(i / 2 + 1) : TMT_LETRAS[(i - 1) / 2]));
+}
+// Distribui os círculos sem sobreposição e ordena como uma trilha (o próximo costuma estar perto do anterior)
+function tmtLayout(seed, n, altura, distMin) {
+  const rnd = seededRandom(seed);
+  const m = TMT_CFG.margem;
+  let pts = [];
+  for (let tent = 0; tent < 80 && pts.length < n; tent++) {
+    pts = [];
+    let guarda = 0;
+    while (pts.length < n && guarda < 8000) {
+      guarda++;
+      const x = m + rnd() * (100 - 2 * m), y = m + rnd() * (altura - 2 * m);
+      if (pts.every(p => Math.hypot(p.x - x, p.y - y) >= distMin)) pts.push({ x, y });
     }
-    return pos;
   }
-  function iniciarParte(p) {
-    const pos = gerarPos();
-    const labels = p === "A" ? Array.from({
-      length: N
-    }, (_, i) => `${i + 1}`) : Array.from({
-      length: N
-    }, (_, i) => i % 2 === 0 ? `${Math.floor(i / 2) + 1}` : "ABCDEFGHIJ"[Math.floor(i / 2)]);
-    setPosicoes(pos.map((p, i) => ({
-      ...p,
-      label: labels[i]
-    })));
-    setProximo(0);
-    setErros(0);
-    setLinhas([]);
-    setInicio(Date.now());
-    setFase("jogo");
+  const livres = pts.slice();
+  const ordem = [];
+  let atual = livres.splice(Math.floor(rnd() * livres.length), 1)[0];
+  ordem.push(atual);
+  while (livres.length) {
+    livres.sort((a, b) => Math.hypot(a.x - atual.x, a.y - atual.y) - Math.hypot(b.x - atual.x, b.y - atual.y));
+    const k = Math.min(livres.length, 3), r = rnd();
+    const j = r < 0.5 ? 0 : r < 0.82 ? Math.min(1, k - 1) : k - 1;
+    atual = livres.splice(j, 1)[0];
+    ordem.push(atual);
   }
-  function tocar(idx) {
-    if (idx !== proximo) {
-      setErros(e => e + 1);
+  return ordem;
+}
+function tmtCalcular(a, b, forma) {
+  const r1 = v => Math.round(v * 10) / 10;
+  const tA = r1(a.tempo), tB = r1(b.tempo);
+  return {
+    tipo: "tmt", versao: 2, forma, itens: TMT_CFG.itens,
+    tempoA: tA, tempoB: tB, difBA: r1(tB - tA), razaoBA: tA ? Math.round(tB / tA * 100) / 100 : 0,
+    errosA: a.erros, errosB: b.erros, erros: a.erros + b.erros, errosAlternancia: b.errAlt, errosSequencia: b.errSeq,
+    intervalosA: a.intervalos, intervalosB: b.intervalos
+  };
+}
+
+function TmtTutorial({ parte }) {
+  const h = React.createElement;
+  const pts = [{ x: 14, y: 40 }, { x: 34, y: 16 }, { x: 52, y: 42 }, { x: 72, y: 18 }, { x: 88, y: 44 }];
+  const rot = tmtRotulos(parte, pts.length);
+  const [passo, setPasso] = useState(0);
+  useEffect(() => { const t = setInterval(() => setPasso(p => (p + 1) % (pts.length + 2)), 750); return () => clearInterval(t); }, [parte]);
+  const cor = TMT_COR[parte];
+  const feitos = Math.min(passo, pts.length);
+  return h("div", { style: { background: "#f8fafc", borderRadius: 16, padding: "10px 10px 8px", marginBottom: 14 } },
+    h("svg", { viewBox: "0 0 100 58", style: { width: "100%", height: "auto", display: "block" } },
+      pts.slice(1, feitos).map((p, i) => h("line", { key: i, x1: pts[i].x, y1: pts[i].y, x2: p.x, y2: p.y, stroke: cor, strokeWidth: 1.6, strokeLinecap: "round" })),
+      pts.map((p, i) => h("g", { key: i },
+        h("circle", { cx: p.x, cy: p.y, r: 6.5, fill: i < feitos ? cor : "#fff", stroke: i < feitos ? cor : "#334155", strokeWidth: .8 }),
+        h("text", { x: p.x, y: p.y + 2.1, fontSize: 6, fontWeight: 800, textAnchor: "middle", fill: i < feitos ? "#fff" : "#0f172a" }, rot[i]))),
+      passo < pts.length && h("text", { x: pts[passo].x + 3, y: pts[passo].y + 13, fontSize: 9 }, "👆")),
+    h("div", { style: { fontSize: 13, color: "#334155", textAlign: "center", fontWeight: 700 } },
+      parte === "A" ? "Toque em ordem: 1 → 2 → 3 → 4 → 5 ..." : "Alterne número e letra: 1 → A → 2 → B → 3 ..."));
+}
+
+function TMTForm({ color, onSubmit }) {
+  const h = React.createElement;
+  const [fase, setFase] = useState("intro"); // intro | treinoA | prontoA | parteA | entre | treinoB | prontoB | parteB | resultado
+  const [forma, setForma] = useState("A");
+  const [tab, setTab] = useState({ pontos: [], altura: TMT_CFG.altura });
+  const [prox, setProx] = useState(0);
+  const [erroIdx, setErroIdx] = useState(-1);
+  const [dica, setDica] = useState(false);
+  const [res, setRes] = useState(null);
+  const R = useRef({ t0: 0, ult: 0, intervalos: [], erros: 0, errAlt: 0, errSeq: 0, prox: 0, resA: null, timer: null, dicaT: null });
+  useEffect(() => () => { clearTimeout(R.current.timer); clearTimeout(R.current.dicaT); }, []);
+  const emTreino = fase === "treinoA" || fase === "treinoB";
+  const emJogo = fase === "parteA" || fase === "parteB";
+  const parte = fase === "treinoA" || fase === "parteA" || fase === "prontoA" ? "A" : "B";
+  // o relógio começa no quadro em que o tabuleiro aparece
+  useEffect(() => {
+    if (!emJogo) return;
+    const id = requestAnimationFrame(() => { R.current.t0 = performance.now(); R.current.ult = R.current.t0; });
+    return () => cancelAnimationFrame(id);
+  }, [fase]);
+
+  function agendarDica(treino) {
+    clearTimeout(R.current.dicaT);
+    if (treino) R.current.dicaT = setTimeout(() => setDica(true), 4000);
+  }
+  function montar(f) {
+    const treino = f === "treinoA" || f === "treinoB";
+    const p = f === "treinoA" || f === "parteA" ? "A" : "B";
+    const n = treino ? TMT_CFG.treino : TMT_CFG.itens;
+    const altura = treino ? TMT_CFG.alturaTreino : TMT_CFG.altura;
+    const seed = treino ? (p === "A" ? 7301 : 7302) : (forma === "A" ? 7100 : 7200) + (p === "A" ? 1 : 2);
+    const pos = tmtLayout(seed, n, altura, treino ? 24 : TMT_CFG.distMin);
+    const rot = tmtRotulos(p, n);
+    setTab({ pontos: pos.map((q, i) => ({ x: q.x, y: q.y, rot: rot[i] })), altura });
+    clearTimeout(R.current.timer);
+    R.current = { ...R.current, t0: 0, ult: 0, intervalos: [], erros: 0, errAlt: 0, errSeq: 0, prox: 0 };
+    setProx(0); setErroIdx(-1); setDica(false);
+    setFase(f);
+    agendarDica(treino);
+  }
+  function concluir(agora) {
+    clearTimeout(R.current.dicaT);
+    const r = R.current;
+    const dados = { tempo: (agora - (r.t0 || agora)) / 1000, erros: r.erros, errAlt: r.errAlt, errSeq: r.errSeq, intervalos: r.intervalos.slice() };
+    setTimeout(() => {
+      if (fase === "treinoA") setFase("prontoA");
+      else if (fase === "treinoB") setFase("prontoB");
+      else if (fase === "parteA") { R.current.resA = dados; setFase("entre"); }
+      else if (fase === "parteB") { const out = tmtCalcular(R.current.resA, dados, forma); setRes(out); setFase("resultado"); }
+    }, 450);
+  }
+  function tocar(i, e) {
+    if (e && e.preventDefault) e.preventDefault();
+    const r = R.current, alvo = r.prox;
+    if (alvo >= tab.pontos.length || i < alvo) return;
+    const agora = performance.now();
+    if (i === alvo) {
+      if (emJogo) {
+        if (!r.t0) { r.t0 = agora; r.ult = agora; }
+        r.intervalos.push(Math.round(agora - r.ult));
+        r.ult = agora;
+      }
+      r.prox = alvo + 1;
+      setProx(alvo + 1); setErroIdx(-1); setDica(false);
+      agendarDica(emTreino);
+      if (alvo + 1 >= tab.pontos.length) concluir(agora);
       return;
     }
-    if (proximo > 0) setLinhas(l => [...l, {
-      from: proximo - 1,
-      to: proximo
-    }]);
-    if (proximo + 1 >= N) {
-      const t = Math.round((Date.now() - inicio) / 1000);
-      if (parte === "A") {
-        setTempoA(t);
-        setParte("B");
-        setFase("entre");
-      } else {
-        onSubmit({
-          tempoA,
-          tempoB: t,
-          erros,
-          tipo: "tmt"
-        });
-        setFase("fim");
-      }
-    } else setProximo(p => p + 1);
+    r.erros++;
+    if (parte === "B") {
+      const num = s => /^\d+$/.test(s);
+      if (num(tab.pontos[i].rot) !== num(tab.pontos[alvo].rot)) r.errAlt++; else r.errSeq++;
+    }
+    setErroIdx(i); setDica(true);
+    clearTimeout(r.timer);
+    const treino = emTreino;
+    r.timer = setTimeout(() => { setErroIdx(-1); if (!treino) setDica(false); }, 1300);
   }
-  if (fase === "fim") return React.createElement("div", {
-    style: {
-      ...crd,
-      textAlign: "center"
-    }
-  }, React.createElement("div", {
-    style: {
-      fontSize: 48,
-      marginBottom: 8
-    }
-  }, "✅"), React.createElement("p", {
-    style: {
-      fontSize: 15,
-      fontWeight: 700,
-      color: "#6b7280"
-    }
-  }, "Respostas enviadas ao terapeuta."));
-  if (fase === "intro") return React.createElement("div", {
-    style: {
-      ...crd,
-      textAlign: "center"
-    }
-  }, React.createElement("div", {
-    style: {
-      fontSize: 52,
-      marginBottom: 12
-    }
-  }, "🔢"), React.createElement("h3", {
-    style: {
-      fontSize: 18,
-      fontWeight: 800,
-      color: "#1f2937",
-      marginBottom: 8
-    }
-  }, "Trail Making Test"), React.createElement("div", {
-    style: {
-      background: "#e0f2fe",
-      borderRadius: 10,
-      padding: 12,
-      marginBottom: 8,
-      textAlign: "left"
-    }
-  }, React.createElement("p", {
-    style: {
-      fontSize: 13,
-      fontWeight: 700,
-      color: "#0369a1"
-    }
-  }, "Parte A: conecte 1→2→3→...→10")), React.createElement("div", {
-    style: {
-      background: "#fef3c7",
-      borderRadius: 10,
-      padding: 12,
-      marginBottom: 16,
-      textAlign: "left"
-    }
-  }, React.createElement("p", {
-    style: {
-      fontSize: 13,
-      fontWeight: 700,
-      color: "#92400e"
-    }
-  }, "Parte B: alterne 1→A→2→B→...")), React.createElement("button", {
-    className: "btn-main",
-    style: {
-      background: color
-    },
-    onClick: () => iniciarParte("A")
-  }, "Começar Parte A"));
-  if (fase === "entre") return React.createElement("div", {
-    style: {
-      ...crd,
-      textAlign: "center"
-    }
-  }, React.createElement("div", {
-    style: {
-      fontSize: 48,
-      marginBottom: 8
-    }
-  }, "✅"), React.createElement("h3", {
-    style: {
-      fontSize: 16,
-      fontWeight: 800,
-      color: "#1f2937",
-      marginBottom: 4
-    }
-  }, "Parte A: ", tempoA, "s"), React.createElement("p", {
-    style: {
-      fontSize: 13,
-      color: "#6b7280",
-      marginBottom: 16
-    }
-  }, "Agora alterne números e letras"), React.createElement("button", {
-    className: "btn-main",
-    style: {
-      background: color
-    },
-    onClick: () => iniciarParte("B")
-  }, "Parte B"));
-  return React.createElement("div", null, React.createElement("div", {
-    style: {
-      display: "flex",
-      justifyContent: "space-between",
-      marginBottom: 10
-    }
-  }, React.createElement("span", {
-    style: {
-      fontSize: 13,
-      fontWeight: 800,
-      color
-    }
-  }, parte === "A" ? "Parte A — números" : "Parte B — alterne"), React.createElement("span", {
-    style: {
-      fontSize: 13,
-      fontWeight: 700,
-      color: "#374151"
-    }
-  }, "Próximo: ", React.createElement("strong", {
-    style: {
-      color
-    }
-  }, posicoes[proximo]?.label)), React.createElement("span", {
-    style: {
-      fontSize: 12,
-      color: "#e11d48",
-      fontWeight: 700
-    }
-  }, "✗", erros)), React.createElement("div", {
-    style: {
-      position: "relative",
-      width: "100%",
-      paddingBottom: "100%",
-      background: "#f9fafb",
-      borderRadius: 16,
-      overflow: "hidden",
-      border: "1px solid #e5e7eb"
-    }
-  }, React.createElement("svg", {
-    style: {
-      position: "absolute",
-      inset: 0,
-      width: "100%",
-      height: "100%"
-    }
-  }, linhas.map((l, i) => {
-    const f = posicoes[l.from],
-      t = posicoes[l.to];
-    return React.createElement("line", {
-      key: i,
-      x1: `${f.x}%`,
-      y1: `${f.y}%`,
-      x2: `${t.x}%`,
-      y2: `${t.y}%`,
-      stroke: color,
-      strokeWidth: "2.5",
-      strokeLinecap: "round"
-    });
-  }), posicoes.map((p, i) => {
-    const done = i < proximo,
-      next = i === proximo;
-    return React.createElement("g", {
-      key: i
-    }, React.createElement("circle", {
-      cx: `${p.x}%`,
-      cy: `${p.y}%`,
-      r: "6.5%",
-      fill: done ? color : next ? `${color}20` : "#fff",
-      stroke: next ? color : "#d1d5db",
-      strokeWidth: next ? "2.5" : "1.5",
-      style: {
-        cursor: "pointer"
-      },
-      onClick: () => tocar(i)
-    }), React.createElement("text", {
-      x: `${p.x}%`,
-      y: `${p.y}%`,
-      textAnchor: "middle",
-      dominantBaseline: "middle",
-      fontSize: "3.5%",
-      fontWeight: "800",
-      fill: done ? "#fff" : next ? color : "#374151",
-      style: {
-        pointerEvents: "none"
-      }
-    }, p.label));
-  }))));
+
+  const btn = (txt, fn, cor) => h("button", { className: "btn-main", style: { background: cor || "linear-gradient(135deg,#0891b2,#7c3aed)" }, onClick: fn }, txt);
+
+  if (fase === "intro") return h("div", { style: { ...crd, padding: 22 } },
+    nxCabecalho("Teste de flexibilidade", "Trilhas", h(React.Fragment, null, "Ligue os círculos ", h("b", null, "em ordem"), ", o mais rápido que conseguir, sem errar."), "#0891b2"),
+    h(TmtTutorial, { parte: "A" }),
+    h("div", { style: { fontSize: 13, color: "#475569", lineHeight: 1.55, marginBottom: 14 } },
+      "São duas partes. Na ", h("b", null, "Parte A"), " você liga só números. Na ", h("b", null, "Parte B"), " alterna número e letra. Antes de cada parte tem um treino curto. Se errar, o círculo fica vermelho: é só tocar no certo e continuar.",
+      h("div", { style: { fontSize: 12, color: "#94a3b8", marginTop: 6 } }, "Cerca de 3 minutos. Deixe o celular apoiado e use um dedo só.")),
+    nxFormaSeletor(forma, setForma, "#0891b2"),
+    btn("Fazer treino da Parte A", () => montar("treinoA")));
+
+  if (fase === "prontoA" || fase === "prontoB") return h("div", { style: { ...crd, textAlign: "center", padding: 24 } },
+    h("div", { style: { fontSize: 46, marginBottom: 6 } }, "👍"),
+    h("h3", { style: { fontSize: 19, fontWeight: 800, color: "#0f172a", marginBottom: 6 } }, "Treino concluído!"),
+    h("p", { style: { fontSize: 14, color: "#475569", marginBottom: 6, lineHeight: 1.5 } }, "Agora valendo: ", h("b", null, TMT_CFG.itens, " círculos"), fase === "prontoA" ? ", de 1 até 25." : ", de 1 até 13 alternando com as letras de A até L."),
+    h("p", { style: { fontSize: 13, color: "#64748b", marginBottom: 18 } }, "O tempo começa quando os círculos aparecem. Comece pelo 1."),
+    btn("Começar a Parte " + parte, () => montar(fase === "prontoA" ? "parteA" : "parteB"), `linear-gradient(135deg,${TMT_COR[parte]},${parte === "A" ? "#22d3ee" : "#a78bfa"})`),
+    h("button", { onClick: () => montar(fase === "prontoA" ? "treinoA" : "treinoB"), style: { border: "none", background: "none", color: TMT_COR[parte], fontWeight: 700, fontSize: 13, cursor: "pointer", marginTop: 8 } }, "Repetir o treino"));
+
+  if (fase === "entre") return h("div", { style: { ...crd, padding: 22 } },
+    h("div", { style: { textAlign: "center", marginBottom: 12 } },
+      h("div", { style: { fontSize: 40 } }, "✅"),
+      h("h3", { style: { fontSize: 18, fontWeight: 800, color: "#0f172a" } }, "Parte A concluída"),
+      h("div", { style: { fontSize: 13, color: "#64748b" } }, "Agora a parte mais difícil.")),
+    h(TmtTutorial, { parte: "B" }),
+    h("p", { style: { fontSize: 13, color: "#475569", lineHeight: 1.55, marginBottom: 14, textAlign: "center" } }, "Número, depois letra, depois o próximo número: ", h("b", null, "1 → A → 2 → B → 3 → C"), " e assim por diante."),
+    btn("Fazer treino da Parte B", () => montar("treinoB"), "linear-gradient(135deg,#7c3aed,#a78bfa)"));
+
+  if (fase === "resultado" && res) return h("div", { style: crd },
+    h("div", { style: { textAlign: "center", marginBottom: 14 } },
+      h("div", { style: { fontSize: 46, marginBottom: 4 } }, res.erros === 0 ? "🏆" : res.erros <= 2 ? "🎯" : "💪"),
+      h("h3", { style: { fontSize: 19, fontWeight: 800, color: "#0f172a" } }, res.erros === 0 ? "Sem nenhum erro!" : res.erros <= 2 ? "Muito bem!" : "Bom treino!"),
+      h("div", { style: { fontSize: 13, color: "#64748b", marginTop: 4 } }, "Parte A em ", res.tempoA, " s · Parte B em ", res.tempoB, " s")),
+    h(TmtResultado, { response: res, compacto: true }),
+    btn("Salvar resultado", () => onSubmit(res)));
+
+  // ── Tabuleiro em tela cheia
+  const cor = TMT_COR[parte];
+  const n = tab.pontos.length;
+  const proxRot = tab.pontos[prox] ? tab.pontos[prox].rot : "";
+  const titulo = (emTreino ? "Treino · " : "") + (parte === "A" ? "Parte A · números" : "Parte B · número e letra");
+  return nxTela([
+    nxTopo(titulo, `${prox}/${n}`, n ? prox / n : 0, true, `linear-gradient(90deg,${cor},${parte === "A" ? "#22d3ee" : "#a78bfa"})`),
+    h("div", { key: "dica", style: { height: 30, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, color: erroIdx >= 0 ? "#dc2626" : cor, flexShrink: 0 } },
+      erroIdx >= 0 ? `Ops! O próximo é o ${proxRot}` : dica ? `Próximo: ${proxRot}` : emTreino ? (parte === "A" ? "1 → 2 → 3 ..." : "1 → A → 2 → B ...") : ""),
+    h("div", { key: "tab", style: { flex: 1, width: "100%", maxWidth: 520, minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center" } },
+      h("svg", { viewBox: `0 0 100 ${tab.altura}`, preserveAspectRatio: "xMidYMid meet", style: { width: "100%", height: "100%", background: "#fff", borderRadius: 18, boxShadow: "0 4px 20px rgba(15,23,42,.08)", touchAction: "none" } },
+        tab.pontos.slice(1, prox).map((p, i) => h("line", { key: "l" + i, x1: tab.pontos[i].x, y1: tab.pontos[i].y, x2: p.x, y2: p.y, stroke: cor, strokeWidth: 1.1, strokeLinecap: "round", opacity: .85 })),
+        tab.pontos.map((p, i) => {
+          const feito = i < prox, errado = i === erroIdx, destaque = dica && i === prox;
+          return h("g", { key: i + "-" + (errado ? "e" : "n"), className: errado ? "nx-treme" : null, onPointerDown: e => tocar(i, e), style: { cursor: "pointer" } },
+            destaque && h("circle", { className: "nx-pulso", cx: p.x, cy: p.y, r: TMT_CFG.raio + 1.6, fill: "none", stroke: cor, strokeWidth: .8, opacity: .6 }),
+            h("circle", { cx: p.x, cy: p.y, r: TMT_CFG.raio, fill: feito ? cor : errado ? "#fee2e2" : "#fff", stroke: errado ? "#dc2626" : destaque ? cor : "#334155", strokeWidth: errado || destaque ? 1 : .55 }),
+            h("text", { x: p.x, y: p.y + 1.75, fontSize: 4.9, fontWeight: 800, textAnchor: "middle", fill: feito ? "#fff" : errado ? "#dc2626" : "#0f172a", style: { pointerEvents: "none" } }, p.rot),
+            i === 0 && !feito && h("text", { x: p.x, y: p.y + TMT_CFG.raio + 4, fontSize: 3, fontWeight: 700, textAnchor: "middle", fill: "#64748b", style: { pointerEvents: "none" } }, "INÍCIO"),
+            i === n - 1 && h("text", { x: p.x, y: p.y + TMT_CFG.raio + 4, fontSize: 3, fontWeight: 700, textAnchor: "middle", fill: "#64748b", style: { pointerEvents: "none" } }, "FIM"),
+            h("circle", { cx: p.x, cy: p.y, r: TMT_CFG.raio + 2.4, fill: "transparent" }));
+        })))
+  ], true);
 }
-function NBackForm({
-  color,
-  onSubmit
-}) {
-  const N = 2,
-    TOTAL = 25;
-  const [fase, setFase] = useState("intro");
-  const [seq, setSeq] = useState([]);
-  const [pos, setPos] = useState(0);
+
+function TmtGrafico({ a, b }) {
+  const h = React.createElement;
+  if (!a || !b || !a.length || !b.length) return null;
+  const W = 320, H = 140, L = 30, B = 20, T = 10;
+  const n = Math.max(a.length, b.length);
+  const maxV = Math.min(10, Math.max(2, ...a.concat(b).map(v => v / 1000))) * 1.08;
+  const x = i => L + i * (W - L - 8) / Math.max(1, n - 1);
+  const y = v => T + (H - T - B) * (1 - Math.min(v / 1000, maxV) / maxV);
+  const path = arr => arr.map((v, i) => (i ? "L" : "M") + x(i).toFixed(1) + " " + y(v).toFixed(1)).join(" ");
+  const marcas = [0, 2, 4, 6, 8, 10].filter(v => v <= maxV);
+  return h("svg", { viewBox: `0 0 ${W} ${H}`, style: { width: "100%", height: "auto", display: "block" }, role: "img", "aria-label": "Tempo de cada ligação" },
+    marcas.map(v => h("g", { key: v }, h("line", { x1: L, x2: W - 4, y1: y(v * 1000), y2: y(v * 1000), stroke: "#f1f5f9" }), h("text", { x: L - 5, y: y(v * 1000) + 3, fontSize: 8, fill: "#94a3b8", textAnchor: "end" }, v + "s"))),
+    h("path", { d: path(a), fill: "none", stroke: TMT_COR.A, strokeWidth: 1.5 }),
+    h("path", { d: path(b), fill: "none", stroke: TMT_COR.B, strokeWidth: 1.5 }),
+    a.map((v, i) => h("circle", { key: "a" + i, cx: x(i), cy: y(v), r: 2.2, fill: TMT_COR.A }, h("title", null, `Parte A, ligação ${i + 1}: ${(v / 1000).toFixed(1)} s`))),
+    b.map((v, i) => h("circle", { key: "b" + i, cx: x(i), cy: y(v), r: 2.2, fill: TMT_COR.B }, h("title", null, `Parte B, ligação ${i + 1}: ${(v / 1000).toFixed(1)} s`))),
+    h("text", { x: L, y: H - 5, fontSize: 8, fill: "#94a3b8" }, "1º círculo"),
+    h("text", { x: W - 6, y: H - 5, fontSize: 8, fill: "#94a3b8", textAnchor: "end" }, n + "º"));
+}
+function TmtResultado({ response, historico, compacto }) {
+  const h = React.createElement;
+  const r = response || {};
+  const v2 = r.versao === 2;
+  const dif = r.difBA != null ? r.difBA : Math.round(((r.tempoB || 0) - (r.tempoA || 0)) * 10) / 10;
+  const razao = r.razaoBA != null ? r.razaoBA : r.tempoA ? Math.round(r.tempoB / r.tempoA * 100) / 100 : 0;
+  const cards = [
+    nxCard((r.tempoA || 0) + " s", "Parte A", TMT_COR.A, "Velocidade de processamento"),
+    nxCard((r.tempoB || 0) + " s", "Parte B", TMT_COR.B, "Velocidade com alternância"),
+    nxCard(dif + " s", "Diferença B - A", "#0f172a", "Custo de alternar entre números e letras"),
+    nxCard(razao ? razao.toFixed(2).replace(".", ",") : "—", "Razão B/A", razao >= 3 ? "#dc2626" : razao >= 2.5 ? "#d97706" : "#0f172a", "Acima de 3 sugere dificuldade de alternância"),
+    v2 ? nxCard(r.errosA || 0, "Erros Parte A") : nxCard(r.erros || 0, "Erros"),
+    v2 && nxCard(r.errosB || 0, "Erros Parte B", (r.errosB || 0) > 2 ? "#d97706" : "#0f172a"),
+    v2 && nxCard(r.errosAlternancia || 0, "Erros de alternância", (r.errosAlternancia || 0) >= 2 ? "#dc2626" : "#0f172a", "Tocou número quando era letra, ou o contrário")
+  ];
+  const notas = [];
+  if (v2 && razao >= 3) notas.push("Parte B ficou mais de 3 vezes mais lenta que a A: pode indicar dificuldade de alternar entre regras (flexibilidade cognitiva).");
+  if (v2 && (r.errosAlternancia || 0) >= 2) notas.push("Errou a alternância " + r.errosAlternancia + " vezes: perdeu a regra número e letra durante a tarefa.");
+  return h("div", null,
+    nxGrade(cards),
+    notas.map((t, i) => nxNota(t, i)),
+    !compacto && v2 && h(NxCaixa, { titulo: "Tempo de cada ligação", extra: "Forma " + (r.forma || "A") },
+      h(TmtGrafico, { a: r.intervalosA, b: r.intervalosB }),
+      nxLegenda([[TMT_COR.A, "●", "Parte A"], [TMT_COR.B, "●", "Parte B"]])),
+    !compacto && !v2 && h("div", { style: { fontSize: 12, color: "#94a3b8", marginBottom: 10 } }, "Aplicação feita na versão antiga (10 círculos): os tempos não são comparáveis com a versão nova de 25 círculos."),
+    !compacto && historico && h(NxCaixa, { titulo: "Evolução entre aplicações" },
+      h(NxEvolucao, {
+        historico, ok: x => (x.versao || 1) === (r.versao || 1) && x.tempoB > 0, casas: 0,
+        series: [{ nome: "Parte B (s)", cor: TMT_COR.B, valor: x => x.tempoB }, { nome: "Parte A (s)", cor: TMT_COR.A, valor: x => x.tempoA }],
+        textoDif: d => Math.abs(d) < 3 ? ["Parte B estável", "#64748b"] : d < 0 ? [`▼ Parte B ${Math.abs(Math.round(d))} s mais rápida`, "#059669"] : [`▲ Parte B ${Math.round(d)} s mais lenta`, "#dc2626"]
+      })));
+}
+
+// ══ N-Back v2 adaptativo: começa no 1-back, sobe ou desce a cada bloco conforme os erros ══
+const NB_CFG = { blocos: 5, alvos: 5, base: 14, mostrar: 800, passo: 2200, nIni: 1, nMax: 4, sobe: 2, desce: 5, treinoItens: 10, treinoAlvos: 3 };
+const NB_LETRAS = "BCDFGHKLMNPRSTVXZ".split("");
+function nbSequencia(rnd, n, total, nAlvos) {
+  const pos = [];
+  for (let i = n; i < total; i++) pos.push(i);
+  for (let i = pos.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [pos[i], pos[j]] = [pos[j], pos[i]]; }
+  const alvos = new Set(pos.slice(0, nAlvos));
+  const s = [];
+  for (let i = 0; i < total; i++) {
+    if (alvos.has(i)) { s.push(s[i - n]); continue; }
+    let L, k = 0;
+    do { L = NB_LETRAS[Math.floor(rnd() * NB_LETRAS.length)]; k++; }
+    while (k < 60 && ((i >= n && L === s[i - n]) || (i >= 1 && L === s[i - 1]) || (i >= 2 && L === s[i - 2]) || (i >= 3 && L === s[i - 3])));
+    s.push(L);
+  }
+  return s.map((L, i) => ({ L, alvo: i >= n && L === s[i - n] }));
+}
+function nbBloco(itens, n) {
+  const alvos = itens.filter(x => x.alvo).length;
+  const acertos = itens.filter(x => x.alvo && x.resp).length;
+  const falsos = itens.filter(x => !x.alvo && x.resp).length;
+  const omissoes = alvos - acertos;
+  return { n, itens: itens.length, alvos, acertos, omissoes, falsos, erros: omissoes + falsos, tr: nxMedia(itens.filter(x => x.alvo && x.resp).map(x => x.t)), tempos: itens.filter(x => x.alvo && x.resp).map(x => x.t) };
+}
+function nbCalcular(blocos, forma) {
+  const soma = k => blocos.reduce((s, b) => s + (b[k] || 0), 0);
+  const acertos = soma("acertos"), omissoes = soma("omissoes"), falsos = soma("falsos"), alvos = soma("alvos"), itens = soma("itens");
+  const naoAlvos = itens - alvos;
+  const dprime = Math.round((nxZ((acertos + 0.5) / (alvos + 1)) - nxZ((falsos + 0.5) / (naoAlvos + 1))) * 100) / 100;
+  const dominados = blocos.filter(b => b.erros <= NB_CFG.sobe).map(b => b.n);
+  const tempos = [].concat(...blocos.map(b => b.tempos || []));
+  return {
+    tipo: "nback", versao: 2, adaptativo: true, forma,
+    blocos: blocos.map(b => ({ n: b.n, itens: b.itens, alvos: b.alvos, acertos: b.acertos, omissoes: b.omissoes, falsos: b.falsos, erros: b.erros, tr: b.tr })),
+    nivelMaximo: dominados.length ? Math.max(...dominados) : 0,
+    nivelMedio: Math.round(blocos.reduce((s, b) => s + b.n, 0) / (blocos.length || 1) * 10) / 10,
+    acertos, omissoes, erros: falsos, falsosAlarmes: falsos, total: itens, alvos,
+    precisao: itens ? Math.round((acertos + naoAlvos - falsos) / itens * 100) : 0, dprime, trMedio: nxMedia(tempos)
+  };
+}
+function nbTextoN(n) { return n === 1 ? "letra ANTERIOR" : `letra de ${n} atrás`; }
+
+function NbTutorial({ fixo }) {
+  const h = React.createElement;
+  const exemplos = [
+    { n: 1, seq: ["K", "T", "T", "M", "R", "R"] },
+    { n: 2, seq: ["K", "T", "K", "M", "R", "M"] },
+    { n: 3, seq: ["B", "S", "L", "B", "P", "L"] },
+    { n: 4, seq: ["H", "Q", "D", "Z", "H", "W"], extra: true }
+  ].filter(e => fixo ? e.n === fixo : !e.extra);
+  const [st, setSt] = useState({ e: 0, i: 0 });
+  useEffect(() => {
+    const t = setInterval(() => setSt(s => s.i < 6 ? { e: s.e, i: s.i + 1 } : { e: (s.e + 1) % exemplos.length, i: 0 }), 850);
+    return () => clearInterval(t);
+  }, [fixo]);
+  const ex = exemplos[st.e] || exemplos[0];
+  const cur = Math.min(st.i, 5);
+  const alvo = cur >= ex.n && ex.seq[cur] === ex.seq[cur - ex.n];
+  return h("div", { style: { background: "#0f172a", borderRadius: 18, padding: "16px 12px", marginBottom: 14 } },
+    h("div", { style: { textAlign: "center", fontSize: 12, fontWeight: 800, color: "#a78bfa", letterSpacing: 1, marginBottom: 10 } }, ex.n, "-BACK: compare com a ", nbTextoN(ex.n)),
+    h("div", { style: { display: "flex", justifyContent: "center", gap: 6, marginBottom: 10 } },
+      ex.seq.map((L, i) => {
+        const visivel = i <= cur, atual = i === cur, comp = i === cur - ex.n;
+        return h("div", { key: i, style: { width: 38, height: 46, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, fontWeight: 900, color: visivel ? "#fff" : "transparent", background: atual ? (alvo ? "#16a34a" : "#334155") : "#1e293b", border: comp ? "2px dashed #facc15" : "2px solid transparent", transition: "all .25s" } }, L);
+      })),
+    h("div", { style: { textAlign: "center", fontSize: 13, color: alvo ? "#4ade80" : "#cbd5e1", fontWeight: 800, minHeight: 20 } }, alvo ? "👆 IGUAL! Toque no botão" : cur >= ex.n ? "Diferente: não toque" : "Só memorize..."));
+}
+
+function NBackForm({ color, onSubmit }) {
+  const h = React.createElement;
+  const [fase, setFase] = useState("intro"); // intro | treino | pronto | jogo | pausa | resultado
+  const [forma, setForma] = useState("A");
+  const [n, setN] = useState(NB_CFG.nIni);
+  const [bloco, setBloco] = useState(0);
+  const [idx, setIdx] = useState(0);
   const [mostrando, setMostrando] = useState(false);
-  const [acertos, setAcertos] = useState(0);
-  const [erros, setErros] = useState(0);
-  const [omissoes, setOmissoes] = useState(0);
-  const tRef = useRef(null);
-  const stateRef = useRef({
-    pos: 0,
-    acertos: 0,
-    erros: 0,
-    omissoes: 0,
-    seq: []
-  });
-  function gerar() {
-    const s = Array.from({
-      length: TOTAL
-    }, () => LETRAS_NBACK[Math.floor(Math.random() * LETRAS_NBACK.length)]);
-    for (let i = N; i < TOTAL; i++) if (Math.random() < .3) s[i] = s[i - N];
-    return s;
+  const [apertou, setApertou] = useState(false);
+  const [fb, setFb] = useState(null);
+  const [ultimo, setUltimo] = useState(null); // resumo do bloco que acabou
+  const [res, setRes] = useState(null);
+  const [acTreino, setAcTreino] = useState(0);
+  const R = useRef({ itens: [], idx: 0, t0: 0, timers: [], blocos: [], n: NB_CFG.nIni, bloco: 0, treino: false });
+  function limpar() { R.current.timers.forEach(clearTimeout); R.current.timers = []; }
+  useEffect(() => () => limpar(), []);
+  function depois(fn, ms) { R.current.timers.push(setTimeout(fn, ms)); }
+  // o relógio começa no quadro em que a letra aparece
+  useEffect(() => {
+    if (!mostrando) return;
+    const id = requestAnimationFrame(() => { R.current.t0 = performance.now(); });
+    return () => cancelAnimationFrame(id);
+  }, [mostrando, idx]);
+
+  function mostrar(i) {
+    limpar();
+    R.current.idx = i;
+    R.current.t0 = 0;
+    setIdx(i); setApertou(false); setFb(null); setMostrando(true);
+    depois(() => setMostrando(false), NB_CFG.mostrar);
+    depois(() => fimItem(i), NB_CFG.passo);
   }
-  function rodar(s, i, a, e, om) {
-    if (i >= TOTAL) {
-      onSubmit({
-        acertos: a,
-        erros: e,
-        omissoes: om,
-        total: TOTAL,
-        tipo: "nback"
-      });
-      setFase("fim");
+  function fimItem(i) {
+    const it = R.current.itens[i];
+    if (R.current.treino && it.alvo && !it.resp) {
+      setFb({ ok: false, txt: "Era igual! Você devia ter tocado" });
+      depois(() => seguir(i), 1300);
       return;
     }
-    stateRef.current = {
-      pos: i,
-      acertos: a,
-      erros: e,
-      omissoes: om,
-      seq: s
-    };
-    setPos(i);
-    setMostrando(true);
-    setFase("jogo");
-    tRef.current = setTimeout(() => {
-      setMostrando(false);
-      if (i >= N && s[i] === s[i - N]) {
-        const no = om + 1;
-        stateRef.current.omissoes = no;
-        setOmissoes(no);
-        setTimeout(() => rodar(s, i + 1, a, e, no), 500);
-      } else setTimeout(() => rodar(s, i + 1, a, e, om), 500);
-    }, 1500);
+    seguir(i);
   }
-  function responder() {
-    const {
-      pos: i,
-      acertos: a,
-      erros: e,
-      omissoes: om,
-      seq: s
-    } = stateRef.current;
-    if (!mostrando || i < N) return;
-    clearTimeout(tRef.current);
-    setMostrando(false);
-    if (s[i] === s[i - N]) {
-      const na = a + 1;
-      stateRef.current.acertos = na;
-      setAcertos(na);
-      setTimeout(() => rodar(s, i + 1, na, e, om), 400);
-    } else {
-      const ne = e + 1;
-      stateRef.current.erros = ne;
-      setErros(ne);
-      setTimeout(() => rodar(s, i + 1, a, ne, om), 400);
+  function seguir(i) {
+    if (i + 1 < R.current.itens.length) { mostrar(i + 1); return; }
+    limpar(); setMostrando(false);
+    if (R.current.treino) {
+      setAcTreino(R.current.itens.filter(x => x.alvo ? x.resp : !x.resp).length);
+      setFase("pronto");
+      return;
     }
+    const b = nbBloco(R.current.itens, R.current.n);
+    R.current.blocos.push(b);
+    let prox = R.current.n;
+    if (b.erros <= NB_CFG.sobe) prox = Math.min(NB_CFG.nMax, prox + 1);
+    else if (b.erros >= NB_CFG.desce) prox = Math.max(1, prox - 1);
+    if (R.current.blocos.length >= NB_CFG.blocos) {
+      setRes(nbCalcular(R.current.blocos, forma));
+      setFase("resultado");
+      return;
+    }
+    setUltimo({ ...b, prox });
+    R.current.n = prox;
+    setN(prox);
+    setFase("pausa");
   }
-  function iniciar() {
-    const s = gerar();
-    setSeq(s);
-    setAcertos(0);
-    setErros(0);
-    setOmissoes(0);
-    rodar(s, 0, 0, 0, 0);
+  function apertar(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    const it = R.current.itens[R.current.idx];
+    if (!it || it.resp || !R.current.t0) return;
+    it.resp = true;
+    it.t = Math.round(performance.now() - R.current.t0);
+    setApertou(true);
+    if (R.current.treino) setFb(it.alvo ? { ok: true, txt: "Isso! Era igual" } : { ok: false, txt: "Não era igual" });
   }
-  useEffect(() => () => clearTimeout(tRef.current), []);
-  if (fase === "fim") return React.createElement("div", {
-    style: {
-      ...crd,
-      textAlign: "center"
-    }
-  }, React.createElement("div", {
-    style: {
-      fontSize: 48,
-      marginBottom: 8
-    }
-  }, "✅"), React.createElement("p", {
-    style: {
-      fontSize: 15,
-      fontWeight: 700,
-      color: "#6b7280"
-    }
-  }, "Respostas enviadas ao terapeuta."));
-  if (fase === "intro") return React.createElement("div", {
-    style: {
-      ...crd,
-      textAlign: "center"
-    }
-  }, React.createElement("div", {
-    style: {
-      fontSize: 52,
-      marginBottom: 12
-    }
-  }, "🧩"), React.createElement("h3", {
-    style: {
-      fontSize: 18,
-      fontWeight: 800,
-      color: "#1f2937",
-      marginBottom: 8
-    }
-  }, "N-Back (2-Back)"), React.createElement("p", {
-    style: {
-      fontSize: 13,
-      color: "#6b7280",
-      lineHeight: 1.6,
-      marginBottom: 16
-    }
-  }, "Pressione quando a letra atual for ", React.createElement("strong", null, "igual à de 2 posições atrás"), "."), React.createElement("div", {
-    style: {
-      background: "#fef3c7",
-      borderRadius: 12,
-      padding: 14,
-      marginBottom: 16
-    }
-  }, React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 6,
-      justifyContent: "center"
-    }
-  }, ["B", "K", "B", "L", "B"].map((l, i) => React.createElement("div", {
-    key: i,
-    style: {
-      width: 34,
-      height: 34,
-      borderRadius: 8,
-      background: i === 4 ? "#d97706" : "#fff",
-      border: "2px solid #f59e0b",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      fontWeight: 800,
-      fontSize: 14,
-      color: i === 4 ? "#fff" : "#374151"
-    }
-  }, l))), React.createElement("p", {
-    style: {
-      fontSize: 12,
-      color: "#92400e",
-      marginTop: 6
-    }
-  }, "5ª letra = 3ª → pressione!")), React.createElement("button", {
-    className: "btn-main",
-    style: {
-      background: color
-    },
-    onClick: iniciar
-  }, "Começar"));
-  const pct = Math.round(pos / TOTAL * 100);
-  return React.createElement("div", null, React.createElement("div", {
-    style: {
-      display: "flex",
-      justifyContent: "space-between",
-      marginBottom: 6
-    }
-  }, React.createElement("span", {
-    style: {
-      fontSize: 12,
-      fontWeight: 700,
-      color: "#374151"
-    }
-  }, pos + 1, "/", TOTAL), React.createElement("span", {
-    style: {
-      fontSize: 12,
-      fontWeight: 700,
-      color
-    }
-  }, pct, "%")), React.createElement("div", {
-    style: {
-      background: "#f3f4f6",
-      borderRadius: 20,
-      height: 8,
-      overflow: "hidden",
-      marginBottom: 14
-    }
-  }, React.createElement("div", {
-    style: {
-      width: `${pct}%`,
-      background: color,
-      height: "100%",
-      borderRadius: 20
-    }
-  })), React.createElement("div", {
-    style: {
-      background: "#fff",
-      borderRadius: 16,
-      padding: 32,
-      textAlign: "center",
-      marginBottom: 14,
-      boxShadow: "0 2px 10px rgba(0,0,0,.06)",
-      minHeight: 160,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center"
-    }
-  }, mostrando ? React.createElement("div", {
-    style: {
-      fontSize: 84,
-      fontWeight: 900,
-      color
-    }
-  }, seq[pos]) : React.createElement("div", {
-    style: {
-      fontSize: 32,
-      color: "#d1d5db"
-    }
-  }, "?")), React.createElement("button", {
-    onClick: responder,
-    disabled: !mostrando || pos < N,
-    style: {
-      width: "100%",
-      padding: 20,
-      borderRadius: 14,
-      border: "none",
-      background: mostrando && pos >= N ? `linear-gradient(135deg,${color},${color}cc)` : "#e5e7eb",
-      color: mostrando && pos >= N ? "#fff" : "#9ca3af",
-      fontWeight: 700,
-      fontSize: 15,
-      cursor: mostrando && pos >= N ? "pointer" : "default"
-    }
-  }, "✓ É igual ao de 2 atrás!"), React.createElement("div", {
-    style: {
-      display: "flex",
-      justifyContent: "space-around",
-      marginTop: 10
-    }
-  }, React.createElement("span", {
-    style: {
-      fontSize: 12,
-      color: "#059669",
-      fontWeight: 700
-    }
-  }, "✓", acertos), React.createElement("span", {
-    style: {
-      fontSize: 12,
-      color: "#e11d48",
-      fontWeight: 700
-    }
-  }, "✗", erros), React.createElement("span", {
-    style: {
-      fontSize: 12,
-      color: "#d97706",
-      fontWeight: 700
-    }
-  }, "○", omissoes)));
+  function iniciarTreino() {
+    const rnd = seededRandom(8001);
+    R.current = { ...R.current, treino: true, n: 1, itens: nbSequencia(rnd, 1, NB_CFG.treinoItens, NB_CFG.treinoAlvos) };
+    setN(1); setFase("treino");
+    depois(() => mostrar(0), 500);
+  }
+  function iniciarBloco(b) {
+    const nn = R.current.n;
+    const rnd = seededRandom((forma === "A" ? 8100 : 8200) + b * 10 + nn);
+    R.current = { ...R.current, treino: false, bloco: b, itens: nbSequencia(rnd, nn, NB_CFG.base + nn, NB_CFG.alvos) };
+    setBloco(b); setFase("jogo");
+    depois(() => mostrar(0), 600);
+  }
+  function iniciarTeste() {
+    R.current = { ...R.current, blocos: [], n: NB_CFG.nIni };
+    setN(NB_CFG.nIni);
+    iniciarBloco(0);
+  }
+  const grad = "linear-gradient(135deg,#7c3aed,#db2777)";
+  const btn = (txt, fn) => h("button", { className: "btn-main", style: { background: grad }, onClick: fn }, txt);
+
+  if (fase === "intro") return h("div", { style: { ...crd, padding: 22 } },
+    nxCabecalho("Teste de memória", "Memória em ação", h(React.Fragment, null, "As letras aparecem uma por vez. Toque em ", h("b", null, "IGUAL"), " quando a letra for a mesma de antes."), "#7c3aed"),
+    h(NbTutorial, null),
+    h("div", { style: { fontSize: 13, color: "#475569", lineHeight: 1.55, marginBottom: 14 } },
+      "O teste se ajusta a você: começa comparando com a letra ", h("b", null, "anterior"), ". Se for bem, passa a comparar com a de ", h("b", null, "2 atrás"), ", depois 3 atrás. Se errar muito, volta um nível. Errar faz parte!",
+      h("div", { style: { fontSize: 12, color: "#94a3b8", marginTop: 6 } }, NB_CFG.blocos, " blocos curtos, cerca de 3 minutos. Antes, um treino rápido.")),
+    nxFormaSeletor(forma, setForma, "#7c3aed"),
+    btn("Fazer treino (1-back)", iniciarTreino));
+
+  if (fase === "pronto") return h("div", { style: { ...crd, textAlign: "center", padding: 24 } },
+    h("div", { style: { fontSize: 46, marginBottom: 6 } }, acTreino >= 8 ? "👍" : "🤔"),
+    h("h3", { style: { fontSize: 19, fontWeight: 800, color: "#0f172a", marginBottom: 6 } }, acTreino >= 8 ? "Treino concluído!" : "Quer treinar mais uma vez?"),
+    h("p", { style: { fontSize: 14, color: "#475569", marginBottom: 6 } }, "Você acertou ", acTreino, " de ", NB_CFG.treinoItens, "."),
+    h("p", { style: { fontSize: 13, color: "#64748b", marginBottom: 18, lineHeight: 1.5 } }, "Agora valendo. Não vai aparecer se acertou. Entre os blocos você descansa e vê qual é o próximo nível."),
+    btn("Começar o teste", iniciarTeste),
+    h("button", { onClick: iniciarTreino, style: { border: "none", background: "none", color: "#7c3aed", fontWeight: 700, fontSize: 13, cursor: "pointer", marginTop: 8 } }, "Repetir o treino"));
+
+  if (fase === "pausa" && ultimo) {
+    const subiu = ultimo.prox > ultimo.n, desceu = ultimo.prox < ultimo.n;
+    return h("div", { style: { ...crd, padding: 22 } },
+      h("div", { style: { textAlign: "center", marginBottom: 12 } },
+        h("div", { style: { fontSize: 13, fontWeight: 800, color: "#94a3b8" } }, "Bloco ", bloco + 1, " de ", NB_CFG.blocos, " concluído"),
+        h("div", { style: { fontSize: 42, margin: "6px 0" } }, subiu ? "🚀" : desceu ? "🔄" : "👊"),
+        h("h3", { style: { fontSize: 19, fontWeight: 800, color: "#0f172a" } }, subiu ? `Subiu para ${ultimo.prox}-back!` : desceu ? `Vamos voltar para ${ultimo.prox}-back` : `Continua no ${ultimo.prox}-back`),
+        h("p", { style: { fontSize: 13, color: "#475569", marginTop: 4 } }, "Agora compare com a ", h("b", null, nbTextoN(ultimo.prox)), ".")),
+      ultimo.prox !== ultimo.n && h(NbTutorial, { fixo: ultimo.prox }),
+      btn("Próximo bloco", () => iniciarBloco(bloco + 1)));
+  }
+
+  if (fase === "resultado" && res) return h("div", { style: crd },
+    h("div", { style: { textAlign: "center", marginBottom: 14 } },
+      h("div", { style: { fontSize: 46, marginBottom: 4 } }, res.nivelMaximo >= 3 ? "🏆" : res.nivelMaximo >= 2 ? "🎯" : "💪"),
+      h("h3", { style: { fontSize: 19, fontWeight: 800, color: "#0f172a" } }, res.nivelMaximo >= 3 ? "Memória de craque!" : res.nivelMaximo >= 2 ? "Muito bem!" : "Bom treino!"),
+      h("div", { style: { fontSize: 13, color: "#64748b", marginTop: 4 } }, res.nivelMaximo ? `Chegou ao ${res.nivelMaximo}-back` : "Continue treinando", " · nível médio ", String(res.nivelMedio).replace(".", ","))),
+    h(NbResultado, { response: res, compacto: true }),
+    btn("Salvar resultado", () => onSubmit(res)));
+
+  // ── Tela cheia do treino / bloco
+  const itens = R.current.itens || [];
+  const pct = itens.length ? (idx + 1) / itens.length : 0;
+  const it = itens[idx];
+  return nxTela([
+    nxTopo(fase === "treino" ? "Treino · 1-back" : `Bloco ${bloco + 1}/${NB_CFG.blocos}`, h("span", { style: { background: "#7c3aed", color: "#fff", borderRadius: 12, padding: "2px 10px" } }, n, "-back"), pct, false, grad),
+    h("div", { key: "c", style: { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%" } },
+      h("div", { style: { width: 170, height: 170, borderRadius: 32, background: "#1e293b", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "inset 0 0 0 2px #334155" } },
+        mostrando && it && h("div", { key: idx, "data-i": idx, className: "nx-surge", style: { fontSize: 104, fontWeight: 900, color: "#fff", fontFamily: "Inter, system-ui, sans-serif" } }, it.L)),
+      h("div", { style: { marginTop: 18, fontSize: 14, color: "#94a3b8", textAlign: "center", minHeight: 22 } }, "É igual à ", h("b", { style: { color: "#e2e8f0" } }, nbTextoN(n)), "?"),
+      h("div", { style: { minHeight: 26, marginTop: 8, fontSize: 15, fontWeight: 800, color: fb ? (fb.ok ? "#4ade80" : "#fca5a5") : "transparent" } }, fb ? (fb.ok ? "✅ " : "❌ ") + fb.txt : ".")),
+    h("button", { key: "b", onPointerDown: apertar, "aria-label": "Igual", style: { width: "100%", maxWidth: 420, height: 92, borderRadius: 24, border: "none", fontSize: 26, fontWeight: 900, letterSpacing: 2, color: "#fff", background: apertou ? "#475569" : grad, boxShadow: apertou ? "none" : "0 10px 26px rgba(124,58,237,.35)", transform: apertou ? "scale(.97)" : "none", transition: "all .12s", cursor: "pointer", touchAction: "manipulation", flexShrink: 0 } }, apertou ? "✓" : "IGUAL")
+  ]);
 }
+
+function NbGrafico({ blocos }) {
+  const h = React.createElement;
+  if (!blocos || !blocos.length) return null;
+  const W = 320, H = 130, L = 34, B = 22, T = 14;
+  const x = i => L + 10 + i * (W - L - 30) / Math.max(1, blocos.length - 1);
+  const y = n => T + (H - T - B) * (1 - (n - 1) / 3);
+  const caminho = blocos.map((b, i) => (i ? "L" + x(i).toFixed(1) + " " + y(blocos[i - 1].n).toFixed(1) + " " : "M") + x(i).toFixed(1) + " " + y(b.n).toFixed(1)).join(" ");
+  return h("svg", { viewBox: `0 0 ${W} ${H}`, style: { width: "100%", height: "auto", display: "block" }, role: "img", "aria-label": "Nível em cada bloco" },
+    [1, 2, 3, 4].map(n => h("g", { key: n }, h("line", { x1: L, x2: W - 4, y1: y(n), y2: y(n), stroke: "#f1f5f9" }), h("text", { x: L - 5, y: y(n) + 3, fontSize: 8, fill: "#94a3b8", textAnchor: "end" }, n + "-back"))),
+    h("path", { d: caminho, fill: "none", stroke: "#7c3aed", strokeWidth: 1.6, opacity: .6 }),
+    blocos.map((b, i) => h("g", { key: i },
+      h("circle", { cx: x(i), cy: y(b.n), r: 5, fill: b.erros <= NB_CFG.sobe ? "#16a34a" : b.erros >= NB_CFG.desce ? "#dc2626" : "#f59e0b", stroke: "#fff", strokeWidth: 1.2 }, h("title", null, `Bloco ${i + 1} (${b.n}-back): ${b.acertos}/${b.alvos} acertos, ${b.falsos} toques errados`)),
+      h("text", { x: x(i), y: y(b.n) - 8, fontSize: 7.5, fontWeight: 700, fill: "#334155", textAnchor: "middle" }, `${b.acertos}/${b.alvos}`),
+      h("text", { x: x(i), y: H - 6, fontSize: 7.5, fill: "#94a3b8", textAnchor: "middle" }, "B" + (i + 1)))));
+}
+function NbResultado({ response, historico, compacto }) {
+  const h = React.createElement;
+  const r = response || {};
+  const v2 = r.versao === 2;
+  const virg = v => String(v).replace(".", ",");
+  const cards = v2 ? [
+    nxCard(r.nivelMaximo ? r.nivelMaximo + "-back" : "abaixo de 1", "Nível máximo", "#7c3aed", "Maior nível em que errou 2 ou menos no bloco"),
+    nxCard(virg(r.nivelMedio || 0), "Nível médio", "#7c3aed", "Média do nível nos 5 blocos: principal indicador do teste adaptativo"),
+    nxCard(`${r.acertos || 0}/${r.alvos || 0}`, "Acertos (iguais)", "#059669"),
+    nxCard(r.omissoes || 0, "Deixou passar", (r.omissoes || 0) > 6 ? "#d97706" : "#0f172a", "Era igual e não tocou"),
+    nxCard(r.falsosAlarmes != null ? r.falsosAlarmes : r.erros || 0, "Toques errados", (r.falsosAlarmes || 0) > 5 ? "#dc2626" : "#0f172a", "Tocou quando não era igual: impulsividade"),
+    nxCard((r.precisao || 0) + "%", "Precisão"),
+    nxCard(virg(r.dprime || 0), "Sensibilidade (d')", "#0f172a", "Quanto distingue igual de diferente. Acima de 2 é bom"),
+    nxCard((r.trMedio || 0) + " ms", "TR nos acertos", "#0891b2")
+  ] : [
+    nxCard(r.acertos || 0, "Acertos"), nxCard(r.erros || 0, "Erros"), nxCard(r.omissoes || 0, "Omissões"), nxCard(r.total || 25, "Itens")
+  ];
+  const notas = [];
+  if (v2 && (r.falsosAlarmes || 0) > (r.omissoes || 0) + 3) notas.push("Mais toques errados do que esquecimentos: tende a responder por impulso antes de conferir.");
+  return h("div", null,
+    nxGrade(cards),
+    notas.map((t, i) => nxNota(t, i)),
+    !compacto && v2 && h(NxCaixa, { titulo: "Nível em cada bloco", extra: "Forma " + (r.forma || "A") },
+      h(NbGrafico, { blocos: r.blocos }),
+      nxLegenda([["#16a34a", "●", "subiu (até 2 erros)"], ["#f59e0b", "●", "manteve"], ["#dc2626", "●", "desceu (5 erros ou mais)"]])),
+    !compacto && !v2 && h("div", { style: { fontSize: 12, color: "#94a3b8", marginBottom: 10 } }, "Aplicação feita na versão antiga (2-back fixo): não comparável com a versão adaptativa."),
+    !compacto && historico && h(NxCaixa, { titulo: "Evolução entre aplicações" },
+      h(NxEvolucao, {
+        historico, ok: x => x.versao === 2 && x.nivelMedio != null, min0: true, casas: 1,
+        series: [{ nome: "nível médio", cor: "#7c3aed", valor: x => x.nivelMedio }, { nome: "nível máximo", cor: "#db2777", valor: x => x.nivelMaximo }],
+        textoDif: d => Math.abs(d) < 0.3 ? ["estável", "#64748b"] : d > 0 ? ["▲ subiu " + virg(Math.round(d * 10) / 10) + " nível", "#059669"] : ["▼ caiu " + virg(Math.round(-d * 10) / 10) + " nível", "#dc2626"]
+      })));
+}
+
 function GoNoGoForm({ color, onSubmit }) {
   const TOTAL = 30;
   const [fase, setFase] = useState("intro");
@@ -9501,278 +9606,455 @@ function MatrizesForm({ color, onSubmit }) {
 }
 
 // ── Memória de Lista de Palavras ──────────────────────────────────────────
-function MemoriaListaForm({ color, onSubmit }) {
-  const LISTAS = [
-    ["casa", "lua", "peixe", "verde", "carro", "mesa", "nuvem", "livro", "porta", "jardim"],
-    ["fogo", "areia", "ponte", "tigre", "caneta", "água", "pedra", "barco", "chuva", "flor"],
-    ["vento", "prato", "cobra", "relógio", "saco", "fruta", "janela", "campo", "anel", "chave"],
-  ];
-
-  const [fase, setFase] = useState("intro"); // intro | estudo | distrator | recordacao | resultado
-  const [lista] = useState(() => LISTAS[Math.floor(Math.random() * LISTAS.length)]);
-  const [idxPalavra, setIdxPalavra] = useState(0);
-  const [resposta, setResposta] = useState("");
-  const [palavrasDigitadas, setPalavrasDigitadas] = useState([]);
-  const [acertos, setAcertos] = useState(null);
-  const [timeLeft, setTimeLeft] = useState(5);
-  const timerRef = useRef(null);
-
-  // Estudo: mostra cada palavra por 2s
-  useEffect(() => {
-    if (fase !== "estudo") return;
-    if (idxPalavra >= lista.length) {
-      setFase("distrator");
-      setTimeLeft(20);
-      return;
+// ══ Span de Dígitos v2: 2 tentativas por tamanho, teclado na tela, treino em cada modo, formas A/B ══
+const SPAN_CFG = { dirIni: 3, dirMax: 9, invIni: 2, invMax: 8, on: 800, off: 250 };
+function spanSequencia(seed, tam) {
+  const rnd = seededRandom(seed);
+  for (let tent = 0; tent < 60; tent++) {
+    const s = [];
+    let k = 0;
+    while (s.length < tam && k < 400) {
+      k++;
+      const d = Math.floor(rnd() * 10), u = s[s.length - 1];
+      if (s.includes(d) || (u != null && Math.abs(d - u) === 1)) continue;
+      s.push(d);
     }
-    const t = setTimeout(() => setIdxPalavra(i => i + 1), 2000);
-    return () => clearTimeout(t);
-  }, [fase, idxPalavra]);
-
-  // Distrator: conta regressiva 20s (tarefa de contagem simples para interferência)
-  useEffect(() => {
-    if (fase !== "distrator") return;
-    if (timeLeft <= 0) { setFase("recordacao"); return; }
-    timerRef.current = setTimeout(() => setTimeLeft(t => t - 1), 1000);
-    return () => clearTimeout(timerRef.current);
-  }, [fase, timeLeft]);
-
-  function confirmar() {
-    const palavras = resposta.toLowerCase().split(/[\s,;]+/).map(w => w.trim()).filter(Boolean);
-    setPalavrasDigitadas(palavras);
-    const corretas = lista.filter(p => palavras.includes(p));
-    setAcertos(corretas.length);
-    setFase("resultado");
+    if (s.length === tam) return s;
   }
-
-  if (fase === "intro") return React.createElement("div", { style: { ...crd, textAlign: "center" } },
-    React.createElement("div", { style: { fontSize: 52, marginBottom: 12 } }, "🧠"),
-    React.createElement("h3", { style: { fontSize: 18, fontWeight: 800, color: "#1f2937", marginBottom: 8 } }, "Memória de Lista de Palavras"),
-    React.createElement("p", { style: { fontSize: 13, color: "#6b7280", lineHeight: 1.7, marginBottom: 16 } },
-      "Você verá ", React.createElement("strong", null, "10 palavras"), " uma por vez. Tente memorizar todas. Depois haverá uma tarefa curta de distração, e então você deverá escrever todas as palavras que lembrar."
-    ),
-    React.createElement("div", { style: { background: "#fef3c7", borderRadius: 12, padding: 12, marginBottom: 20, fontSize: 13, color: "#92400e", fontWeight: 600 } },
-      "⏱ Cada palavra aparece por 2 segundos"
-    ),
-    React.createElement("button", { className: "btn-main", style: { background: color }, onClick: () => setFase("estudo") }, "Começar")
-  );
-
-  if (fase === "estudo") return React.createElement("div", { style: { ...crd, textAlign: "center" } },
-    React.createElement("div", { style: { fontSize: 13, fontWeight: 700, color: "#9ca3af", marginBottom: 16 } }, `Palavra ${idxPalavra + 1} de ${lista.length}`),
-    React.createElement("div", { style: { background: "#f3f4f6", borderRadius: 20, height: 8, overflow: "hidden", marginBottom: 32 } },
-      React.createElement("div", { style: { width: `${(idxPalavra / lista.length) * 100}%`, background: color, height: "100%", borderRadius: 20, transition: "width .2s" } })
-    ),
-    React.createElement("div", { style: { fontSize: 52, fontWeight: 900, color, letterSpacing: 2, minHeight: 80, display: "flex", alignItems: "center", justifyContent: "center" } },
-      idxPalavra < lista.length ? lista[idxPalavra] : "..."
-    ),
-    React.createElement("p", { style: { fontSize: 12, color: "#9ca3af", marginTop: 24 } }, "Memorize cada palavra")
-  );
-
-  if (fase === "distrator") return React.createElement("div", { style: { ...crd, textAlign: "center" } },
-    React.createElement("div", { style: { fontSize: 48, marginBottom: 16 } }, "🔢"),
-    React.createElement("h3", { style: { fontSize: 16, fontWeight: 800, color: "#1f2937", marginBottom: 8 } }, "Tarefa de distração"),
-    React.createElement("div", { style: { fontSize: 80, fontWeight: 900, color, marginBottom: 8 } }, timeLeft),
-    React.createElement("p", { style: { fontSize: 13, color: "#6b7280", lineHeight: 1.6 } },
-      "Enquanto aguarda, conte mentalmente de 3 em 3 a partir de 100", React.createElement("br", null),
-      React.createElement("span", { style: { fontWeight: 700 } }, "100 → 97 → 94 → 91...")
-    ),
-    React.createElement("p", { style: { fontSize: 12, color: "#9ca3af", marginTop: 16 } }, "A tarefa de recordação começará automaticamente")
-  );
-
-  if (fase === "recordacao") return React.createElement("div", { style: crd },
-    React.createElement("div", { style: { fontSize: 48, textAlign: "center", marginBottom: 12 } }, "✍️"),
-    React.createElement("h3", { style: { fontSize: 16, fontWeight: 800, color: "#1f2937", marginBottom: 8, textAlign: "center" } }, "Escreva as palavras que lembrar"),
-    React.createElement("p", { style: { fontSize: 13, color: "#6b7280", marginBottom: 16, textAlign: "center" } }, "Separe por vírgula ou espaço. Não precisa ser em ordem."),
-    React.createElement("textarea", {
-      className: "inp",
-      value: resposta,
-      onChange: e => setResposta(e.target.value),
-      placeholder: "casa, lua, peixe...",
-      style: { minHeight: 100, resize: "vertical", fontSize: 16 },
-      autoFocus: true
-    }),
-    React.createElement("button", {
-      className: "btn-main", style: { background: color },
-      onClick: confirmar, disabled: !resposta.trim()
-    }, "Confirmar")
-  );
-
-  // Resultado
-  const pct = Math.round(acertos / lista.length * 100);
-  const nivel = pct >= 80 ? { label: "Excelente", cor: "#059669" } : pct >= 60 ? { label: "Bom", cor: "#0891b2" } : pct >= 40 ? { label: "Moderado", cor: "#d97706" } : { label: "Baixo", cor: "#e11d48" };
-  const corretas = lista.filter(p => palavrasDigitadas.includes(p));
-  const incorretas = palavrasDigitadas.filter(p => !lista.includes(p));
-
-  return React.createElement("div", { style: crd },
-    React.createElement("div", { style: { textAlign: "center", marginBottom: 20 } },
-      React.createElement("div", { style: { fontSize: 48, marginBottom: 8 } }, pct >= 60 ? "🏆" : pct >= 40 ? "🎯" : "💪"),
-      React.createElement("h3", { style: { fontSize: 18, fontWeight: 800, color: "#1f2937" } }, `${acertos}/10 palavras recordadas`),
-      React.createElement("div", { style: { marginTop: 8, display: "inline-block", background: `${nivel.cor}15`, color: nivel.cor, padding: "4px 16px", borderRadius: 20, fontWeight: 800, fontSize: 14 } }, nivel.label)
-    ),
-    React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 } },
-      React.createElement("div", { style: { background: "#d1fae5", borderRadius: 12, padding: 12 } },
-        React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: "#065f46", marginBottom: 6, textTransform: "uppercase" } }, `✓ Corretas (${corretas.length})`),
-        corretas.map(p => React.createElement("div", { key: p, style: { fontSize: 13, color: "#065f46", fontWeight: 600 } }, p))
-      ),
-      React.createElement("div", { style: { background: incorretas.length > 0 ? "#fee2e2" : "#f3f4f6", borderRadius: 12, padding: 12 } },
-        React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: incorretas.length > 0 ? "#991b1b" : "#9ca3af", marginBottom: 6, textTransform: "uppercase" } }, `✗ Intrusões (${incorretas.length})`),
-        incorretas.length > 0 ? incorretas.map(p => React.createElement("div", { key: p, style: { fontSize: 13, color: "#991b1b", fontWeight: 600 } }, p)) : React.createElement("div", { style: { fontSize: 12, color: "#9ca3af" } }, "Nenhuma")
-      )
-    ),
-    React.createElement("div", { style: { fontSize: 12, color: "#9ca3af", marginBottom: 16, background: "#f9fafb", borderRadius: 10, padding: 10 } },
-      React.createElement("strong", null, "Lista original: "), lista.join(", ")
-    ),
-    React.createElement("button", { className: "btn-main", style: { background: color },
-      onClick: () => onSubmit({ acertos, total: lista.length, pct, intrusions: incorretas.length, nivel: nivel.label, tipo: "memoria_lista" })
-    }, "Salvar resultado")
-  );
+  return Array.from({ length: tam }, (_, i) => (i * 3 + 1) % 10);
+}
+function spanCalcular(tent, forma) {
+  const maior = m => Math.max(0, ...tent.filter(t => t.m === m && t.ok).map(t => t.tam));
+  const pts = m => tent.filter(t => t.m === m && t.ok).length;
+  const spanDireto = maior("d"), spanInverso = maior("i"), spanTotal = spanDireto + spanInverso;
+  const nivel = spanTotal >= 13 ? "Excelente" : spanTotal >= 10 ? "Bom" : spanTotal >= 7 ? "Moderado" : "Baixo";
+  return {
+    tipo: "digit_span", versao: 2, forma, spanDireto, spanInverso, spanTotal,
+    pontosDireto: pts("d"), pontosInverso: pts("i"), pontosTotal: pts("d") + pts("i"), nivel,
+    tempoResposta: Math.round(nxMedia(tent.map(t => t.t)) / 100) / 10,
+    tentativas: tent.map(t => ({ m: t.m, tam: t.tam, ok: t.ok, t: t.t }))
+  };
 }
 
+function SpanTeclado({ valor, tam, onDigito, onApagar, onOk }) {
+  const h = React.createElement;
+  const tecla = (rot, fn, extra) => h("button", { key: rot, onPointerDown: e => { e.preventDefault(); fn(); }, style: { height: 62, borderRadius: 16, border: "none", fontSize: 26, fontWeight: 800, color: "#fff", background: "#1e293b", cursor: "pointer", touchAction: "manipulation", ...extra } }, rot);
+  const cheio = valor.length >= tam;
+  return h("div", { style: { width: "100%", maxWidth: 360 } },
+    h("div", { style: { display: "flex", justifyContent: "center", gap: 6, marginBottom: 18, flexWrap: "wrap" } },
+      Array.from({ length: tam }, (_, i) => h("div", { key: i, style: { width: 34, height: 44, borderRadius: 10, background: i < valor.length ? "#0891b2" : "#1e293b", border: i === valor.length ? "2px solid #22d3ee" : "2px solid transparent", color: "#fff", fontSize: 24, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center" } }, valor[i] != null ? valor[i] : ""))),
+    h("div", { style: { display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10 } },
+      [1, 2, 3, 4, 5, 6, 7, 8, 9].map(d => tecla(String(d), () => { if (!cheio) onDigito(d); })),
+      tecla("⌫", onApagar, { background: "#334155", fontSize: 22 }),
+      tecla("0", () => { if (!cheio) onDigito(0); }),
+      tecla("OK", () => { if (cheio) onOk(); }, { background: cheio ? "linear-gradient(135deg,#0891b2,#7c3aed)" : "#1e293b", color: cheio ? "#fff" : "#475569", fontSize: 20 })));
+}
 
 function DigitSpanForm({ color, onSubmit }) {
-  const [fase, setFase] = useState("intro"); // intro | direto | pausa | inverso | resultado
-  const [nivel, setNivel] = useState(3);
-  const [sequencia, setSequencia] = useState([]);
-  const [mostrandoIdx, setMostrandoIdx] = useState(-1);
-  const [digitando, setDigitando] = useState(false);
-  const [resposta, setResposta] = useState("");
-  const [maiorDireto, setMaiorDireto] = useState(0);
-  const [erroDireto, setErroDireto] = useState(false);
-  const [maiorInverso, setMaiorInverso] = useState(0);
-  const [erroInverso, setErroInverso] = useState(false);
-  const [modo, setModo] = useState("direto"); // direto | inverso
+  const h = React.createElement;
+  const [fase, setFase] = useState("intro"); // intro | jogo | entre | resultado
+  const [forma, setForma] = useState("A");
+  const [etapa, setEtapa] = useState("mostrar"); // mostrar | digitar | fb | aguarde
+  const [atual, setAtual] = useState({ m: "d", treino: true, tam: 2, tent: 0, seq: [] });
+  const [vis, setVis] = useState(-1);
+  const [valor, setValor] = useState([]);
+  const [fb, setFb] = useState(null);
+  const [res, setRes] = useState(null);
+  const R = useRef({ tent: [], timers: [], tDig: 0 });
+  function limpar() { R.current.timers.forEach(clearTimeout); R.current.timers = []; }
+  useEffect(() => () => limpar(), []);
+  function depois(fn, ms) { R.current.timers.push(setTimeout(fn, ms)); }
 
-  function gerarSequencia(tam) {
-    const seq = [];
-    while (seq.length < tam) {
-      const d = Math.floor(Math.random() * 10);
-      if (seq.length === 0 || seq[seq.length - 1] !== d) seq.push(d);
-    }
-    return seq;
+  function apresentar(a) {
+    limpar();
+    setAtual(a); setValor([]); setFb(null); setVis(-1); setEtapa("mostrar"); setFase("jogo");
+    let t = 700;
+    a.seq.forEach((_, i) => { depois(() => setVis(i), t); t += SPAN_CFG.on; depois(() => setVis(-1), t); t += SPAN_CFG.off; });
+    depois(() => { setEtapa("digitar"); R.current.tDig = performance.now(); }, t + 200);
   }
-
-  function iniciarNivel(m, tam) {
-    const seq = gerarSequencia(tam);
-    setSequencia(seq);
-    setModo(m);
-    setResposta("");
-    setDigitando(false);
-    setMostrandoIdx(-1);
-    setFase(m === "direto" ? "direto" : "inverso");
-    let i = 0;
-    const mostrar = () => {
-      setMostrandoIdx(i);
-      setTimeout(() => {
-        setMostrandoIdx(-1);
-        i++;
-        if (i < seq.length) setTimeout(mostrar, 350);
-        else setTimeout(() => setDigitando(true), 500);
-      }, 800);
-    };
-    setTimeout(mostrar, 400);
+  function seqDe(m, tam, tent) { return spanSequencia((forma === "A" ? 9100 : 9200) + (m === "d" ? 0 : 500) + tam * 10 + tent, tam); }
+  function treino(m) { apresentar({ m, treino: true, tam: 2, tent: 0, seq: m === "d" ? [4, 7] : [3, 8] }); }
+  function comecar(m) {
+    const tam = m === "d" ? SPAN_CFG.dirIni : SPAN_CFG.invIni;
+    apresentar({ m, treino: false, tam, tent: 0, seq: seqDe(m, tam, 0) });
   }
-
   function confirmar() {
-    const digitado = resposta.split("").map(Number);
-    const alvo = modo === "direto" ? sequencia : [...sequencia].reverse();
-    const correto = digitado.length === alvo.length && digitado.every((d, i) => d === alvo[i]);
-    if (modo === "direto") {
-      if (correto) {
-        setMaiorDireto(sequencia.length);
-        setTimeout(() => iniciarNivel("direto", sequencia.length + 1), 600);
-      } else {
-        if (erroDireto) {
-          // Segunda falha consecutiva no direto -> passa para inverso
-          setFase("pausa");
-        } else {
-          setErroDireto(true);
-          setTimeout(() => iniciarNivel("direto", sequencia.length), 600); // repete mesmo tamanho
-        }
-      }
-    } else {
-      if (correto) {
-        setMaiorInverso(sequencia.length);
-        setTimeout(() => iniciarNivel("inverso", sequencia.length + 1), 600);
-      } else {
-        if (erroInverso) {
-          finalizarTeste();
-        } else {
-          setErroInverso(true);
-          setTimeout(() => iniciarNivel("inverso", sequencia.length), 600);
-        }
-      }
-    }
-    setResposta("");
-    setDigitando(false);
+    const alvo = atual.m === "d" ? atual.seq : atual.seq.slice().reverse();
+    const ok = valor.length === alvo.length && valor.every((d, i) => d === alvo[i]);
+    const t = Math.round(performance.now() - R.current.tDig);
+    if (atual.treino) { setFb({ ok, alvo }); setEtapa("fb"); return; }
+    R.current.tent.push({ m: atual.m, tam: atual.tam, ok, t });
+    setEtapa("aguarde");
+    const max = atual.m === "d" ? SPAN_CFG.dirMax : SPAN_CFG.invMax;
+    depois(() => {
+      if (atual.tent === 0) { apresentar({ ...atual, tent: 1, seq: seqDe(atual.m, atual.tam, 1) }); return; }
+      const algumOk = R.current.tent.some(x => x.m === atual.m && x.tam === atual.tam && x.ok);
+      if (algumOk && atual.tam < max) { apresentar({ ...atual, tam: atual.tam + 1, tent: 0, seq: seqDe(atual.m, atual.tam + 1, 0) }); return; }
+      if (atual.m === "d") { setFase("entre"); return; }
+      setRes(spanCalcular(R.current.tent, forma));
+      setFase("resultado");
+    }, 650);
   }
+  const grad = "linear-gradient(135deg,#0891b2,#7c3aed)";
+  const btn = (txt, fn) => h("button", { className: "btn-main", style: { background: grad }, onClick: fn }, txt);
 
-  function finalizarTeste() {
+  if (fase === "intro") return h("div", { style: { ...crd, padding: 22 } },
+    nxCabecalho("Teste de memória", "Sequência de números", "Os números aparecem um por vez. Depois você digita a sequência.", "#0891b2"),
+    h("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 } },
+      [["Parte 1", "Na MESMA ordem", "4 · 7 · 2", "4 7 2", "#0891b2"], ["Parte 2", "De TRÁS para frente", "4 · 7 · 2", "2 7 4", "#7c3aed"]].map(([p, reg, viu, dig, c]) =>
+        h("div", { key: p, style: { background: c + "10", borderRadius: 14, padding: 12, textAlign: "center" } },
+          h("div", { style: { fontSize: 11, fontWeight: 800, color: c, letterSpacing: 1 } }, p.toUpperCase()),
+          h("div", { style: { fontSize: 13, fontWeight: 800, color: "#0f172a", margin: "4px 0 8px" } }, reg),
+          h("div", { style: { fontSize: 12, color: "#64748b" } }, "Viu: ", h("b", null, viu)),
+          h("div", { style: { fontSize: 12, color: "#64748b" } }, "Digita: ", h("b", { style: { color: c } }, dig))))),
+    h("div", { style: { fontSize: 13, color: "#475569", lineHeight: 1.55, marginBottom: 14 } },
+      "A sequência começa curta e vai crescendo. Cada tamanho tem 2 chances. O teste para quando você erra as duas do mesmo tamanho. Não fale os números em voz alta e não anote.",
+      h("div", { style: { fontSize: 12, color: "#94a3b8", marginTop: 6 } }, "Cerca de 3 minutos. Cada parte tem um treino antes.")),
+    nxFormaSeletor(forma, setForma, "#0891b2"),
+    btn("Fazer treino da Parte 1", () => treino("d")));
+
+  if (fase === "entre") return h("div", { style: { ...crd, textAlign: "center", padding: 24 } },
+    h("div", { style: { fontSize: 42, marginBottom: 4 } }, "🔄"),
+    h("h3", { style: { fontSize: 19, fontWeight: 800, color: "#0f172a", marginBottom: 6 } }, "Parte 1 concluída!"),
+    h("p", { style: { fontSize: 14, color: "#475569", marginBottom: 14, lineHeight: 1.5 } }, "Agora é ", h("b", { style: { color: "#7c3aed" } }, "de trás para frente"), ". Se aparecer 4 · 7 · 2, você digita 2 7 4."),
+    btn("Fazer treino da Parte 2", () => treino("i")));
+
+  if (fase === "resultado" && res) return h("div", { style: crd },
+    h("div", { style: { textAlign: "center", marginBottom: 14 } },
+      h("div", { style: { fontSize: 46, marginBottom: 4 } }, res.spanTotal >= 12 ? "🏆" : res.spanTotal >= 9 ? "🎯" : "💪"),
+      h("h3", { style: { fontSize: 19, fontWeight: 800, color: "#0f172a" } }, res.spanTotal >= 12 ? "Memória afiada!" : res.spanTotal >= 9 ? "Muito bem!" : "Bom treino!"),
+      h("div", { style: { fontSize: 13, color: "#64748b", marginTop: 4 } }, "Guardou até ", res.spanDireto, " números na ordem e ", res.spanInverso, " de trás para frente")),
+    h(SpanResultado, { response: res, compacto: true }),
+    btn("Salvar resultado", () => onSubmit(res)));
+
+  // ── Tela cheia
+  const cor = atual.m === "d" ? "#0891b2" : "#7c3aed";
+  const esq = (atual.treino ? "Treino · " : "") + (atual.m === "d" ? "Parte 1 · mesma ordem" : "Parte 2 · de trás para frente");
+  return nxTela([
+    nxTopo(esq, atual.treino ? "não conta" : `${atual.tam} números`, atual.treino ? 0 : (atual.tam - (atual.m === "d" ? 2 : 1)) / ((atual.m === "d" ? SPAN_CFG.dirMax : SPAN_CFG.invMax) - (atual.m === "d" ? 2 : 1)), false, grad),
+    h("div", { key: "c", style: { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%" } },
+      etapa === "mostrar" && h("div", { style: { textAlign: "center" } },
+        h("div", { style: { height: 150, display: "flex", alignItems: "center", justifyContent: "center" } },
+          vis >= 0 ? h("div", { key: vis, className: "nx-surge", style: { fontSize: 120, fontWeight: 900, color: "#fff", fontFamily: "Inter, system-ui, sans-serif" } }, atual.seq[vis]) : h("div", { style: { fontSize: 36, color: "#475569" } }, "+")),
+        h("div", { style: { display: "flex", justifyContent: "center", gap: 6, marginTop: 10 } }, atual.seq.map((_, i) => h("div", { key: i, style: { width: 8, height: 8, borderRadius: 4, background: i <= vis ? cor : "#334155" } }))),
+        h("div", { style: { fontSize: 13, color: "#64748b", marginTop: 14 } }, "Preste atenção...")),
+      etapa === "digitar" && h(React.Fragment, null,
+        h("div", { style: { fontSize: 15, color: "#e2e8f0", fontWeight: 800, marginBottom: 16, textAlign: "center" } }, atual.m === "d" ? "Digite na MESMA ordem" : h(React.Fragment, null, "Digite de ", h("span", { style: { color: "#c4b5fd" } }, "TRÁS PARA FRENTE"))),
+        h(SpanTeclado, { valor, tam: atual.tam, onDigito: d => setValor(v => v.length < atual.tam ? v.concat(d) : v), onApagar: () => setValor(v => v.slice(0, -1)), onOk: confirmar })),
+      etapa === "aguarde" && h("div", { style: { fontSize: 15, color: "#94a3b8", fontWeight: 700 } }, "Resposta registrada"),
+      etapa === "fb" && fb && h("div", { style: { textAlign: "center", maxWidth: 340 } },
+        h("div", { style: { fontSize: 52 } }, fb.ok ? "✅" : "❌"),
+        h("div", { style: { fontSize: 18, fontWeight: 900, color: fb.ok ? "#4ade80" : "#fca5a5", margin: "6px 0" } }, fb.ok ? "Isso mesmo!" : "Não foi dessa vez"),
+        !fb.ok && h("div", { style: { fontSize: 14, color: "#cbd5e1", marginBottom: 6 } }, "Apareceu ", h("b", null, atual.seq.join(" · ")), ". A resposta certa era ", h("b", { style: { color: "#fff" } }, fb.alvo.join(" "))),
+        h("button", { className: "btn-main", style: { background: grad, marginTop: 14 }, onClick: () => fb.ok ? comecar(atual.m) : treino(atual.m) }, fb.ok ? "Começar valendo" : "Tentar o treino de novo"),
+        fb.ok ? null : h("button", { onClick: () => comecar(atual.m), style: { border: "none", background: "none", color: "#94a3b8", fontWeight: 700, fontSize: 13, cursor: "pointer", marginTop: 8 } }, "Já entendi, começar valendo")))
+  ]);
+}
+
+function SpanGrafico({ tentativas }) {
+  const h = React.createElement;
+  if (!tentativas || !tentativas.length) return null;
+  const linha = (m, ini, max, cor, rot) => h("div", { style: { marginBottom: 10 } },
+    h("div", { style: { fontSize: 11, fontWeight: 800, color: cor, marginBottom: 4 } }, rot),
+    h("div", { style: { display: "flex", gap: 6, flexWrap: "wrap" } },
+      Array.from({ length: max - ini + 1 }, (_, k) => ini + k).map(tam => {
+        const ts = tentativas.filter(t => t.m === m && t.tam === tam);
+        return h("div", { key: tam, style: { textAlign: "center", opacity: ts.length ? 1 : .35 } },
+          h("div", { style: { display: "flex", gap: 2 } }, [0, 1].map(i => h("div", { key: i, title: ts[i] ? `${tam} números, tentativa ${i + 1}: ${ts[i].ok ? "acertou" : "errou"}` : "não aplicada", style: { width: 14, height: 14, borderRadius: 4, background: !ts[i] ? "#e2e8f0" : ts[i].ok ? "#16a34a" : "#ef4444" } }))),
+          h("div", { style: { fontSize: 9, color: "#94a3b8", marginTop: 2 } }, tam));
+      })));
+  return h("div", null, linha("d", SPAN_CFG.dirIni, SPAN_CFG.dirMax, "#0891b2", "Mesma ordem"), linha("i", SPAN_CFG.invIni, SPAN_CFG.invMax, "#7c3aed", "De trás para frente"));
+}
+function SpanResultado({ response, historico, compacto }) {
+  const h = React.createElement;
+  const r = response || {};
+  const v2 = r.versao === 2;
+  const cards = [
+    nxCard(r.spanDireto || 0, "Span direto", "#0891b2", "Maior sequência repetida na mesma ordem: memória de curto prazo"),
+    nxCard(r.spanInverso || 0, "Span inverso", "#7c3aed", "Maior sequência repetida de trás para frente: memória de trabalho"),
+    nxCard(r.spanTotal || 0, "Span total"),
+    v2 && nxCard(r.pontosDireto || 0, "Acertos direto"),
+    v2 && nxCard(r.pontosInverso || 0, "Acertos inverso"),
+    v2 && nxCard(String(r.tempoResposta || 0).replace(".", ",") + " s", "Tempo para responder", "#0f172a", "Tempo médio entre o fim da sequência e o OK"),
+    nxCard(r.nivel || "—", "Classificação", "#64748b", "Faixa de referência do app, não normatizada")
+  ];
+  const notas = [];
+  if (v2 && r.spanDireto - r.spanInverso >= 3) notas.push("Diferença grande entre direto e inverso: guarda bem a informação, mas tem mais dificuldade para manipulá-la (memória de trabalho).");
+  return h("div", null,
+    nxGrade(cards),
+    notas.map((t, i) => nxNota(t, i)),
+    !compacto && v2 && h(NxCaixa, { titulo: "Tentativa a tentativa", extra: "Forma " + (r.forma || "A") },
+      h(SpanGrafico, { tentativas: r.tentativas }),
+      nxLegenda([["#16a34a", "■", "acertou"], ["#ef4444", "■", "errou"], ["#cbd5e1", "■", "não chegou"]])),
+    !compacto && !v2 && h("div", { style: { fontSize: 12, color: "#94a3b8", marginBottom: 10 } }, "Aplicação feita na versão antiga: as tentativas não foram salvas."),
+    !compacto && historico && h(NxCaixa, { titulo: "Evolução entre aplicações" },
+      h(NxEvolucao, {
+        historico, ok: x => x.spanTotal > 0, min0: true,
+        series: [{ nome: "span inverso", cor: "#7c3aed", valor: x => x.spanInverso }, { nome: "span direto", cor: "#0891b2", valor: x => x.spanDireto }],
+        textoDif: d => d === 0 ? ["inverso estável", "#64748b"] : d > 0 ? [`▲ inverso +${d}`, "#059669"] : [`▼ inverso ${d}`, "#dc2626"]
+      })));
+}
+
+// ══ Memória de Lista v2: 12 palavras, 3 tentativas (curva de aprendizagem) + evocação tardia após 20 min ══
+const MEM_CFG = { exibir: 1500, intervalo: 350, tentativas: 3, atrasoMin: 20, tempoResposta: 90 };
+const MEM_LISTAS = {
+  A: ["bola", "janela", "cavalo", "martelo", "nuvem", "camisa", "limão", "escada", "tambor", "jardim", "relógio", "panela"],
+  B: ["chuva", "tomate", "cadeira", "pássaro", "foguete", "tapete", "moeda", "espelho", "cenoura", "barco", "violão", "lápis"]
+};
+function memNorm(s) { return String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z]/g, ""); }
+function memDist(a, b) {
+  const m = a.length, n = b.length;
+  if (Math.abs(m - n) > 1) return 2;
+  const d = Array.from({ length: m + 1 }, (_, i) => [i].concat(Array(n).fill(0)));
+  for (let j = 1; j <= n; j++) d[0][j] = j;
+  for (let i = 1; i <= m; i++) for (let j = 1; j <= n; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+  return d[m][n];
+}
+function memCorrigir(palavras, lista) {
+  const alvo = lista.map(memNorm);
+  const vistos = [], intrusoes = [];
+  let repeticoes = 0;
+  (palavras || []).forEach(p => {
+    const w = memNorm(p);
+    if (!w) return;
+    let i = alvo.indexOf(w);
+    if (i < 0 && w.endsWith("s")) i = alvo.indexOf(w.slice(0, -1));
+    if (i < 0 && w.length >= 4) i = alvo.findIndex(a => memDist(a, w) <= 1);
+    if (i < 0) { intrusoes.push(String(p).trim()); return; }
+    if (vistos.includes(i)) repeticoes++; else vistos.push(i);
+  });
+  return { idx: vistos.sort((a, b) => a - b), intrusoes, repeticoes, palavras: (palavras || []).map(p => String(p).trim()).filter(Boolean) };
+}
+function memCalcular(forma, rodadas, tard, salvoEm) {
+  const n = rodadas.map(r => (r.idx || []).length);
+  const tardia = (tard.idx || []).length;
+  const pos = (a, b) => Math.round(rodadas.reduce((s, r) => s + (r.idx || []).filter(i => i >= a && i <= b).length, 0) / ((b - a + 1) * rodadas.length) * 100);
+  const todas = rodadas.concat([tard]);
+  const pct = Math.round(tardia / 12 * 100);
+  return {
+    tipo: "memoria_lista", versao: 2, forma, total: 12,
+    t1: n[0] || 0, t2: n[1] || 0, t3: n[2] || 0, tardia,
+    aprendizagem: n.reduce((a, b) => a + b, 0), ganho: (n[2] || 0) - (n[0] || 0),
+    retencao: n[2] ? Math.round(tardia / n[2] * 100) : 0,
+    atrasoMin: salvoEm ? Math.max(0, Math.round((Date.now() - salvoEm) / 60000)) : 0,
+    intrusions: todas.reduce((s, r) => s + (r.intrusoes || []).length, 0),
+    repeticoes: todas.reduce((s, r) => s + (r.repeticoes || 0), 0),
+    posInicio: pos(0, 3), posMeio: pos(4, 7), posFim: pos(8, 11),
+    acertos: tardia, pct, nivel: pct >= 80 ? "Excelente" : pct >= 60 ? "Bom" : pct >= 40 ? "Moderado" : "Baixo",
+    recordadas: { t1: (rodadas[0] || {}).idx || [], t2: (rodadas[1] || {}).idx || [], t3: (rodadas[2] || {}).idx || [], tardia: tard.idx || [] },
+    intrusoesLista: [].concat(...todas.map(r => r.intrusoes || [])).slice(0, 30)
+  };
+}
+
+function MemRecordar({ titulo, sub, onFim, cor }) {
+  const h = React.createElement;
+  const [lista, setLista] = useState([]);
+  const [txt, setTxt] = useState("");
+  const [resta, setResta] = useState(MEM_CFG.tempoResposta);
+  const ref = useRef({ lista: [], txt: "", fim: false });
+  ref.current.lista = lista; ref.current.txt = txt;
+  function terminar() {
+    if (ref.current.fim) return;
+    ref.current.fim = true;
+    onFim(ref.current.lista.concat(ref.current.txt.split(/[\s,;.]+/).filter(Boolean)));
+  }
+  useEffect(() => {
+    const t = setInterval(() => setResta(r => { if (r <= 1) { clearInterval(t); setTimeout(terminar, 0); return 0; } return r - 1; }), 1000);
+    return () => clearInterval(t);
+  }, []);
+  function mudar(v) {
+    if (/[\s,;]/.test(v)) {
+      const partes = v.split(/[\s,;]+/);
+      const ultimo = partes.pop();
+      const novas = partes.filter(Boolean);
+      if (novas.length) setLista(l => l.concat(novas));
+      setTxt(ultimo);
+    } else setTxt(v);
+  }
+  function adicionar() { const w = txt.trim(); if (w) { setLista(l => l.concat(w)); setTxt(""); } }
+  return h("div", { style: { ...crd, padding: 20 } },
+    h("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 } },
+      h("div", { style: { fontSize: 12, fontWeight: 800, color: cor, letterSpacing: 1, textTransform: "uppercase" } }, titulo),
+      h("div", { style: { fontSize: 13, fontWeight: 800, color: resta <= 15 ? "#dc2626" : "#64748b" } }, "⏱ ", resta, "s")),
+    h("h3", { style: { fontSize: 18, fontWeight: 900, color: "#0f172a", marginBottom: 4 } }, "Escreva as palavras que lembrar"),
+    h("p", { style: { fontSize: 13, color: "#64748b", marginBottom: 14 } }, sub),
+    h("div", { style: { display: "flex", gap: 8, marginBottom: 12 } },
+      h("input", { className: "inp", value: txt, autoFocus: true, autoComplete: "off", autoCorrect: "off", autoCapitalize: "off", spellCheck: false, placeholder: "digite uma palavra", onChange: e => mudar(e.target.value), onKeyDown: e => { if (e.key === "Enter") { e.preventDefault(); adicionar(); } }, style: { flex: 1, fontSize: 17, marginBottom: 0 } }),
+      h("button", { onClick: adicionar, style: { border: "none", borderRadius: 12, padding: "0 16px", background: cor, color: "#fff", fontWeight: 800, fontSize: 20, cursor: "pointer" } }, "+")),
+    h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8, minHeight: 40, marginBottom: 16 } },
+      lista.length ? lista.map((w, i) => h("span", { key: i, style: { background: cor + "15", color: cor, borderRadius: 20, padding: "6px 10px 6px 14px", fontWeight: 700, fontSize: 14, display: "inline-flex", alignItems: "center", gap: 6 } }, w,
+        h("button", { onClick: () => setLista(l => l.filter((_, k) => k !== i)), "aria-label": "remover " + w, style: { border: "none", background: "none", color: cor, fontWeight: 900, cursor: "pointer", fontSize: 15, padding: 0 } }, "×")))
+        : h("span", { style: { fontSize: 12, color: "#cbd5e1" } }, "As palavras aparecem aqui. Pode ser em qualquer ordem.")),
+    h("button", { className: "btn-main", style: { background: cor }, onClick: terminar }, "Terminei (", lista.length + (txt.trim() ? 1 : 0), ")"));
+}
+
+function MemoriaListaForm({ color, onSubmit, parcial, onParcial }) {
+  const h = React.createElement;
+  const temParcial = !!(parcial && parcial.rodadas && parcial.salvoEm);
+  const [fase, setFase] = useState(temParcial ? "espera" : "intro"); // intro | estudo | recordar | entre | espera | tardia | resultado
+  const [forma, setForma] = useState(temParcial ? parcial.forma || "A" : "A");
+  const [tent, setTent] = useState(0);
+  const [idx, setIdx] = useState(0);
+  const [vis, setVis] = useState(false);
+  const [agora, setAgora] = useState(Date.now());
+  const [res, setRes] = useState(null);
+  const R = useRef({ rodadas: temParcial ? Object.values(parcial.rodadas) : [], salvoEm: temParcial ? parcial.salvoEm : 0 });
+  const lista = MEM_LISTAS[forma];
+  const cor = "#db2777";
+
+  useEffect(() => {
+    if (fase !== "estudo") return;
+    if (idx >= lista.length) { const t = setTimeout(() => setFase("recordar"), 600); return () => clearTimeout(t); }
+    const t1 = setTimeout(() => setVis(true), MEM_CFG.intervalo);
+    const t2 = setTimeout(() => { setVis(false); setIdx(i => i + 1); }, MEM_CFG.intervalo + MEM_CFG.exibir);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [fase, idx]);
+  useEffect(() => {
+    if (fase !== "espera") return;
+    const t = setInterval(() => setAgora(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [fase]);
+
+  function estudar(t) { setTent(t); setIdx(0); setVis(false); setFase("estudo"); }
+  function fimRodada(palavras) {
+    R.current.rodadas.push(memCorrigir(palavras, lista));
+    if (R.current.rodadas.length < MEM_CFG.tentativas) { setFase("entre"); return; }
+    R.current.salvoEm = Date.now();
+    const p = { forma, salvoEm: R.current.salvoEm, rodadas: R.current.rodadas.map(r => ({ idx: r.idx, intrusoes: r.intrusoes, repeticoes: r.repeticoes, palavras: r.palavras })) };
+    if (onParcial) { try { onParcial(p); } catch (e) { } }
+    setAgora(Date.now());
+    setFase("espera");
+  }
+  function fimTardia(palavras) {
+    const tard = memCorrigir(palavras, lista);
+    setRes(memCalcular(forma, R.current.rodadas, tard, R.current.salvoEm));
     setFase("resultado");
   }
 
-  if (fase === "intro") return React.createElement("div", { style: { ...crd, textAlign: "center" } },
-    React.createElement("div", { style: { fontSize: 52, marginBottom: 12 } }, "🔢"),
-    React.createElement("h3", { style: { fontSize: 18, fontWeight: 800, color: "#1f2937", marginBottom: 8 } }, "Span de Dígitos"),
-    React.createElement("p", { style: { fontSize: 13, color: "#6b7280", marginBottom: 16, lineHeight: 1.7 } },
-      "Você verá uma sequência de números, um de cada vez. Primeiro repita ", React.createElement("strong", null, "na mesma ordem"), ". Depois repita ", React.createElement("strong", null, "de trás para frente"), "."
-    ),
-    React.createElement("div", { style: { background: "#fef3c7", borderRadius: 10, padding: 12, marginBottom: 20, fontSize: 13, color: "#92400e", fontWeight: 600 } },
-      "A sequência cresce a cada acerto. O teste termina quando errar 2 vezes seguidas em cada modo."
-    ),
-    React.createElement("button", { className: "btn-main", style: { background: color }, onClick: () => { setErroDireto(false); iniciarNivel("direto", 3); } }, "Começar")
-  );
+  if (fase === "intro") return h("div", { style: { ...crd, padding: 22 } },
+    nxCabecalho("Teste de memória", "Lista de palavras", h(React.Fragment, null, "Você vai ver ", h("b", null, "12 palavras"), ", uma por vez. Depois escreve as que lembrar."), cor),
+    h("div", { style: { display: "flex", gap: 8, marginBottom: 14 } },
+      [["1ª, 2ª e 3ª vez", "A mesma lista aparece 3 vezes. A cada vez, tente lembrar mais.", "🔁"], ["Daqui a 20 min", "Você volta aqui e escreve as palavras de novo, sem ver a lista.", "⏰"]].map(([t, d, e]) =>
+        h("div", { key: t, style: { flex: 1, background: "#fdf2f8", borderRadius: 14, padding: 12 } },
+          h("div", { style: { fontSize: 22 } }, e), h("div", { style: { fontSize: 13, fontWeight: 800, color: "#0f172a", margin: "4px 0" } }, t), h("div", { style: { fontSize: 12, color: "#64748b", lineHeight: 1.4 } }, d)))),
+    h("div", { style: { fontSize: 13, color: "#475569", lineHeight: 1.55, marginBottom: 14 } },
+      "Não anote nem tire foto da lista. Erros de digitação pequenos não contam como erro.",
+      h("div", { style: { fontSize: 12, color: "#94a3b8", marginTop: 6 } }, "Parte 1: cerca de 3 minutos. Parte 2: 1 minuto, depois de 20 minutos.")),
+    nxFormaSeletor(forma, setForma, cor),
+    h("button", { className: "btn-main", style: { background: "linear-gradient(135deg,#db2777,#7c3aed)" }, onClick: () => estudar(0) }, "Ver a lista (1ª vez)"));
 
-  if (fase === "pausa") return React.createElement("div", { style: { ...crd, textAlign: "center" } },
-    React.createElement("div", { style: { fontSize: 48, marginBottom: 8 } }, "🔄"),
-    React.createElement("h3", { style: { fontSize: 16, fontWeight: 800, color: "#1f2937", marginBottom: 4 } }, "Parte 1 concluída"),
-    React.createElement("p", { style: { fontSize: 13, color: "#6b7280", marginBottom: 16 } }, `Maior sequência direta: ${maiorDireto} dígitos`),
-    React.createElement("p", { style: { fontSize: 13, color: "#6b7280", marginBottom: 16 } }, "Agora repita as sequências ", React.createElement("strong", null, "de trás para frente"), "."),
-    React.createElement("button", { className: "btn-main", style: { background: color }, onClick: () => { setErroInverso(false); iniciarNivel("inverso", 2); } }, "Começar Parte 2")
-  );
+  if (fase === "estudo") return nxTela([
+    nxTopo(`${tent + 1}ª vez · memorize`, `${Math.min(idx + 1, lista.length)}/${lista.length}`, idx / lista.length, false, "linear-gradient(90deg,#db2777,#7c3aed)"),
+    h("div", { key: "c", style: { flex: 1, display: "flex", alignItems: "center", justifyContent: "center" } },
+      vis && idx < lista.length ? h("div", { key: idx, className: "nx-surge", style: { fontSize: 52, fontWeight: 900, color: "#fff", letterSpacing: 1 } }, lista[idx]) : h("div", { style: { fontSize: 32, color: "#475569" } }, "+"))
+  ]);
 
-  if (fase === "resultado") {
-    const spanTotal = maiorDireto + maiorInverso;
-    const nivel2 = spanTotal >= 13 ? { label: "Excelente", cor: "#059669" } : spanTotal >= 10 ? { label: "Bom", cor: "#0891b2" } : spanTotal >= 7 ? { label: "Moderado", cor: "#d97706" } : { label: "Baixo", cor: "#e11d48" };
-    return React.createElement("div", { style: crd },
-      React.createElement("div", { style: { textAlign: "center", marginBottom: 16 } },
-        React.createElement("div", { style: { fontSize: 48, marginBottom: 8 } }, spanTotal >= 10 ? "🏆" : "🎯"),
-        React.createElement("h3", { style: { fontSize: 18, fontWeight: 800, color: "#1f2937" } }, "Span de Dígitos concluído"),
-        React.createElement("div", { style: { marginTop: 8, display: "inline-block", background: `${nivel2.cor}15`, color: nivel2.cor, padding: "4px 16px", borderRadius: 20, fontWeight: 800, fontSize: 14 } }, nivel2.label)
-      ),
-      React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 } },
-        [[maiorDireto, "Span Direto", "#0891b2"], [maiorInverso, "Span Inverso", "#7c3aed"]].map(([v, l, c]) =>
-          React.createElement("div", { key: l, style: { background: "#f9fafb", borderRadius: 12, padding: 12, textAlign: "center" } },
-            React.createElement("div", { style: { fontSize: 24, fontWeight: 900, color: c } }, v),
-            React.createElement("div", { style: { fontSize: 11, color: "#9ca3af" } }, l)
-          ))
-      ),
-      React.createElement("button", { className: "btn-main", style: { background: color },
-        onClick: () => onSubmit({ spanDireto: maiorDireto, spanInverso: maiorInverso, spanTotal, nivel: nivel2.label, tipo: "digit_span" })
-      }, "Salvar resultado")
-    );
+  if (fase === "recordar") return h(MemRecordar, { key: "r" + tent, cor, titulo: `${tent + 1}ª vez`, sub: tent ? "Escreva todas que lembrar, inclusive as que já escreveu antes." : "Em qualquer ordem. Toque em + ou dê espaço depois de cada palavra.", onFim: fimRodada });
+
+  if (fase === "entre") {
+    const ult = R.current.rodadas[R.current.rodadas.length - 1];
+    return h("div", { style: { ...crd, textAlign: "center", padding: 24 } },
+      h("div", { style: { fontSize: 42 } }, "🧠"),
+      h("h3", { style: { fontSize: 19, fontWeight: 800, color: "#0f172a", margin: "6px 0" } }, "Você lembrou ", ult.idx.length, " de 12"),
+      h("p", { style: { fontSize: 14, color: "#475569", marginBottom: 18, lineHeight: 1.5 } }, "Agora a ", h("b", null, "mesma lista"), " vai aparecer de novo. Tente lembrar mais palavras desta vez."),
+      h("button", { className: "btn-main", style: { background: "linear-gradient(135deg,#db2777,#7c3aed)" }, onClick: () => estudar(R.current.rodadas.length) }, `Ver a lista (${R.current.rodadas.length + 1}ª vez)`));
   }
 
-  // fase === "direto" ou "inverso" — mostra a sequência ou o campo de digitação
-  return React.createElement("div", { style: { ...crd, textAlign: "center" } },
-    React.createElement("div", { style: { fontSize: 13, fontWeight: 700, color: "#9ca3af", marginBottom: 4 } },
-      modo === "direto" ? "Ordem direta" : "Ordem inversa", " · ", sequencia.length, " dígitos"
-    ),
-    !digitando && React.createElement("div", { style: { fontSize: 72, fontWeight: 900, color, minHeight: 100, display: "flex", alignItems: "center", justifyContent: "center" } },
-      mostrandoIdx >= 0 ? sequencia[mostrandoIdx] : "···"
-    ),
-    digitando && React.createElement("div", { style: { marginTop: 12 } },
-      React.createElement("p", { style: { fontSize: 13, color: "#6b7280", marginBottom: 12 } },
-        modo === "direto" ? "Digite os números na mesma ordem:" : "Digite os números de trás para frente:"
-      ),
-      React.createElement("input", {
-        className: "inp", type: "tel", inputMode: "numeric", autoFocus: true,
-        value: resposta, onChange: e => setResposta(e.target.value.replace(/\D/g, "")),
-        style: { textAlign: "center", fontSize: 28, fontWeight: 800, letterSpacing: 6 },
-        placeholder: "•".repeat(sequencia.length)
-      }),
-      React.createElement("button", { className: "btn-main", style: { background: color }, onClick: confirmar, disabled: resposta.length !== sequencia.length }, "Confirmar")
-    )
-  );
+  if (fase === "espera") {
+    const libera = R.current.salvoEm + MEM_CFG.atrasoMin * 60000;
+    const falta = Math.max(0, libera - agora);
+    const mm = Math.floor(falta / 60000), ss = Math.floor(falta % 60000 / 1000);
+    const hora = new Date(libera).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    const pronto = falta <= 0;
+    return h("div", { style: { ...crd, textAlign: "center", padding: 24 } },
+      h("div", { style: { fontSize: 42 } }, pronto ? "🔓" : "⏳"),
+      h("h3", { style: { fontSize: 19, fontWeight: 800, color: "#0f172a", margin: "6px 0" } }, pronto ? "Parte 2 liberada!" : "Parte 1 concluída!"),
+      !pronto && h("div", { style: { fontSize: 44, fontWeight: 900, color: cor, fontVariantNumeric: "tabular-nums", margin: "8px 0" } }, String(mm).padStart(2, "0"), ":", String(ss).padStart(2, "0")),
+      h("p", { style: { fontSize: 14, color: "#475569", marginBottom: 18, lineHeight: 1.5 } },
+        pronto ? "Escreva de novo as palavras da lista, sem ver. Você tem 90 segundos." : h(React.Fragment, null, "A parte 2 libera às ", h("b", null, hora), ". Pode sair do app e fazer outras tarefas. Depois volte nesta mesma tarefa. Não anote as palavras!")),
+      h("button", { className: "btn-main", disabled: !pronto, style: { background: pronto ? "linear-gradient(135deg,#db2777,#7c3aed)" : "#cbd5e1" }, onClick: () => setFase("tardia") }, pronto ? "Fazer a parte 2" : "Aguardando"));
+  }
+
+  if (fase === "tardia") return h(MemRecordar, { key: "tard", cor: "#7c3aed", titulo: "Parte 2 · sem ver a lista", sub: "Escreva todas as palavras da lista que você ainda lembra.", onFim: fimTardia });
+
+  if (fase === "resultado" && res) return h("div", { style: crd },
+    h("div", { style: { textAlign: "center", marginBottom: 14 } },
+      h("div", { style: { fontSize: 46, marginBottom: 4 } }, res.tardia >= 10 ? "🏆" : res.tardia >= 7 ? "🎯" : "💪"),
+      h("h3", { style: { fontSize: 19, fontWeight: 800, color: "#0f172a" } }, res.tardia >= 10 ? "Memória de elefante!" : res.tardia >= 7 ? "Muito bem!" : "Bom treino!"),
+      h("div", { style: { fontSize: 13, color: "#64748b", marginTop: 4 } }, res.t1, " → ", res.t2, " → ", res.t3, " e ", res.tardia, " depois de ", res.atrasoMin, " min")),
+    h(MemResultado, { response: res, compacto: true }),
+    h("button", { className: "btn-main", style: { background: "linear-gradient(135deg,#db2777,#7c3aed)" }, onClick: () => onSubmit(res) }, "Salvar resultado"));
+  return null;
+}
+
+function MemCurva({ r }) {
+  const h = React.createElement;
+  const pts = [["1ª", r.t1], ["2ª", r.t2], ["3ª", r.t3], ["20 min", r.tardia]];
+  const W = 320, H = 130, L = 26, B = 20, T = 12;
+  const x = i => L + 20 + i * (W - L - 50) / 3;
+  const y = v => T + (H - T - B) * (1 - (v || 0) / 12);
+  return h("svg", { viewBox: `0 0 ${W} ${H}`, style: { width: "100%", height: "auto", display: "block" }, role: "img", "aria-label": "Curva de aprendizagem" },
+    [0, 4, 8, 12].map(v => h("g", { key: v }, h("line", { x1: L, x2: W - 4, y1: y(v), y2: y(v), stroke: "#f1f5f9" }), h("text", { x: L - 5, y: y(v) + 3, fontSize: 8, fill: "#94a3b8", textAnchor: "end" }, v))),
+    h("path", { d: pts.slice(0, 3).map((p, i) => (i ? "L" : "M") + x(i) + " " + y(p[1])).join(" "), fill: "none", stroke: "#db2777", strokeWidth: 1.8 }),
+    h("path", { d: `M${x(2)} ${y(r.t3)} L${x(3)} ${y(r.tardia)}`, fill: "none", stroke: "#7c3aed", strokeWidth: 1.6, strokeDasharray: "4 3" }),
+    pts.map((p, i) => h("g", { key: i },
+      h("circle", { cx: x(i), cy: y(p[1]), r: 4, fill: i === 3 ? "#7c3aed" : "#db2777", stroke: "#fff", strokeWidth: 1.2 }),
+      h("text", { x: x(i), y: y(p[1]) - 8, fontSize: 9, fontWeight: 800, fill: "#0f172a", textAnchor: "middle" }, p[1] || 0),
+      h("text", { x: x(i), y: H - 5, fontSize: 8, fill: "#94a3b8", textAnchor: "middle" }, p[0]))));
+}
+function MemMatriz({ r }) {
+  const h = React.createElement;
+  const lista = MEM_LISTAS[r.forma || "A"];
+  const rec = r.recordadas || {};
+  const cols = [["t1", "1ª"], ["t2", "2ª"], ["t3", "3ª"], ["tardia", "20m"]];
+  return h("div", { style: { display: "grid", gridTemplateColumns: "1fr repeat(4,34px)", gap: "3px 4px", fontSize: 12, alignItems: "center" } },
+    h("div"), cols.map(c => h("div", { key: c[0], style: { fontSize: 10, color: "#94a3b8", fontWeight: 700, textAlign: "center" } }, c[1])),
+    lista.map((w, i) => [
+      h("div", { key: "w" + i, style: { color: "#334155", fontWeight: 600 } }, w),
+      cols.map(c => { const ok = (rec[c[0]] || []).includes(i); return h("div", { key: c[0] + i, style: { textAlign: "center", height: 20, lineHeight: "20px", borderRadius: 6, background: ok ? (c[0] === "tardia" ? "#ede9fe" : "#fce7f3") : "#f8fafc", color: ok ? (c[0] === "tardia" ? "#7c3aed" : "#db2777") : "#e2e8f0", fontWeight: 900 } }, ok ? "✓" : "·"); })
+    ]));
+}
+function MemResultado({ response, historico, compacto }) {
+  const h = React.createElement;
+  const r = response || {};
+  const v2 = r.versao === 2;
+  const [verPalavras, setVerPalavras] = useState(false);
+  const cards = v2 ? [
+    nxCard(`${r.t1} → ${r.t2} → ${r.t3}`, "1ª, 2ª e 3ª vez", "#db2777"),
+    nxCard(`${r.tardia}/12`, "Após " + (r.atrasoMin || 0) + " min", "#7c3aed", "Evocação tardia"),
+    nxCard(`${r.aprendizagem}/36`, "Aprendizagem total", "#0f172a", "Soma das 3 tentativas"),
+    nxCard((r.ganho > 0 ? "+" : "") + r.ganho, "Ganho 1ª → 3ª", r.ganho <= 1 ? "#d97706" : "#059669"),
+    nxCard((r.retencao || 0) + "%", "Retenção", r.retencao < 70 ? "#dc2626" : "#059669", "Quanto da 3ª vez ainda lembrava depois do intervalo"),
+    nxCard(r.intrusions || 0, "Intrusões", (r.intrusions || 0) > 2 ? "#d97706" : "#0f172a", "Palavras que não estavam na lista"),
+    nxCard(r.repeticoes || 0, "Repetições", "#0f172a", "Escreveu a mesma palavra 2 vezes na mesma tentativa")
+  ] : [
+    nxCard(`${r.acertos || 0}/${r.total || 10}`, "Recordadas"), nxCard((r.pct || 0) + "%", "Percentual"), nxCard(r.intrusions || 0, "Intrusões"), nxCard(r.nivel || "—", "Nível")
+  ];
+  const notas = [];
+  if (v2 && r.ganho <= 1 && r.t3 < 10) notas.push("Pouca melhora entre a 1ª e a 3ª vez: pode indicar dificuldade de aprendizagem ou de estratégia para memorizar.");
+  if (v2 && r.t3 >= 6 && r.retencao < 70) notas.push("Perdeu bastante depois do intervalo (retenção " + r.retencao + "%): olhar para a fixação da informação.");
+  if (v2 && r.atrasoMin > 60) notas.push("A parte 2 foi feita " + r.atrasoMin + " min depois (o ideal é entre 20 e 40 min). Compare com cautela.");
+  if (v2 && (r.intrusions || 0) >= 4) notas.push("Muitas intrusões: confunde ou inventa palavras ao lembrar.");
+  return h("div", null,
+    nxGrade(cards),
+    notas.map((t, i) => nxNota(t, i)),
+    !compacto && v2 && h(NxCaixa, { titulo: "Curva de aprendizagem", extra: "Forma " + (r.forma || "A") },
+      h(MemCurva, { r }),
+      h("div", { style: { display: "flex", gap: 8, fontSize: 11, color: "#64748b", marginTop: 6, flexWrap: "wrap" } },
+        h("span", null, "Lembrou mais das palavras do "),
+        [["começo", r.posInicio], ["meio", r.posMeio], ["fim", r.posFim]].map(([t, v]) => h("span", { key: t, style: { background: "#f8fafc", borderRadius: 8, padding: "2px 8px", fontWeight: 700 } }, t, ": ", v || 0, "%")))),
+    !compacto && v2 && h(NxCaixa, { titulo: "Palavra a palavra" },
+      h(MemMatriz, { r }),
+      (r.intrusoesLista || []).length ? h("div", { style: { marginTop: 8 } },
+        h("button", { onClick: () => setVerPalavras(v => !v), style: { border: "none", background: "none", color: "#7c3aed", fontWeight: 700, fontSize: 12, cursor: "pointer", padding: 0 } }, verPalavras ? "Ocultar intrusões" : "Ver mais: intrusões escritas"),
+        verPalavras && h("div", { style: { fontSize: 12, color: "#991b1b", marginTop: 4 } }, r.intrusoesLista.join(", "))) : null),
+    !compacto && !v2 && h("div", { style: { fontSize: 12, color: "#94a3b8", marginBottom: 10 } }, "Aplicação feita na versão antiga (1 tentativa, 10 palavras): não comparável com a versão nova."),
+    !compacto && historico && h(NxCaixa, { titulo: "Evolução entre aplicações" },
+      h(NxEvolucao, {
+        historico, ok: x => x.versao === 2, min0: true,
+        series: [{ nome: "após 20 min", cor: "#7c3aed", valor: x => x.tardia }, { nome: "3ª vez", cor: "#db2777", valor: x => x.t3 }],
+        textoDif: d => d === 0 ? ["estável", "#64748b"] : d > 0 ? [`▲ +${d} palavras após 20 min`, "#059669"] : [`▼ ${d} palavras após 20 min`, "#dc2626"]
+      })));
 }
 
 function EstadoDiaForm({ color, onSubmit }) {
@@ -9810,7 +10092,8 @@ function EstadoDiaForm({ color, onSubmit }) {
 function TaskForm({
   task,
   onSubmit,
-  onBack
+  onBack,
+  onParcial
 }) {
   const ti = getTypeInfo(task.type);
   return React.createElement("div", {
@@ -9883,7 +10166,9 @@ function TaskForm({
     onSubmit: onSubmit
   }), task.type === "memoria_lista" && React.createElement(MemoriaListaForm, {
     color: ti.color,
-    onSubmit: onSubmit
+    onSubmit: onSubmit,
+    parcial: task.parcial,
+    onParcial: onParcial
   })));
 }
 function PensamentosForm({
@@ -10862,6 +11147,10 @@ function ResponseView({
   if (!response) return null;
   if (type === "tr") return React.createElement(TRResultado, { response, historico, compacto });
   if (type === "stroop") return React.createElement(StroopResultado, { response, historico, compacto });
+  if (type === "tmt") return React.createElement(TmtResultado, { response, historico, compacto });
+  if (type === "nback") return React.createElement(NbResultado, { response, historico, compacto });
+  if (type === "digit_span") return React.createElement(SpanResultado, { response, historico, compacto });
+  if (type === "memoria_lista") return React.createElement(MemResultado, { response, historico, compacto });
   const items = [];
   if (type === "pensamentos") items.push(["Situação", response.situacao], ["Pensamento", response.pensamento], ["Emoção", response.emocao], ["Intensidade", `${response.intensidade}/10`], ["Alternativo", response.pensamentoAlternativo]);
   if (type === "atencao") items.push(["Páginas", response.paginas], ["Acertos", response.acertos], ["Erros", response.erros], ["Precisão", `${response.precisao}%`]);
